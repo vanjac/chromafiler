@@ -68,7 +68,7 @@ FolderWindow::FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item)
     , refCount(1)
 {}
 
-void FolderWindow::create(POINT pos) {
+void FolderWindow::create(POINT pos, int showCommand) {
     if (FAILED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         throw std::runtime_error("Unable to get folder name");
     wcout << "Create FolderWindow " <<&title[0]<< "\n";
@@ -91,7 +91,7 @@ void FolderWindow::create(POINT pos) {
     if (!hwnd)
         throw std::runtime_error("Couldn't create window");
 
-    ShowWindow(hwnd, SW_NORMAL);
+    ShowWindow(hwnd, showCommand);
 
     AddRef(); // keep window alive while open
     InterlockedIncrement(&numOpenWindows);
@@ -134,14 +134,8 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
             return 0;
         case WM_ACTIVATE: {
             // for DWM custom frame
-            MARGINS margins;
-            margins.cxLeftWidth = 0;
-            margins.cxRightWidth = 0;
-            margins.cyTopHeight = CAPTION_HEIGHT;
-            margins.cyBottomHeight = 0;
-            if (FAILED(DwmExtendFrameIntoClientArea(hwnd, &margins))) {
-                wcout << "Unable to create custom frame!\n";
-            }
+            // make sure frame is correct if window is maximized
+            extendWindowFrame();
 
             if (wParam != WA_INACTIVE) {
                 // bring children to front
@@ -274,10 +268,12 @@ void FolderWindow::setupWindow() {
     DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
         &disableAnimations, sizeof(disableAnimations));
 
+    extendWindowFrame();
+
     // ensure WM_NCCALCSIZE gets called
     // for DWM custom frame
     SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
-        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 void FolderWindow::cleanupWindow() {
@@ -294,6 +290,17 @@ void FolderWindow::cleanupWindow() {
 void FolderWindow::windowRectChanged() {
     if (child) {
         child->setPos(childPos());
+    }
+}
+
+void FolderWindow::extendWindowFrame() {
+    MARGINS margins;
+    margins.cxLeftWidth = 0;
+    margins.cxRightWidth = 0;
+    margins.cyTopHeight = CAPTION_HEIGHT;
+    margins.cyBottomHeight = 0;
+    if (FAILED(DwmExtendFrameIntoClientArea(hwnd, &margins))) {
+        wcout << "Unable to create custom frame!\n";
     }
 }
 
@@ -432,7 +439,7 @@ void FolderWindow::openChild(CComPtr<IShellItem> item) {
         if (attr & SFGAO_FOLDER) {
             child.Attach(new FolderWindow(this, item));
             // will flush message queue
-            child->create(childPos());
+            child->create(childPos(), SW_SHOWNOACTIVATE);
         }
     }
 }
@@ -560,7 +567,7 @@ int main(int argc, char* argv[]) {
 }
 #endif
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int showCommand) {
     wcout << "omg hiiiii ^w^\n"; // DO NOT REMOVE!!
 
     chromabrowse::globalHInstance = hInstance;
@@ -580,10 +587,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         RECT workArea;
         SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+        POINT windowPos = {workArea.left, workArea.bottom - chromabrowse::DEFAULT_HEIGHT};
 
         CComPtr<chromabrowse::FolderWindow> initialWindow;
         initialWindow.Attach(new chromabrowse::FolderWindow(nullptr, desktop));
-        initialWindow->create({workArea.left, workArea.bottom - chromabrowse::DEFAULT_HEIGHT});
+        initialWindow->create(windowPos, showCommand);
     }
 
     MSG msg;

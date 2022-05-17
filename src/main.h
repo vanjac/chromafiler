@@ -17,7 +17,7 @@ public:
 
     FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item);
 
-    void create(POINT pos);
+    void create(POINT pos, int showCommand);
     void close();
     void setPos(POINT pos);
     void move(int x, int y);
@@ -40,6 +40,8 @@ private:
     void setupWindow();
     void cleanupWindow();
     void windowRectChanged();
+    // for DWM custom frame:
+    void extendWindowFrame();
     LRESULT hitTestNCA(POINT cursor);
     void paintCustomCaption(HDC hdc);
 
