@@ -71,7 +71,7 @@ FolderWindow::FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item)
 void FolderWindow::create(POINT pos, int showCommand) {
     if (FAILED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         throw std::runtime_error("Unable to get folder name");
-    wcout << "Create FolderWindow " <<&title[0]<< "\n";
+    wcout << "Create " <<&title[0]<< "\n";
 
     HWND hwnd = CreateWindowEx(
         0,                      // extended style
@@ -227,9 +227,6 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
             windowRectChanged();
             return 0;
         }
-        case MSG_SELCHANGE:
-            selectionChanged();
-            return 0;
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -252,7 +249,7 @@ void FolderWindow::setupWindow() {
         if (SUCCEEDED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
             browser->SetOptions(EBO_NAVIGATEONCE); // no navigation
             if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
-                wcout << "Unable to browse to folder\n";
+                wcout << "Unable to browse to folder " <<&title[0]<< "\n";
                 close();
             }
 
@@ -277,7 +274,7 @@ void FolderWindow::setupWindow() {
 }
 
 void FolderWindow::cleanupWindow() {
-    wcout << "Cleanup FolderWindow\n";
+    wcout << "Cleanup " <<&title[0]<< "\n";
     IUnknown_SetSite(browser, nullptr);
     if (child) {
         child->parent = nullptr;
@@ -502,7 +499,7 @@ STDMETHODIMP_(ULONG) FolderWindow::AddRef() {
 STDMETHODIMP_(ULONG) FolderWindow::Release() {
     long r = InterlockedDecrement(&refCount);
     if (r == 0) {
-        wcout << "Delete FolderWindow\n";
+        wcout << "Delete " <<&title[0]<< "\n";
         delete this; // TODO ???
     }
     return r;
@@ -548,9 +545,9 @@ STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView * view) {
 
 STDMETHODIMP FolderWindow::OnStateChange(IShellView * view, ULONG change) {
     if (change == CDBOSC_SELCHANGE) {
-        // selection changed
-        // handle asynchronously because that's how the example code does it
-        PostMessage(hwnd, MSG_SELCHANGE, 0, 0);
+        // TODO this can hang the browser and should really be done asynchronously with a message
+        // but that adds other complication
+        selectionChanged();
     }
     return S_OK;
 }
