@@ -426,7 +426,7 @@ void FolderWindow::openChild(CComPtr<IShellItem> item) {
     item = resolveLink(item);
     if (child) {
         int compare;
-        if (SUCCEEDED(child->item->Compare(item, SICHINT_ALLFIELDS, &compare)) && compare == 0) {
+        if (SUCCEEDED(child->item->Compare(item, SICHINT_CANONICAL, &compare)) && compare == 0) {
             return; // already open
         }
         closeChild();
