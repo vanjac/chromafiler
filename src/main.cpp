@@ -29,7 +29,7 @@ static int CAPTION_HEIGHT;
 
 static HINSTANCE globalHInstance;
 static long numOpenWindows;
-static CComPtr<IShellView> focusedShellView;
+static CComPtr<FolderWindow> activeWindow;
 
 void FolderWindow::registerClass() {
     WNDCLASS wndClass = {};
@@ -139,11 +139,9 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
             extendWindowFrame();
 
             if (wParam != WA_INACTIVE) {
-                if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&focusedShellView)))) {
-                    focusedShellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
-                } else {
-                    focusedShellView = nullptr;
-                }
+                activeWindow = this;
+                if (shellView)
+                    shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
 
                 // bring children to front
                 auto nextChild = child;
@@ -265,6 +263,8 @@ void FolderWindow::setupWindow() {
                 // FVM_SMALLICON only seems to work if it's also specified with an icon size
                 view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)); // = 16
             }
+
+            browser->GetCurrentView(IID_PPV_ARGS(&shellView));
         }
     }
 
@@ -289,6 +289,8 @@ void FolderWindow::cleanupWindow() {
     }
     child = nullptr;
     detachFromParent();
+    if (activeWindow == this)
+        activeWindow = nullptr;
 }
 
 void FolderWindow::windowRectChanged() {
@@ -603,8 +605,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
-        if (chromabrowse::focusedShellView &&
-                chromabrowse::focusedShellView->TranslateAccelerator(&msg) == S_OK)
+        if (chromabrowse::activeWindow && chromabrowse::activeWindow->shellView
+                && chromabrowse::activeWindow->shellView->TranslateAccelerator(&msg) == S_OK)
             continue;
         TranslateMessage(&msg);
         DispatchMessage(&msg);

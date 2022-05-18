@@ -31,6 +31,8 @@ public:
     STDMETHODIMP OnStateChange(IShellView * view, ULONG change);
     STDMETHODIMP IncludeObject(IShellView * view, PCUITEMID_CHILD pidl);
 
+    CComPtr<IShellView> shellView;
+
 private:
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     LRESULT handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
