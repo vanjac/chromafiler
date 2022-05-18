@@ -68,7 +68,7 @@ FolderWindow::FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item)
     , refCount(1)
 {}
 
-void FolderWindow::create(POINT pos, int showCommand) {
+void FolderWindow::create(RECT rect, int showCommand) {
     if (FAILED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         throw std::runtime_error("Unable to get folder name");
     wcout << "Create " <<&title[0]<< "\n";
@@ -82,7 +82,7 @@ void FolderWindow::create(POINT pos, int showCommand) {
         (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX) | WS_CLIPCHILDREN,
 
         // position/size
-        pos.x, pos.y, DEFAULT_WIDTH, DEFAULT_HEIGHT,
+        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
 
         nullptr,                // parent window
         nullptr,                // menu
@@ -436,7 +436,9 @@ void FolderWindow::openChild(CComPtr<IShellItem> item) {
         if (attr & SFGAO_FOLDER) {
             child.Attach(new FolderWindow(this, item));
             // will flush message queue
-            child->create(childPos(), SW_SHOWNOACTIVATE);
+            POINT pos = childPos();
+            child->create({pos.x, pos.y, pos.x + DEFAULT_WIDTH, pos.y + DEFAULT_HEIGHT},
+                          SW_SHOWNOACTIVATE);
         }
     }
 }
@@ -466,12 +468,12 @@ POINT FolderWindow::childPos() {
     // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
     // GetWindowRect includes the drop shadow! (why??)
     GetWindowRect(hwnd, &shadowRect);
-    RECT rect = {};
+    RECT frameRect = {};
     // TODO not DPI aware!!
-    DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &rect, sizeof(rect));
-    int shadowLeft = rect.left - shadowRect.left;
-    int shadowTop = rect.top - shadowRect.top;
-    return {rect.right - shadowLeft, rect.top - shadowTop};
+    DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &frameRect, sizeof(frameRect));
+    int shadowLeft = frameRect.left - shadowRect.left;
+    int shadowTop = frameRect.top - shadowRect.top;
+    return {frameRect.right - shadowLeft, frameRect.top - shadowTop};
 }
 
 void FolderWindow::detachFromParent() {
@@ -584,11 +586,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
         RECT workArea;
         SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-        POINT windowPos = {workArea.left, workArea.bottom - chromabrowse::DEFAULT_HEIGHT};
+        RECT windowRect = {workArea.left, workArea.bottom - chromabrowse::DEFAULT_HEIGHT,
+                           workArea.left + chromabrowse::DEFAULT_WIDTH, workArea.bottom};
 
         CComPtr<chromabrowse::FolderWindow> initialWindow;
         initialWindow.Attach(new chromabrowse::FolderWindow(nullptr, desktop));
-        initialWindow->create(windowPos, showCommand);
+        initialWindow->create(windowRect, showCommand);
     }
 
     MSG msg;

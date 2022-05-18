@@ -15,7 +15,7 @@ public:
 
     FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item);
 
-    void create(POINT pos, int showCommand);
+    void create(RECT rect, int showCommand);
     void close();
     void setPos(POINT pos);
     void move(int x, int y);
