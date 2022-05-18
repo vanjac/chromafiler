@@ -29,6 +29,7 @@ static int CAPTION_HEIGHT;
 
 static HINSTANCE globalHInstance;
 static long numOpenWindows;
+static CComPtr<IShellView> focusedShellView;
 
 void FolderWindow::registerClass() {
     WNDCLASS wndClass = {};
@@ -138,6 +139,12 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
             extendWindowFrame();
 
             if (wParam != WA_INACTIVE) {
+                if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&focusedShellView)))) {
+                    focusedShellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
+                } else {
+                    focusedShellView = nullptr;
+                }
+
                 // bring children to front
                 auto nextChild = child;
                 while (nextChild) {
@@ -596,6 +603,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
+        if (chromabrowse::focusedShellView &&
+                chromabrowse::focusedShellView->TranslateAccelerator(&msg) == S_OK)
+            continue;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
