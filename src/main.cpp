@@ -283,6 +283,7 @@ void FolderWindow::setupWindow() {
 void FolderWindow::cleanupWindow() {
     wcout << "Cleanup " <<&title[0]<< "\n";
     IUnknown_SetSite(browser, nullptr);
+    browser->Destroy();
     if (child) {
         child->parent = nullptr;
         child->close(); // recursive
