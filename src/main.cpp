@@ -238,6 +238,12 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
 }
 
 void FolderWindow::setupWindow() {
+    BOOL disableAnimations = true;
+    DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+        &disableAnimations, sizeof(disableAnimations));
+
+    extendWindowFrame();
+
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect);
 
@@ -255,6 +261,7 @@ void FolderWindow::setupWindow() {
         return;
     }
     if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
+        // eg. browsing a subdirectory in the recycle bin
         wcout << "Unable to browse to folder " <<&title[0]<< "\n";
         close();
         return;
@@ -283,12 +290,6 @@ void FolderWindow::setupWindow() {
 
     browser->GetCurrentView(IID_PPV_ARGS(&shellView));
     IUnknown_SetSite(browser, (IServiceProvider *)this);
-
-    BOOL disableAnimations = true;
-    DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-        &disableAnimations, sizeof(disableAnimations));
-
-    extendWindowFrame();
 
     // ensure WM_NCCALCSIZE gets called
     // for DWM custom frame
