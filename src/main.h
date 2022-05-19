@@ -47,6 +47,7 @@ private:
 
     void selectionChanged();
 
+    void resultsFolderFallback();
     void closeChild();
     void openChild(CComPtr<IShellItem> item);
     CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> item);

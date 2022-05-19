@@ -5,6 +5,7 @@
 #include <shlobj.h>
 #include <dwmapi.h>
 #include <vssym32.h>
+#include <propkey.h>
 
 // https://docs.microsoft.com/en-us/windows/win32/controls/cookbook-overview
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -74,8 +75,7 @@ void FolderWindow::create(RECT rect, int showCommand) {
         throw std::runtime_error("Unable to get folder name");
     wcout << "Create " <<&title[0]<< "\n";
 
-    HWND hwnd = CreateWindowEx(
-        0,                      // extended style
+    HWND hwnd = CreateWindow(
         CLASS_NAME,             // class name
         title,                  // title
         // style
@@ -241,32 +241,48 @@ void FolderWindow::setupWindow() {
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect);
 
-    if (SUCCEEDED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))) {
-        IUnknown_SetSite(browser, (IServiceProvider *)this);
+    // TODO ??
+    RECT browserRect = windowRect;
+    MapWindowRect(HWND_DESKTOP, hwnd, &browserRect);
 
-        // TODO ??
-        RECT browserRect = windowRect;
-        MapWindowRect(HWND_DESKTOP, hwnd, &browserRect);
+    FOLDERSETTINGS folderSettings = {};
+    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see below)
+    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
 
-        FOLDERSETTINGS folderSettings = {};
-        folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see below)
-        folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
-        if (SUCCEEDED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
-            browser->SetOptions(EBO_NAVIGATEONCE); // no navigation
-            if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
-                wcout << "Unable to browse to folder " <<&title[0]<< "\n";
+    if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
+            || FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
+        close();
+        return;
+    }
+    if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
+        wcout << "Unable to browse to folder " <<&title[0]<< "\n";
+        close();
+        return;
+    }
+
+    CComPtr<IFolderView2> view;
+    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+        int itemCount;
+        if (FAILED(view->ItemCount(SVGIO_ALLVIEW, &itemCount))) {
+            // will fail for control panel
+            browser->Destroy(); // destroy and recreate browser
+            if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
+                    || FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
                 close();
+                return;
             }
-
-            CComPtr<IFolderView2> view;
-            if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-                // FVM_SMALLICON only seems to work if it's also specified with an icon size
-                view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)); // = 16
-            }
-
-            browser->GetCurrentView(IID_PPV_ARGS(&shellView));
+            resultsFolderFallback();
         }
     }
+
+    browser->SetOptions(EBO_NAVIGATEONCE); // no navigation
+    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+        // FVM_SMALLICON only seems to work if it's also specified with an icon size
+        view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)); // = 16
+    }
+
+    browser->GetCurrentView(IID_PPV_ARGS(&shellView));
+    IUnknown_SetSite(browser, (IServiceProvider *)this);
 
     BOOL disableAnimations = true;
     DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
@@ -420,6 +436,27 @@ void FolderWindow::selectionChanged() {
         } else {
             // 0 or more than 1 item selected
             closeChild();
+        }
+    }
+}
+
+void FolderWindow::resultsFolderFallback() {
+    wcout << "Using results folder fallback\n";
+    CComPtr<IEnumShellItems> enumItems;
+    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_EnumItems,
+            IID_PPV_ARGS(&enumItems)))) {
+        // create empty ResultsFolder
+        if (SUCCEEDED(browser->FillFromObject(nullptr, EBF_NODROPTARGET))) {
+            CComPtr<IFolderView2> view;
+            if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+                CComPtr<IResultsFolder> results;
+                if (SUCCEEDED(view->GetFolder(IID_PPV_ARGS(&results)))) {
+                    CComPtr<IShellItem> childItem;
+                    while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
+                        results->AddItem(childItem);
+                    }
+                }
+            }
         }
     }
 }
