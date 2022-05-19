@@ -5,7 +5,6 @@
 #include <shlobj.h>
 #include <dwmapi.h>
 #include <vssym32.h>
-#include <propkey.h>
 
 // https://docs.microsoft.com/en-us/windows/win32/controls/cookbook-overview
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -273,6 +272,7 @@ void FolderWindow::setupWindow() {
     if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         int itemCount;
         if (FAILED(view->ItemCount(SVGIO_ALLVIEW, &itemCount))) {
+            view = nullptr;
             // will fail for control panel
             browser->Destroy(); // destroy and recreate browser
             if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
