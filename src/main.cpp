@@ -102,6 +102,10 @@ void FolderWindow::close() {
     PostMessage(hwnd, WM_CLOSE, 0, 0);
 }
 
+void FolderWindow::activate() {
+    SetActiveWindow(hwnd);
+}
+
 void FolderWindow::setPos(POINT pos) {
     // TODO SWP_ASYNCWINDOWPOS?
     SetWindowPos(hwnd, 0, pos.x, pos.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
@@ -243,6 +247,20 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+bool FolderWindow::handleTopLevelMessage(MSG *msg) {
+    if (msg->message == WM_KEYDOWN && msg->wParam == VK_TAB) {
+        if (GetKeyState(VK_SHIFT) & 0x8000) {
+            if (parent)
+                parent->activate();
+        } else {
+            if (child)
+                child->activate();
+        }
+        return true;
+    }
+    return false;
 }
 
 void FolderWindow::setupWindow() {
@@ -604,11 +622,11 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
 /* ICommDlgBrowser */
 
 // called when double-clicking a file
-STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView * view) {
+STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
     return S_FALSE; // perform default action
 }
 
-STDMETHODIMP FolderWindow::OnStateChange(IShellView * view, ULONG change) {
+STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
     if (change == CDBOSC_SELCHANGE) {
         // TODO this can hang the browser and should really be done asynchronously with a message
         // but that adds other complication
@@ -617,7 +635,7 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView * view, ULONG change) {
     return S_OK;
 }
 
-STDMETHODIMP FolderWindow::IncludeObject(IShellView * view, PCUITEMID_CHILD pidl) {
+STDMETHODIMP FolderWindow::IncludeObject(IShellView *view, PCUITEMID_CHILD pidl) {
     return S_OK; // include all objects
 }
 
@@ -659,6 +677,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
+        if (chromabrowse::activeWindow && chromabrowse::activeWindow->handleTopLevelMessage(&msg))
+            continue;
         if (chromabrowse::activeWindow && chromabrowse::activeWindow->shellView
                 && chromabrowse::activeWindow->shellView->TranslateAccelerator(&msg) == S_OK)
             continue;

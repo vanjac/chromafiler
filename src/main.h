@@ -19,8 +19,11 @@ public:
 
     void create(RECT rect, int showCommand);
     void close();
+    void activate();
     void setPos(POINT pos);
     void move(int x, int y);
+
+    bool handleTopLevelMessage(MSG *msg);
 
     // IUnknown
     STDMETHODIMP QueryInterface(REFIID id, void **obj);
@@ -29,15 +32,15 @@ public:
     // IServiceProvider
     STDMETHODIMP QueryService(REFGUID guidService, REFIID riid, void **ppv);
     // ICommDlgBrowser
-    STDMETHODIMP OnDefaultCommand(IShellView * view);
-    STDMETHODIMP OnStateChange(IShellView * view, ULONG change);
-    STDMETHODIMP IncludeObject(IShellView * view, PCUITEMID_CHILD pidl);
+    STDMETHODIMP OnDefaultCommand(IShellView *view);
+    STDMETHODIMP OnStateChange(IShellView *view, ULONG change);
+    STDMETHODIMP IncludeObject(IShellView *view, PCUITEMID_CHILD pidl);
 
     CComPtr<IShellView> shellView;
 
 private:
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-    LRESULT handleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+    LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
     
     void setupWindow();
     void cleanupWindow();
