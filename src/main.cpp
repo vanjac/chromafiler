@@ -5,6 +5,7 @@
 #include <shlobj.h>
 #include <dwmapi.h>
 #include <vssym32.h>
+#include <propkey.h>
 
 // https://docs.microsoft.com/en-us/windows/win32/controls/cookbook-overview
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -230,6 +231,14 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
             browser->SetRect(nullptr, browserRect);
             windowRectChanged();
             return 0;
+        }
+        /* user messages */
+        case MSG_FORCE_SORT: {
+            CComPtr<IFolderView2> view;
+            if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+                SORTCOLUMN column = {PKEY_ItemNameDisplay, SORT_ASCENDING};
+                view->SetSortColumns(&column, 1);
+            }
         }
     }
 
@@ -458,6 +467,10 @@ void FolderWindow::resultsFolderFallback() {
                     while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
                         results->AddItem(childItem);
                     }
+                    // for some reason changing the sort columns immediately after adding items
+                    // breaks the folder view, so delay it until the browser has had a chance to
+                    // process some messages
+                    PostMessage(hwnd, MSG_FORCE_SORT, 0, 0);
                 }
             }
         }

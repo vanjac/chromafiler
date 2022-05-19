@@ -10,6 +10,8 @@ namespace chromabrowse {
 class FolderWindow : public IServiceProvider, public ICommDlgBrowser {
 public:
     static const wchar_t *CLASS_NAME;
+    // user messages
+    static const UINT MSG_FORCE_SORT = WM_USER;
 
     static void registerClass();
 
