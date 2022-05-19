@@ -643,12 +643,14 @@ STDMETHODIMP FolderWindow::IncludeObject(IShellView *view, PCUITEMID_CHILD pidl)
 
 #ifdef DEBUG
 int main(int argc, char* argv[]) {
-    wWinMain(nullptr, nullptr, L"", SW_SHOWNORMAL);
+    wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
 }
 #endif
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int showCommand) {
     wcout << "omg hiiiii ^w^\n"; // DO NOT REMOVE!!
+    int argc;
+    wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
     chromabrowse::globalHInstance = hInstance;
 
@@ -658,11 +660,19 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     chromabrowse::FolderWindow::registerClass();
 
     {
-        CComPtr<IShellItem> desktop;
-        if (FAILED(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
-                IID_PPV_ARGS(&desktop)))) {
-            wcout << "Couldn't get desktop!\n";
-            return 0;
+        CComPtr<IShellItem> startItem;
+        if (argc > 1) {
+            // TODO parse name vs display name https://stackoverflow.com/q/42966489
+            if (FAILED(SHCreateItemFromParsingName(argv[1], nullptr, IID_PPV_ARGS(&startItem)))) {
+                wcout << "Unable to locate item at path\n";
+                return 0;
+            }
+        } else {
+            if (FAILED(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
+                    IID_PPV_ARGS(&startItem)))) {
+                wcout << "Couldn't get desktop!\n";
+                return 0;
+            }
         }
 
         RECT workArea;
@@ -671,7 +681,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
                            workArea.left + chromabrowse::DEFAULT_WIDTH, workArea.bottom};
 
         CComPtr<chromabrowse::FolderWindow> initialWindow;
-        initialWindow.Attach(new chromabrowse::FolderWindow(nullptr, desktop));
+        initialWindow.Attach(new chromabrowse::FolderWindow(nullptr, startItem));
         initialWindow->create(windowRect, showCommand);
     }
 
