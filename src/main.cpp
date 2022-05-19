@@ -254,12 +254,14 @@ void FolderWindow::setupWindow() {
     FOLDERSETTINGS folderSettings = {};
     folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see below)
     folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
+    EXPLORER_BROWSER_OPTIONS browserOptions = EBO_NAVIGATEONCE; // no navigation
 
     if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
             || FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
         close();
         return;
     }
+    browser->SetOptions(browserOptions);
     if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
         wcout << "Unable to browse to folder " <<&title[0]<< "\n";
@@ -278,11 +280,11 @@ void FolderWindow::setupWindow() {
                 close();
                 return;
             }
+            browser->SetOptions(browserOptions);
             resultsFolderFallback();
         }
     }
 
-    browser->SetOptions(EBO_NAVIGATEONCE); // no navigation
     if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         // FVM_SMALLICON only seems to work if it's also specified with an icon size
         view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)); // = 16
