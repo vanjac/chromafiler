@@ -19,6 +19,8 @@
 				"Dwmapi.lib",
 				"Gdi32.lib",
 				"UxTheme.lib",
+				"/link",
+				"/incremental:no",
 			],
 			"options": {
 				"cwd": "${workspaceFolder}\\build"
