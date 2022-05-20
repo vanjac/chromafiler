@@ -16,6 +16,7 @@ public:
     static void registerClass();
 
     FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item);
+    ~FolderWindow();
 
     void create(RECT rect, int showCommand);
     void close();
@@ -63,6 +64,7 @@ private:
     CComPtr<IShellItem> item;
     CComPtr<IExplorerBrowser> browser;
     CComHeapPtr<wchar_t> title;
+    HICON iconLarge, iconSmall;
 
     CComPtr<FolderWindow> parent;
     CComPtr<FolderWindow> child;

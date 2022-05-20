@@ -67,13 +67,37 @@ FolderWindow::FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item)
     : parent(parent)
     , child(nullptr)
     , item(item)
+    , iconLarge(nullptr)
+    , iconSmall(nullptr)
     , refCount(1)
 {}
+
+FolderWindow::~FolderWindow() {
+    if (iconLarge)
+        DestroyIcon(iconLarge);
+    if (iconSmall)
+        DestroyIcon(iconSmall);
+}
 
 void FolderWindow::create(RECT rect, int showCommand) {
     if (FAILED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         throw std::runtime_error("Unable to get folder name");
     wcout << "Create " <<&title[0]<< "\n";
+
+    CComPtr<IExtractIcon> extractIcon;
+    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
+        wchar_t iconFile[MAX_PATH];
+        int index;
+        UINT flags;
+        if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
+            UINT iconSizes = (GetSystemMetrics(SM_CXSMICON) << 16) + GetSystemMetrics(SM_CXICON);
+            if (extractIcon->Extract(iconFile, index, &iconLarge, &iconSmall, iconSizes) != S_OK) {
+                wcout << "IExtractIcon failed\n";
+                // https://devblogs.microsoft.com/oldnewthing/20140501-00/?p=1103
+                SHDefExtractIcon(iconFile, index, flags, &iconLarge, &iconSmall, iconSizes);
+            }
+        }
+    }
 
     HWND hwnd = CreateWindow(
         CLASS_NAME,             // class name
@@ -267,12 +291,15 @@ void FolderWindow::setupWindow() {
     BOOL disableAnimations = true;
     DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
         &disableAnimations, sizeof(disableAnimations));
-
     extendWindowFrame();
+
+    if (iconLarge)
+        PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
+    if (iconSmall)
+        PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect);
-
     // TODO ??
     RECT browserRect = windowRect;
     MapWindowRect(HWND_DESKTOP, hwnd, &browserRect);
