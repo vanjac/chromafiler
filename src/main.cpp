@@ -20,7 +20,7 @@ namespace chromabrowse {
 const wchar_t * FolderWindow::CLASS_NAME = L"Folder Window";
 
 // dimensions
-const int DEFAULT_WIDTH = 220;
+const int DEFAULT_WIDTH = 231; // just large enough for scrollbar tooltips
 const int DEFAULT_HEIGHT = 450;
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
