@@ -268,6 +268,7 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
                 SORTCOLUMN column = {PKEY_ItemNameDisplay, SORT_ASCENDING};
                 view->SetSortColumns(&column, 1);
             }
+            return 0;
         }
     }
 
@@ -482,6 +483,12 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
     CloseThemeData(theme);
 }
 
+void FolderWindow::clearSelection() {
+    if (shellView) {
+        shellView->SelectItem(nullptr, SVSI_DESELECTOTHERS);
+    }
+}
+
 void FolderWindow::selectionChanged() {
     CComPtr<IFolderView2> view;
     if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
@@ -592,6 +599,7 @@ POINT FolderWindow::childPos() {
 void FolderWindow::detachFromParent() {
     if (parent && parent->child == this) {
         parent->child = nullptr;
+        parent->clearSelection();
     }
     parent = nullptr;
 }

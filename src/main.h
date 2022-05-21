@@ -23,6 +23,7 @@ public:
     void activate();
     void setPos(POINT pos);
     void move(int x, int y);
+    void clearSelection();
 
     bool handleTopLevelMessage(MSG *msg);
 
