@@ -632,27 +632,20 @@ CComPtr<IShellItem> FolderWindow::resolveLink(CComPtr<IShellItem> item) {
 }
 
 POINT FolderWindow::childPos() {
-    RECT shadowRect = {};
+    RECT windowRect = {}, clientRect = {};
     // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
     // GetWindowRect includes the drop shadow! (why??)
-    GetWindowRect(hwnd, &shadowRect);
-    RECT frameRect = {};
-    // TODO not DPI aware!!
-    DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &frameRect, sizeof(frameRect));
-    int shadowLeft = frameRect.left - shadowRect.left;
-    int shadowTop = frameRect.top - shadowRect.top;
-    return {frameRect.right - shadowLeft, frameRect.top - shadowTop};
+    GetWindowRect(hwnd, &windowRect);
+    GetClientRect(hwnd, &clientRect);
+    return {windowRect.left + clientRect.right, windowRect.top};
 }
 
 POINT FolderWindow::parentPos() {
-    RECT shadowRect = {};
-    GetWindowRect(hwnd, &shadowRect);
-    RECT frameRect = {};
-    // TODO not DPI aware!!
-    DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &frameRect, sizeof(frameRect));
-    int shadowRight = shadowRect.right - frameRect.right;
-    int shadowTop = frameRect.top - shadowRect.top;
-    return {frameRect.left + shadowRight, frameRect.top - shadowTop};
+    RECT windowRect = {};
+    GetWindowRect(hwnd, &windowRect);
+    POINT shadow = {windowRect.left, windowRect.top};
+    ScreenToClient(hwnd, &shadow); // determine size of drop shadow
+    return {windowRect.left - shadow.x * 2, windowRect.top};
 }
 
 void FolderWindow::detachFromParent() {
