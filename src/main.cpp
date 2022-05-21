@@ -1,6 +1,4 @@
 #include "main.h"
-#include <cstdio>
-#include <cstdlib>
 #include <windowsx.h>
 #include <shlobj.h>
 #include <dwmapi.h>
@@ -102,10 +100,10 @@ FolderWindow::~FolderWindow() {
 
 bool FolderWindow::create(RECT rect, int showCommand) {
     if (FAILED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title))) {
-        wprintf(L"Unable to get folder name\n");
+        debugPrintf(L"Unable to get folder name\n");
         return false;
     }
-    wprintf(L"Create %s\n", &*title);
+    debugPrintf(L"Create %s\n", &*title);
 
     CComPtr<IExtractIcon> extractIcon;
     if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
@@ -115,7 +113,7 @@ bool FolderWindow::create(RECT rect, int showCommand) {
         if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
             UINT iconSizes = (GetSystemMetrics(SM_CXSMICON) << 16) + GetSystemMetrics(SM_CXICON);
             if (extractIcon->Extract(iconFile, index, &iconLarge, &iconSmall, iconSizes) != S_OK) {
-                wprintf(L"IExtractIcon failed\n");
+                debugPrintf(L"IExtractIcon failed\n");
                 // https://devblogs.microsoft.com/oldnewthing/20140501-00/?p=1103
                 SHDefExtractIcon(iconFile, index, flags, &iconLarge, &iconSmall, iconSizes);
             }
@@ -137,7 +135,7 @@ bool FolderWindow::create(RECT rect, int showCommand) {
         globalHInstance,        // instance handle
         this);                  // application data
     if (!hwnd) {
-        wprintf(L"Couldn't create window\n");
+        debugPrintf(L"Couldn't create window\n");
         return false;
     }
 
@@ -352,7 +350,7 @@ void FolderWindow::setupWindow() {
     browser->SetOptions(browserOptions);
     if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
-        wprintf(L"Unable to browse to folder %s\n", &*title);
+        debugPrintf(L"Unable to browse to folder %s\n", &*title);
         close();
         return;
     }
@@ -408,7 +406,7 @@ void FolderWindow::setupWindow() {
 }
 
 void FolderWindow::cleanupWindow() {
-    wprintf(L"Cleanup %s\n", &*title);
+    debugPrintf(L"Cleanup %s\n", &*title);
     IUnknown_SetSite(browser, nullptr);
     browser->Destroy();
     if (child) {
@@ -434,7 +432,7 @@ void FolderWindow::extendWindowFrame() {
     margins.cyTopHeight = CAPTION_HEIGHT;
     margins.cyBottomHeight = 0;
     if (FAILED(DwmExtendFrameIntoClientArea(hwnd, &margins))) {
-        wprintf(L"Unable to create custom frame!\n");
+        debugPrintf(L"Unable to create custom frame!\n");
     }
 }
 
@@ -573,7 +571,7 @@ void FolderWindow::selectionChanged() {
 }
 
 void FolderWindow::resultsFolderFallback() {
-    wprintf(L"Using results folder fallback\n");
+    debugPrintf(L"Using results folder fallback\n");
     CComPtr<IEnumShellItems> enumItems;
     if (SUCCEEDED(item->BindToHandler(nullptr, BHID_EnumItems,
             IID_PPV_ARGS(&enumItems)))) {
@@ -652,7 +650,7 @@ CComPtr<IShellItem> FolderWindow::resolveLink(CComPtr<IShellItem> item) {
                 }
             }
         } else {
-            wprintf(L"Could not resolve link\n");
+            debugPrintf(L"Could not resolve link\n");
         }
     }
     return item;
@@ -702,7 +700,7 @@ STDMETHODIMP_(ULONG) FolderWindow::AddRef() {
 STDMETHODIMP_(ULONG) FolderWindow::Release() {
     long r = InterlockedDecrement(&refCount);
     if (r == 0) {
-        wprintf(L"Delete %s\n", &*title);
+        debugPrintf(L"Delete %s\n", &*title);
         delete this; // TODO ???
     }
     return r;
@@ -816,7 +814,7 @@ int main(int argc, char* argv[]) {
 #endif
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int showCommand) {
-    wprintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
+    debugPrintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
     int argc;
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
@@ -836,13 +834,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         if (argc > 1) {
             // TODO parse name vs display name https://stackoverflow.com/q/42966489
             if (FAILED(SHCreateItemFromParsingName(argv[1], nullptr, IID_PPV_ARGS(&startItem)))) {
-                wprintf(L"Unable to locate item at path\n");
+                debugPrintf(L"Unable to locate item at path\n");
                 return 0;
             }
         } else {
             if (FAILED(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
                     IID_PPV_ARGS(&startItem)))) {
-                wprintf(L"Couldn't get desktop!\n");
+                debugPrintf(L"Couldn't get desktop!\n");
                 return 0;
             }
         }
