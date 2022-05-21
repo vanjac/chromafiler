@@ -19,6 +19,7 @@
 				"Dwmapi.lib",
 				"Gdi32.lib",
 				"UxTheme.lib",
+				"Comctl32.lib",
 				"/link",
 				"/incremental:no",
 			],
