@@ -1,5 +1,5 @@
 #include "main.h"
-#include <stdexcept>
+#include <cstdio>
 #include <cstdlib>
 #include <windowsx.h>
 #include <shlobj.h>
@@ -100,10 +100,12 @@ FolderWindow::~FolderWindow() {
         DestroyIcon(iconSmall);
 }
 
-void FolderWindow::create(RECT rect, int showCommand) {
-    if (FAILED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
-        throw std::runtime_error("Unable to get folder name");
-    wcout << "Create " <<&title[0]<< "\n";
+bool FolderWindow::create(RECT rect, int showCommand) {
+    if (FAILED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title))) {
+        wprintf(L"Unable to get folder name\n");
+        return false;
+    }
+    wprintf(L"Create %s\n", &*title);
 
     CComPtr<IExtractIcon> extractIcon;
     if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
@@ -113,7 +115,7 @@ void FolderWindow::create(RECT rect, int showCommand) {
         if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
             UINT iconSizes = (GetSystemMetrics(SM_CXSMICON) << 16) + GetSystemMetrics(SM_CXICON);
             if (extractIcon->Extract(iconFile, index, &iconLarge, &iconSmall, iconSizes) != S_OK) {
-                wcout << "IExtractIcon failed\n";
+                wprintf(L"IExtractIcon failed\n");
                 // https://devblogs.microsoft.com/oldnewthing/20140501-00/?p=1103
                 SHDefExtractIcon(iconFile, index, flags, &iconLarge, &iconSmall, iconSizes);
             }
@@ -134,13 +136,16 @@ void FolderWindow::create(RECT rect, int showCommand) {
         nullptr,                // menu
         globalHInstance,        // instance handle
         this);                  // application data
-    if (!hwnd)
-        throw std::runtime_error("Couldn't create window");
+    if (!hwnd) {
+        wprintf(L"Couldn't create window\n");
+        return false;
+    }
 
     ShowWindow(hwnd, showCommand);
 
     AddRef(); // keep window alive while open
     InterlockedIncrement(&numOpenWindows);
+    return true;
 }
 
 void FolderWindow::close() {
@@ -347,7 +352,7 @@ void FolderWindow::setupWindow() {
     browser->SetOptions(browserOptions);
     if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
-        wcout << "Unable to browse to folder " <<&title[0]<< "\n";
+        wprintf(L"Unable to browse to folder %s\n", &*title);
         close();
         return;
     }
@@ -403,7 +408,7 @@ void FolderWindow::setupWindow() {
 }
 
 void FolderWindow::cleanupWindow() {
-    wcout << "Cleanup " <<&title[0]<< "\n";
+    wprintf(L"Cleanup %s\n", &*title);
     IUnknown_SetSite(browser, nullptr);
     browser->Destroy();
     if (child) {
@@ -429,7 +434,7 @@ void FolderWindow::extendWindowFrame() {
     margins.cyTopHeight = CAPTION_HEIGHT;
     margins.cyBottomHeight = 0;
     if (FAILED(DwmExtendFrameIntoClientArea(hwnd, &margins))) {
-        wcout << "Unable to create custom frame!\n";
+        wprintf(L"Unable to create custom frame!\n");
     }
 }
 
@@ -568,7 +573,7 @@ void FolderWindow::selectionChanged() {
 }
 
 void FolderWindow::resultsFolderFallback() {
-    wcout << "Using results folder fallback\n";
+    wprintf(L"Using results folder fallback\n");
     CComPtr<IEnumShellItems> enumItems;
     if (SUCCEEDED(item->BindToHandler(nullptr, BHID_EnumItems,
             IID_PPV_ARGS(&enumItems)))) {
@@ -647,7 +652,7 @@ CComPtr<IShellItem> FolderWindow::resolveLink(CComPtr<IShellItem> item) {
                 }
             }
         } else {
-            wcout << "Could not resolve link\n";
+            wprintf(L"Could not resolve link\n");
         }
     }
     return item;
@@ -697,7 +702,7 @@ STDMETHODIMP_(ULONG) FolderWindow::AddRef() {
 STDMETHODIMP_(ULONG) FolderWindow::Release() {
     long r = InterlockedDecrement(&refCount);
     if (r == 0) {
-        wcout << "Delete " <<&title[0]<< "\n";
+        wprintf(L"Delete %s\n", &*title);
         delete this; // TODO ???
     }
     return r;
@@ -811,7 +816,7 @@ int main(int argc, char* argv[]) {
 #endif
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int showCommand) {
-    wcout << "omg hiiiii ^w^\n"; // DO NOT REMOVE!!
+    wprintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
     int argc;
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
@@ -831,13 +836,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         if (argc > 1) {
             // TODO parse name vs display name https://stackoverflow.com/q/42966489
             if (FAILED(SHCreateItemFromParsingName(argv[1], nullptr, IID_PPV_ARGS(&startItem)))) {
-                wcout << "Unable to locate item at path\n";
+                wprintf(L"Unable to locate item at path\n");
                 return 0;
             }
         } else {
             if (FAILED(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
                     IID_PPV_ARGS(&startItem)))) {
-                wcout << "Couldn't get desktop!\n";
+                wprintf(L"Couldn't get desktop!\n");
                 return 0;
             }
         }

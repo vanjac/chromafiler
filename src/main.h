@@ -18,7 +18,7 @@ public:
     FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item);
     ~FolderWindow();
 
-    void create(RECT rect, int showCommand);
+    bool create(RECT rect, int showCommand);
     void close();
     void activate();
     void setPos(POINT pos);
