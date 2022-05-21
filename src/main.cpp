@@ -26,12 +26,35 @@ const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
 const int WINDOW_ICON_PADDING = 4;
 const int SNAP_DISTANCE = 32;
-// calculated in registerClass()
+// calculated in init()
 static int CAPTION_HEIGHT;
+
+static HFONT symbolFont;
 
 static HINSTANCE globalHInstance;
 static long numOpenWindows;
 static CComPtr<FolderWindow> activeWindow;
+
+LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
+    WPARAM wParam, LPARAM lParam, UINT_PTR subclassID,
+    DWORD_PTR refData);
+
+void init(HINSTANCE hInstance) {
+    globalHInstance = hInstance;
+
+    RECT adjustedRect = {};
+    AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
+    CAPTION_HEIGHT = -adjustedRect.top; // = 31
+
+    // TODO only supported on windows 10!
+    symbolFont = CreateFont(12, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET,
+        OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
+        DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
+}
+
+void close() {
+    DeleteObject(symbolFont);
+}
 
 void FolderWindow::registerClass() {
     WNDCLASS wndClass = {};
@@ -40,10 +63,6 @@ void FolderWindow::registerClass() {
     wndClass.lpszClassName = CLASS_NAME;
     wndClass.style = CS_HREDRAW; // ensure caption gets redrawn if width changes
     RegisterClass(&wndClass);
-
-    RECT adjustedRect = {};
-    AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
-    CAPTION_HEIGHT = -adjustedRect.top; // = 31
 }
 
 LRESULT CALLBACK FolderWindow::windowProc(
@@ -371,10 +390,11 @@ void FolderWindow::setupWindow() {
 
     CComPtr<IShellItem> parentItem;
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
-    parentButton = CreateWindow(L"BUTTON", L"<-",
+    parentButton = CreateWindow(L"BUTTON", L"\uE96F", // ChevronLeftSmall
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
-        0, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT,
+        -1, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT + 1,
         hwnd, nullptr, globalHInstance, nullptr);
+    SetWindowSubclass(parentButton, captionButtonProc, 0, 0);
 
     // ensure WM_NCCALCSIZE gets called
     // for DWM custom frame
@@ -478,10 +498,10 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
 
             // Select a font.
             LOGFONT logFont;
-            HFONT oldFont = nullptr;
+            HFONT font = nullptr, oldFont = nullptr;
             if (SUCCEEDED(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont))) {
-                HFONT font = CreateFontIndirect(&logFont);
-                oldFont = (HFONT) SelectObject(hdcPaint, font);
+                font = CreateFontIndirect(&logFont);
+                oldFont = (HFONT)SelectObject(hdcPaint, font);
             }
 
             int iconSize = GetSystemMetrics(SM_CXSMICON);
@@ -510,9 +530,10 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
             BitBlt(hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY);
 
             SelectObject(hdcPaint, oldBitmap);
-            if (oldFont) {
+            if (oldFont)
                 SelectObject(hdcPaint, oldFont);
-            }
+            if (font)
+                DeleteObject(font);
             DeleteObject(bitmap);
         }
         DeleteDC(hdcPaint);
@@ -736,6 +757,51 @@ STDMETHODIMP FolderWindow::IncludeObject(IShellView *view, PCUITEMID_CHILD pidl)
     return S_OK; // include all objects
 }
 
+LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID,
+        DWORD_PTR refData) {
+    if (message == WM_PAINT) {
+        // TODO is there a better way to do this?
+        int buttonState = Button_GetState(hwnd);
+        int themeState;
+        if (buttonState & BST_PUSHED)
+            themeState = PBS_PRESSED;
+        else if (buttonState & BST_HOT)
+            themeState = PBS_HOT;
+        else
+            themeState = PBS_NORMAL;
+
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hwnd, &ps);
+
+        HTHEME theme = OpenThemeData(hwnd, L"Button");
+        if (theme) {
+            RECT clientRect;
+            GetClientRect(hwnd, &clientRect);
+            DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &clientRect, 0);
+
+            RECT contentRect;
+            if (SUCCEEDED(GetThemeBackgroundContentRect(theme, hdc, BP_PUSHBUTTON, 
+                    themeState, &clientRect, &contentRect))) {
+                wchar_t buttonText[32];
+                GetWindowText(hwnd, buttonText, 32);
+                HFONT oldFont = (HFONT) SelectObject(hdc, symbolFont);
+                SetTextColor(hdc, 0x333333);
+                SetBkMode(hdc, TRANSPARENT);
+                DrawText(hdc, buttonText, -1, &contentRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                SelectObject(hdc, oldFont);
+            }
+
+            CloseThemeData(theme);
+        }
+
+        EndPaint(hwnd, &ps);
+        return 0;
+    }
+
+    return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
 } // namespace
 
 #ifdef DEBUG
@@ -749,11 +815,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     int argc;
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
-    chromabrowse::globalHInstance = hInstance;
-
     if (FAILED(OleInitialize(0))) // needed for drag/drop
         return 0;
 
+    INITCOMMONCONTROLSEX controls;
+    controls.dwSize = sizeof(controls);
+    controls.dwICC = ICC_STANDARD_CLASSES;
+    InitCommonControlsEx(&controls);
+
+    chromabrowse::init(hInstance);
     chromabrowse::FolderWindow::registerClass();
 
     {
@@ -793,6 +863,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
         DispatchMessage(&msg);
     }
 
+    chromabrowse::close();
     OleUninitialize();
     return 0;
 }
