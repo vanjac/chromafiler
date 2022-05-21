@@ -34,8 +34,7 @@ static long numOpenWindows;
 static CComPtr<FolderWindow> activeWindow;
 
 LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
-    WPARAM wParam, LPARAM lParam, UINT_PTR subclassID,
-    DWORD_PTR refData);
+    WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
 void init(HINSTANCE hInstance) {
     globalHInstance = hInstance;
@@ -120,7 +119,7 @@ bool FolderWindow::create(RECT rect, int showCommand) {
         }
     }
 
-    HWND hwnd = CreateWindow(
+    HWND createHwnd = CreateWindow(
         CLASS_NAME,             // class name
         title,                  // title
         // style
@@ -134,12 +133,12 @@ bool FolderWindow::create(RECT rect, int showCommand) {
         nullptr,                // menu
         globalHInstance,        // instance handle
         this);                  // application data
-    if (!hwnd) {
+    if (!createHwnd) {
         debugPrintf(L"Couldn't create window\n");
         return false;
     }
 
-    ShowWindow(hwnd, showCommand);
+    ShowWindow(createHwnd, showCommand);
 
     AddRef(); // keep window alive while open
     InterlockedIncrement(&numOpenWindows);
@@ -218,7 +217,7 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
             }
         case WM_NCHITTEST: {
             // for DWM custom frame
-            HRESULT defHitTest = DefWindowProc(hwnd, message, wParam, lParam);
+            LRESULT defHitTest = DefWindowProc(hwnd, message, wParam, lParam);
             if (defHitTest != HTCLIENT)
                 return defHitTest;
             return hitTestNCA({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
@@ -510,7 +509,7 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
             int iconSize = GetSystemMetrics(SM_CXSMICON);
             int buttonWidth = GetSystemMetrics(SM_CXSIZE);
             SIZE titleSize = {};
-            GetTextExtentPoint32(hdcPaint, title, wcslen(title), &titleSize);
+            GetTextExtentPoint32(hdcPaint, title, (int)wcslen(title), &titleSize);
             // include padding on the right side of the text; makes it look more centered
             int headerWidth = iconSize + WINDOW_ICON_PADDING * 2 + titleSize.cx;
             int headerLeft = (width - headerWidth) / 2;
@@ -603,19 +602,20 @@ void FolderWindow::closeChild() {
     }
 }
 
-void FolderWindow::openChild(CComPtr<IShellItem> item) {
-    item = resolveLink(item);
+void FolderWindow::openChild(CComPtr<IShellItem> childItem) {
+    childItem = resolveLink(childItem);
     if (child) {
         int compare;
-        if (SUCCEEDED(child->item->Compare(item, SICHINT_CANONICAL, &compare)) && compare == 0) {
+        if (SUCCEEDED(child->item->Compare(childItem, SICHINT_CANONICAL, &compare))
+                && compare == 0) {
             return; // already open
         }
         closeChild();
     }
     SFGAOF attr;
-    if (SUCCEEDED(item->GetAttributes(SFGAO_FOLDER, &attr))) {
+    if (SUCCEEDED(childItem->GetAttributes(SFGAO_FOLDER, &attr))) {
         if (attr & SFGAO_FOLDER) {
-            child.Attach(new FolderWindow(this, item));
+            child.Attach(new FolderWindow(this, childItem));
             // will flush message queue
             POINT pos = childPos();
             child->create({pos.x, pos.y, pos.x + DEFAULT_WIDTH, pos.y + DEFAULT_HEIGHT},
@@ -636,10 +636,10 @@ void FolderWindow::openParent() {
     }
 }
 
-CComPtr<IShellItem> FolderWindow::resolveLink(CComPtr<IShellItem> item) {
+CComPtr<IShellItem> FolderWindow::resolveLink(CComPtr<IShellItem> linkItem) {
     // https://stackoverflow.com/a/46064112
     CComPtr<IShellLink> link;
-    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&link)))) {
+    if (SUCCEEDED(linkItem->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&link)))) {
         if (SUCCEEDED(link->Resolve(hwnd, SLR_UPDATE))) {
             CComHeapPtr<ITEMIDLIST> targetPIDL;
             if (SUCCEEDED(link->GetIDList(&targetPIDL))) {
@@ -653,7 +653,7 @@ CComPtr<IShellItem> FolderWindow::resolveLink(CComPtr<IShellItem> item) {
             debugPrintf(L"Could not resolve link\n");
         }
     }
-    return item;
+    return linkItem;
 }
 
 POINT FolderWindow::childPos() {
@@ -740,11 +740,11 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
 /* ICommDlgBrowser */
 
 // called when double-clicking a file
-STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
+STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *) {
     return S_FALSE; // perform default action
 }
 
-STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
+STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
     if (change == CDBOSC_SELCHANGE) {
         if (!ignoreNextSelection) {
             // TODO this can hang the browser and should really be done asynchronously with a message
@@ -756,13 +756,12 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
     return S_OK;
 }
 
-STDMETHODIMP FolderWindow::IncludeObject(IShellView *view, PCUITEMID_CHILD pidl) {
+STDMETHODIMP FolderWindow::IncludeObject(IShellView *, PCUITEMID_CHILD) {
     return S_OK; // include all objects
 }
 
 LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID,
-        DWORD_PTR refData) {
+        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
     if (message == WM_PAINT) {
         // TODO is there a better way to do this?
         int buttonState = Button_GetState(hwnd);
@@ -813,7 +812,7 @@ int main(int argc, char* argv[]) {
 }
 #endif
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int showCommand) {
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int showCommand) {
     debugPrintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
     int argc;
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);

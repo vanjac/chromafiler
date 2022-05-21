@@ -6,9 +6,10 @@
 			"label": "C/C++: cl.exe build active file",
 			"command": "cl.exe",
 			"args": [
-				"/Zi",
-				"/EHsc",
+				"/Zi",      // remove for release
+				"/EHsc",    // remove for release
 				"/nologo",
+				"/W4",
 				"/Fe:",
 				"${workspaceFolder}\\build\\out.exe",
 				"/I",

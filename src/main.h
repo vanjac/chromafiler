@@ -56,9 +56,9 @@ private:
 
     void resultsFolderFallback();
     void closeChild();
-    void openChild(CComPtr<IShellItem> item);
+    void openChild(CComPtr<IShellItem> childItem);
     void openParent();
-    CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> item);
+    CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem);
     POINT childPos(); // top left corner of child
     POINT parentPos(); // top right corner of parent
     void detachFromParent();
