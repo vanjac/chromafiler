@@ -75,6 +75,7 @@ private:
     CComPtr<FolderWindow> child;
 
     POINT moveAccum;
+    bool ignoreNextSelection;
 
     // IUnknown
     long refCount;

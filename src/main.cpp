@@ -70,6 +70,7 @@ FolderWindow::FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item)
     , item(item)
     , iconLarge(nullptr)
     , iconSmall(nullptr)
+    , ignoreNextSelection(false)
     , refCount(1)
 {}
 
@@ -351,12 +352,15 @@ void FolderWindow::setupWindow() {
 
     if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         // FVM_SMALLICON only seems to work if it's also specified with an icon size
+        // TODO should this be the shell small icon size?
+        // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
         view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)); // = 16
     }
 
     if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&shellView)))) {
         if (child) {
             // window was created by clicking the parent button
+            ignoreNextSelection = true; // TODO jank
             CComHeapPtr<ITEMID_CHILD> childID;
             CComQIPtr<IParentAndItem>(child->item)->GetParentAndItem(nullptr, nullptr, &childID);
             shellView->SelectItem(childID, SVSI_SELECT);
@@ -489,7 +493,7 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
             if (headerLeft < buttonWidth + WINDOW_ICON_PADDING)
                 headerLeft = buttonWidth + WINDOW_ICON_PADDING;
 
-            DrawIconEx(hdcPaint, headerLeft, CAPTION_PADDING,
+            DrawIconEx(hdcPaint, clientRect.left + headerLeft, clientRect.top + CAPTION_PADDING,
                 iconSmall, iconSize, iconSize, 0, nullptr, DI_NORMAL);
 
             // Draw the title.
@@ -724,9 +728,12 @@ STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
 
 STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
     if (change == CDBOSC_SELCHANGE) {
-        // TODO this can hang the browser and should really be done asynchronously with a message
-        // but that adds other complication
-        selectionChanged();
+        if (!ignoreNextSelection) {
+            // TODO this can hang the browser and should really be done asynchronously with a message
+            // but that adds other complication
+            selectionChanged();
+        }
+        ignoreNextSelection = false;
     }
     return S_OK;
 }
