@@ -24,6 +24,7 @@ const int DEFAULT_WIDTH = 220;
 const int DEFAULT_HEIGHT = 450;
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
+const int WINDOW_TEXT_PADDING = 4;
 const int SNAP_DISTANCE = 32;
 // calculated in registerClass()
 static int CAPTION_HEIGHT;
@@ -423,7 +424,7 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
     HDC hdcPaint = CreateCompatibleDC(hdc);
     if (hdcPaint) {
         int width = clientRect.right - clientRect.left;
-        int height = clientRect.bottom - clientRect.top;
+        int height = CAPTION_HEIGHT;
 
         // Define the BITMAPINFO structure used to draw text.
         // Note that biHeight is negative. This is done because
@@ -440,6 +441,10 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
         HBITMAP bitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, NULL, NULL, 0);
         if (bitmap) {
             HBITMAP oldBitmap = (HBITMAP)SelectObject(hdcPaint, bitmap);
+
+            int iconSize = GetSystemMetrics(SM_CXSMICON);
+            DrawIconEx(hdcPaint, CAPTION_PADDING, CAPTION_PADDING, iconSmall, iconSize, iconSize,
+                0, nullptr, DI_NORMAL);
 
             // Setup the theme drawing options.
             DTTOPTS textOpts = {sizeof(DTTOPTS)};
@@ -458,7 +463,7 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
             RECT paintRect = clientRect;
             paintRect.top += CAPTION_PADDING;
             paintRect.right -= GetSystemMetrics(SM_CXSIZE); // close button width
-            paintRect.left += CAPTION_PADDING;
+            paintRect.left += CAPTION_PADDING + iconSize + WINDOW_TEXT_PADDING;
             paintRect.bottom = CAPTION_HEIGHT;
             DrawThemeTextEx(theme, hdcPaint, 0, 0, title, -1,
                             DT_LEFT | DT_WORD_ELLIPSIS, &paintRect, &textOpts);
