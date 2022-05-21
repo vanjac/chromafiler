@@ -363,7 +363,7 @@ void FolderWindow::setupWindow() {
             ignoreNextSelection = true; // TODO jank
             CComHeapPtr<ITEMID_CHILD> childID;
             CComQIPtr<IParentAndItem>(child->item)->GetParentAndItem(nullptr, nullptr, &childID);
-            shellView->SelectItem(childID, SVSI_SELECT | SVSI_FOCUSED);
+            shellView->SelectItem(childID, SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE);
         }
     }
 
