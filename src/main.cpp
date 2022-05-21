@@ -466,11 +466,6 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
         if (bitmap) {
             HBITMAP oldBitmap = (HBITMAP)SelectObject(hdcPaint, bitmap);
 
-            int iconSize = GetSystemMetrics(SM_CXSMICON);
-            int buttonWidth = GetSystemMetrics(SM_CXSIZE);
-            DrawIconEx(hdcPaint, buttonWidth + WINDOW_ICON_PADDING, CAPTION_PADDING,
-                iconSmall, iconSize, iconSize, 0, nullptr, DI_NORMAL);
-
             // Setup the theme drawing options.
             DTTOPTS textOpts = {sizeof(DTTOPTS)};
             textOpts.dwFlags = DTT_COMPOSITED | DTT_GLOWSIZE;
@@ -484,11 +479,24 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
                 oldFont = (HFONT) SelectObject(hdcPaint, font);
             }
 
+            int iconSize = GetSystemMetrics(SM_CXSMICON);
+            int buttonWidth = GetSystemMetrics(SM_CXSIZE);
+            SIZE titleSize = {};
+            GetTextExtentPoint32(hdcPaint, title, wcslen(title), &titleSize);
+            // include padding on the right side of the text; makes it look more centered
+            int headerWidth = iconSize + WINDOW_ICON_PADDING * 2 + titleSize.cx;
+            int headerLeft = (width - headerWidth) / 2;
+            if (headerLeft < buttonWidth + WINDOW_ICON_PADDING)
+                headerLeft = buttonWidth + WINDOW_ICON_PADDING;
+
+            DrawIconEx(hdcPaint, headerLeft, CAPTION_PADDING,
+                iconSmall, iconSize, iconSize, 0, nullptr, DI_NORMAL);
+
             // Draw the title.
             RECT paintRect = clientRect;
             paintRect.top += CAPTION_PADDING;
             paintRect.right -= buttonWidth; // close button width
-            paintRect.left += buttonWidth + WINDOW_ICON_PADDING * 2 + iconSize;
+            paintRect.left += headerLeft + iconSize + WINDOW_ICON_PADDING;
             paintRect.bottom = CAPTION_HEIGHT;
             DrawThemeTextEx(theme, hdcPaint, 0, 0, title, -1,
                             DT_LEFT | DT_WORD_ELLIPSIS, &paintRect, &textOpts);
