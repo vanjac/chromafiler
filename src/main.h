@@ -57,8 +57,10 @@ private:
     void resultsFolderFallback();
     void closeChild();
     void openChild(CComPtr<IShellItem> item);
+    void openParent();
     CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> item);
-    POINT childPos();
+    POINT childPos(); // top left corner of child
+    POINT parentPos(); // top right corner of parent
     void detachFromParent();
 
     HWND hwnd;
@@ -66,6 +68,8 @@ private:
     CComPtr<IExplorerBrowser> browser;
     CComHeapPtr<wchar_t> title;
     HICON iconLarge, iconSmall;
+
+    HWND parentButton;
 
     CComPtr<FolderWindow> parent;
     CComPtr<FolderWindow> child;

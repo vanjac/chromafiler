@@ -24,7 +24,7 @@ const int DEFAULT_WIDTH = 220;
 const int DEFAULT_HEIGHT = 450;
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
-const int WINDOW_TEXT_PADDING = 4;
+const int WINDOW_ICON_PADDING = 4;
 const int SNAP_DISTANCE = 32;
 // calculated in registerClass()
 static int CAPTION_HEIGHT;
@@ -261,6 +261,12 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
             windowRectChanged();
             return 0;
         }
+        case WM_COMMAND: {
+            if ((HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
+                openParent();
+                return 0;
+            }
+        }
         /* user messages */
         case MSG_FORCE_SORT: {
             CComPtr<IFolderView2> view;
@@ -280,6 +286,8 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
         if (GetKeyState(VK_SHIFT) & 0x8000) {
             if (parent)
                 parent->activate();
+            else
+                openParent();
         } else {
             if (child)
                 child->activate();
@@ -346,8 +354,23 @@ void FolderWindow::setupWindow() {
         view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)); // = 16
     }
 
-    browser->GetCurrentView(IID_PPV_ARGS(&shellView));
+    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&shellView)))) {
+        if (child) {
+            // window was created by clicking the parent button
+            CComHeapPtr<ITEMID_CHILD> childID;
+            CComQIPtr<IParentAndItem>(child->item)->GetParentAndItem(nullptr, nullptr, &childID);
+            shellView->SelectItem(childID, SVSI_SELECT);
+        }
+    }
+
     IUnknown_SetSite(browser, (IServiceProvider *)this);
+
+    CComPtr<IShellItem> parentItem;
+    bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
+    parentButton = CreateWindow(L"BUTTON", L"<-",
+        (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
+        0, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT,
+        hwnd, nullptr, globalHInstance, nullptr);
 
     // ensure WM_NCCALCSIZE gets called
     // for DWM custom frame
@@ -444,8 +467,9 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
             HBITMAP oldBitmap = (HBITMAP)SelectObject(hdcPaint, bitmap);
 
             int iconSize = GetSystemMetrics(SM_CXSMICON);
-            DrawIconEx(hdcPaint, CAPTION_PADDING, CAPTION_PADDING, iconSmall, iconSize, iconSize,
-                0, nullptr, DI_NORMAL);
+            int buttonWidth = GetSystemMetrics(SM_CXSIZE);
+            DrawIconEx(hdcPaint, buttonWidth + WINDOW_ICON_PADDING, CAPTION_PADDING,
+                iconSmall, iconSize, iconSize, 0, nullptr, DI_NORMAL);
 
             // Setup the theme drawing options.
             DTTOPTS textOpts = {sizeof(DTTOPTS)};
@@ -463,8 +487,8 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
             // Draw the title.
             RECT paintRect = clientRect;
             paintRect.top += CAPTION_PADDING;
-            paintRect.right -= GetSystemMetrics(SM_CXSIZE); // close button width
-            paintRect.left += CAPTION_PADDING + iconSize + WINDOW_TEXT_PADDING;
+            paintRect.right -= buttonWidth; // close button width
+            paintRect.left += buttonWidth + WINDOW_ICON_PADDING * 2 + iconSize;
             paintRect.bottom = CAPTION_HEIGHT;
             DrawThemeTextEx(theme, hdcPaint, 0, 0, title, -1,
                             DT_LEFT | DT_WORD_ELLIPSIS, &paintRect, &textOpts);
@@ -563,6 +587,18 @@ void FolderWindow::openChild(CComPtr<IShellItem> item) {
     }
 }
 
+void FolderWindow::openParent() {
+    CComPtr<IShellItem> parentItem;
+    if (SUCCEEDED(item->GetParent(&parentItem))) {
+        parent.Attach(new FolderWindow(nullptr, parentItem));
+        parent->child = this;
+        POINT pos = parentPos();
+        parent->create({pos.x - DEFAULT_WIDTH, pos.y, pos.x, pos.y + DEFAULT_HEIGHT},
+                       SW_SHOWNORMAL);
+        ShowWindow(parentButton, SW_HIDE);
+    }
+}
+
 CComPtr<IShellItem> FolderWindow::resolveLink(CComPtr<IShellItem> item) {
     // https://stackoverflow.com/a/46064112
     CComPtr<IShellLink> link;
@@ -596,12 +632,24 @@ POINT FolderWindow::childPos() {
     return {frameRect.right - shadowLeft, frameRect.top - shadowTop};
 }
 
+POINT FolderWindow::parentPos() {
+    RECT shadowRect = {};
+    GetWindowRect(hwnd, &shadowRect);
+    RECT frameRect = {};
+    // TODO not DPI aware!!
+    DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, &frameRect, sizeof(frameRect));
+    int shadowRight = shadowRect.right - frameRect.right;
+    int shadowTop = frameRect.top - shadowRect.top;
+    return {frameRect.left + shadowRight, frameRect.top - shadowTop};
+}
+
 void FolderWindow::detachFromParent() {
     if (parent && parent->child == this) {
         parent->child = nullptr;
         parent->clearSelection();
     }
     parent = nullptr;
+    ShowWindow(parentButton, SW_SHOW);
 }
 
 /* IUnknown */
