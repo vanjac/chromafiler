@@ -309,11 +309,11 @@ void FolderWindow::setupWindow() {
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
-    RECT windowRect;
-    GetWindowRect(hwnd, &windowRect);
     // TODO ??
-    RECT browserRect = windowRect;
-    MapWindowRect(HWND_DESKTOP, hwnd, &browserRect);
+    RECT browserRect;
+    GetClientRect(hwnd, &browserRect);
+    browserRect.top = CAPTION_HEIGHT;
+    browserRect.bottom += CAPTION_HEIGHT;
 
     FOLDERSETTINGS folderSettings = {};
     folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see below)
