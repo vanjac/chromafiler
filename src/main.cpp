@@ -445,7 +445,9 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
 
-    HTHEME theme = OpenThemeData(NULL, L"CompositedWindow::Window");
+    // the colors won't be right in many cases and it seems like there's no easy way to fix that
+    // https://github.com/res2k/Windows10Colors
+    HTHEME theme = OpenThemeData(hwnd, L"CompositedWindow::Window");
     if (!theme)
         return;
 
@@ -466,18 +468,17 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
         bitmapInfo.bmiHeader.biBitCount        = 32;
         bitmapInfo.bmiHeader.biCompression     = BI_RGB;
 
-        HBITMAP bitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, NULL, NULL, 0);
+        HBITMAP bitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, nullptr, nullptr, 0);
         if (bitmap) {
             HBITMAP oldBitmap = (HBITMAP)SelectObject(hdcPaint, bitmap);
 
             // Setup the theme drawing options.
             DTTOPTS textOpts = {sizeof(DTTOPTS)};
-            textOpts.dwFlags = DTT_COMPOSITED | DTT_GLOWSIZE;
-            textOpts.iGlowSize = 15;
+            textOpts.dwFlags = DTT_COMPOSITED;
 
             // Select a font.
             LOGFONT logFont;
-            HFONT oldFont = NULL;
+            HFONT oldFont = nullptr;
             if (SUCCEEDED(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont))) {
                 HFONT font = CreateFontIndirect(&logFont);
                 oldFont = (HFONT) SelectObject(hdcPaint, font);
