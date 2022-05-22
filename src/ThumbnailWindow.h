@@ -13,6 +13,9 @@ public:
 
     SIZE defaultSize() override;
 
+protected:
+    void onPaint(PAINTSTRUCT paint) override;
+
 private:
     const wchar_t * className() override;
 };
