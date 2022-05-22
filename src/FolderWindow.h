@@ -32,7 +32,7 @@ protected:
     void onCreate() override;
     void onDestroy() override;
     void onActivate(WPARAM wParam) override;
-    void onSize(int width, int height) override;
+    void onSize() override;
 
     void onChildDetached() override;
 

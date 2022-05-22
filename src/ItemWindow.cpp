@@ -151,6 +151,12 @@ void ItemWindow::move(int x, int y) {
     setPos({rect.left + x, rect.top + y});
 }
 
+RECT ItemWindow::windowBody() {
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    return {0, CAPTION_HEIGHT, clientRect.right, clientRect.bottom};
+}
+
 LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_CREATE:
@@ -193,10 +199,10 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         }
         case WM_PAINT: {
             // for DWM custom frame
-            PAINTSTRUCT ps;
-            HDC hdc = BeginPaint(hwnd, &ps);
-            paintCustomCaption(hdc);
-            EndPaint(hwnd, &ps);
+            PAINTSTRUCT paint;
+            BeginPaint(hwnd, &paint);
+            onPaint(paint);
+            EndPaint(hwnd, &paint);
             return 0;
         }
         case WM_ENTERSIZEMOVE:
@@ -247,7 +253,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             return TRUE;
         case WM_SIZE: {
-            onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            onSize();
             return 0;
         }
         case WM_COMMAND: {
@@ -336,7 +342,7 @@ void ItemWindow::onActivate(WPARAM wParam) {
     }
 }
 
-void ItemWindow::onSize(int, int) {
+void ItemWindow::onSize() {
     windowRectChanged();
 }
 
@@ -383,7 +389,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     }
 }
 
-void ItemWindow::paintCustomCaption(HDC hdc) {
+void ItemWindow::onPaint(PAINTSTRUCT paint) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-b-painting-the-caption-title
     // TODO clean this up
     RECT clientRect;
@@ -395,7 +401,7 @@ void ItemWindow::paintCustomCaption(HDC hdc) {
     if (!theme)
         return;
 
-    HDC hdcPaint = CreateCompatibleDC(hdc);
+    HDC hdcPaint = CreateCompatibleDC(paint.hdc);
     if (hdcPaint) {
         int width = clientRect.right - clientRect.left;
         int height = CAPTION_HEIGHT;
@@ -412,7 +418,8 @@ void ItemWindow::paintCustomCaption(HDC hdc) {
         bitmapInfo.bmiHeader.biBitCount        = 32;
         bitmapInfo.bmiHeader.biCompression     = BI_RGB;
 
-        HBITMAP bitmap = CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, nullptr, nullptr, 0);
+        HBITMAP bitmap = CreateDIBSection(paint.hdc, &bitmapInfo, DIB_RGB_COLORS,
+                                          nullptr, nullptr, 0);
         if (bitmap) {
             HBITMAP oldBitmap = (HBITMAP)SelectObject(hdcPaint, bitmap);
 
@@ -451,7 +458,7 @@ void ItemWindow::paintCustomCaption(HDC hdc) {
                             DT_LEFT | DT_WORD_ELLIPSIS, &paintRect, &textOpts);
 
             // Blit text to the frame.
-            BitBlt(hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY);
+            BitBlt(paint.hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY);
 
             SelectObject(hdcPaint, oldBitmap);
             if (oldFont)

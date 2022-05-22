@@ -46,10 +46,13 @@ protected:
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
+    RECT windowBody();
+
     virtual void onCreate();
     virtual void onDestroy();
     virtual void onActivate(WPARAM wParam);
-    virtual void onSize(int width, int height);
+    virtual void onSize();
+    virtual void onPaint(PAINTSTRUCT paint);
 
     void openChild(CComPtr<IShellItem> childItem);
     void closeChild();
@@ -67,7 +70,6 @@ private:
     // for DWM custom frame:
     void extendWindowFrame();
     LRESULT hitTestNCA(POINT cursor);
-    void paintCustomCaption(HDC hdc);
 
     void openParent();
     void detachFromParent();

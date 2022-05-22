@@ -64,11 +64,8 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
 void FolderWindow::onCreate() {
     ItemWindow::onCreate();
 
-    // TODO ??
-    RECT browserRect;
-    GetClientRect(hwnd, &browserRect);
-    browserRect.top = CAPTION_HEIGHT;
-    browserRect.bottom += CAPTION_HEIGHT;
+    RECT browserRect = windowBody();
+    browserRect.bottom += browserRect.top; // initial rect is wrong
 
     FOLDERSETTINGS folderSettings = {};
     folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see below)
@@ -139,11 +136,10 @@ void FolderWindow::onActivate(WPARAM wParam) {
     }
 }
 
-void FolderWindow::onSize(int width, int height) {
-    ItemWindow::onSize(width, height);
+void FolderWindow::onSize() {
+    ItemWindow::onSize();
     if (browser) {
-        RECT browserRect {0, CAPTION_HEIGHT, width, height};
-        browser->SetRect(nullptr, browserRect);
+        browser->SetRect(nullptr, windowBody());
     }
 }
 
