@@ -330,6 +330,8 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
             return true;
         }
     }
+    if (shellView && shellView->TranslateAccelerator(msg) == S_OK)
+        return true;
     return false;
 }
 
@@ -871,9 +873,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int showCommand) {
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
         if (chromabrowse::activeWindow && chromabrowse::activeWindow->handleTopLevelMessage(&msg))
-            continue;
-        if (chromabrowse::activeWindow && chromabrowse::activeWindow->shellView
-                && chromabrowse::activeWindow->shellView->TranslateAccelerator(&msg) == S_OK)
             continue;
         TranslateMessage(&msg);
         DispatchMessage(&msg);

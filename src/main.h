@@ -38,8 +38,6 @@ public:
     STDMETHODIMP OnStateChange(IShellView *view, ULONG change);
     STDMETHODIMP IncludeObject(IShellView *view, PCUITEMID_CHILD pidl);
 
-    CComPtr<IShellView> shellView;
-
 private:
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
@@ -66,6 +64,7 @@ private:
     HWND hwnd;
     CComPtr<IShellItem> item;
     CComPtr<IExplorerBrowser> browser;
+    CComPtr<IShellView> shellView;
     CComHeapPtr<wchar_t> title;
     HICON iconLarge, iconSmall;
 
