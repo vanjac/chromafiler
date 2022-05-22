@@ -1,44 +1,29 @@
-#include "main.h"
+#include "ItemWindow.h"
+#include "FolderWindow.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <dwmapi.h>
 #include <vssym32.h>
-#include <propkey.h>
-
-// https://docs.microsoft.com/en-us/windows/win32/controls/cookbook-overview
-#pragma comment(linker,"\"/manifestdependency:type='win32' \
-    name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
-    processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-
-// Example of how to host an IExplorerBrowser:
-// https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/shell/appplatform/ExplorerBrowserCustomContents
 
 namespace chromabrowse {
 
-const wchar_t * FolderWindow::CLASS_NAME = L"Folder Window";
-
 // dimensions
-const int DEFAULT_WIDTH = 231; // just large enough for scrollbar tooltips
-const int DEFAULT_HEIGHT = 450;
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
 const int WINDOW_ICON_PADDING = 4;
 const int SNAP_DISTANCE = 32;
-// calculated in init()
-static int CAPTION_HEIGHT;
 
 static HFONT symbolFont;
 
-static HINSTANCE globalHInstance;
-static long numOpenWindows;
-static CComPtr<FolderWindow> activeWindow;
+long numOpenWindows;
+CComPtr<ItemWindow> activeWindow;
 
 LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
     WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
-void init(HINSTANCE hInstance) {
-    globalHInstance = hInstance;
+int ItemWindow::CAPTION_HEIGHT = 0;
 
+void ItemWindow::init() {
     RECT adjustedRect = {};
     AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
     CAPTION_HEIGHT = -adjustedRect.top; // = 31
@@ -49,29 +34,26 @@ void init(HINSTANCE hInstance) {
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
 }
 
-void close() {
+void ItemWindow::uninit() {
     DeleteObject(symbolFont);
 }
 
-void FolderWindow::registerClass() {
-    WNDCLASS wndClass = {};
-    wndClass.lpfnWndProc = windowProc;
-    wndClass.hInstance = globalHInstance;
-    wndClass.lpszClassName = CLASS_NAME;
-    wndClass.style = CS_HREDRAW; // ensure caption gets redrawn if width changes
-    RegisterClass(&wndClass);
-}
-
-LRESULT CALLBACK FolderWindow::windowProc(
+LRESULT CALLBACK ItemWindow::windowProc(
         HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    FolderWindow *self = nullptr;
+    // DWM custom frame
+    // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe
+    LRESULT dwmResult = 0;
+    if (DwmDefWindowProc(hwnd, message, wParam, lParam, &dwmResult))
+        return dwmResult;
+
+    ItemWindow *self = nullptr;
     if (message == WM_NCCREATE) {
         CREATESTRUCT *create = (CREATESTRUCT*)lParam;
-        self = (FolderWindow*)create->lpCreateParams;
+        self = (ItemWindow*)create->lpCreateParams;
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)self);
         self->hwnd = hwnd;
     } else {
-        self = (FolderWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        self = (ItemWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
     }
     if (self) {
         return self->handleMessage(message, wParam, lParam);
@@ -80,26 +62,21 @@ LRESULT CALLBACK FolderWindow::windowProc(
     }
 }
 
-FolderWindow::FolderWindow(FolderWindow *parent, CComPtr<IShellItem> item)
+ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
     : parent(parent)
-    , child(nullptr)
     , item(item)
-    , iconLarge(nullptr)
-    , iconSmall(nullptr)
-    , ignoreNextSelection(false)
-    , refCount(1)
 {}
 
-FolderWindow::~FolderWindow() {
+ItemWindow::~ItemWindow() {
     if (iconLarge)
         DestroyIcon(iconLarge);
     if (iconSmall)
         DestroyIcon(iconSmall);
 }
 
-bool FolderWindow::create(RECT rect, int showCommand) {
+bool ItemWindow::create(RECT rect, int showCommand) {
     if (FAILED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title))) {
-        debugPrintf(L"Unable to get folder name\n");
+        debugPrintf(L"Unable to get item name\n");
         return false;
     }
     debugPrintf(L"Create %s\n", &*title);
@@ -120,8 +97,8 @@ bool FolderWindow::create(RECT rect, int showCommand) {
     }
 
     HWND createHwnd = CreateWindow(
-        CLASS_NAME,             // class name
-        title,                  // title
+        className(),
+        title,
         // style
         // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
         (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX) | WS_CLIPCHILDREN,
@@ -131,7 +108,7 @@ bool FolderWindow::create(RECT rect, int showCommand) {
 
         nullptr,                // parent window
         nullptr,                // menu
-        globalHInstance,        // instance handle
+        GetModuleHandle(NULL),  // instance handle
         this);                  // application data
     if (!createHwnd) {
         debugPrintf(L"Couldn't create window\n");
@@ -145,38 +122,36 @@ bool FolderWindow::create(RECT rect, int showCommand) {
     return true;
 }
 
-void FolderWindow::close() {
+void ItemWindow::close() {
     PostMessage(hwnd, WM_CLOSE, 0, 0);
 }
 
-void FolderWindow::activate() {
+void ItemWindow::activate() {
     SetActiveWindow(hwnd);
 }
 
-void FolderWindow::setPos(POINT pos) {
+void ItemWindow::setPos(POINT pos) {
     // TODO SWP_ASYNCWINDOWPOS?
     SetWindowPos(hwnd, 0, pos.x, pos.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
-void FolderWindow::move(int x, int y) {
+void ItemWindow::move(int x, int y) {
     RECT rect;
     GetWindowRect(hwnd, &rect);
     setPos({rect.left + x, rect.top + y});
 }
 
-LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
-    // DWM custom frame
-    // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe
-    LRESULT dwmResult = 0;
-    if (DwmDefWindowProc(hwnd, message, wParam, lParam, &dwmResult))
-        return dwmResult;
-
+LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_CREATE:
-            setupWindow();
+            onCreate();
+            // ensure WM_NCCALCSIZE gets called
+            // for DWM custom frame
+            SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
             return 0;
         case WM_DESTROY:
-            cleanupWindow();
+            onDestroy();
             return 0;
         case WM_NCDESTROY:
             hwnd = nullptr;
@@ -185,23 +160,7 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
                 PostQuitMessage(0);
             return 0;
         case WM_ACTIVATE: {
-            // for DWM custom frame
-            // make sure frame is correct if window is maximized
-            extendWindowFrame();
-
-            if (wParam != WA_INACTIVE) {
-                activeWindow = this;
-                if (shellView)
-                    shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
-
-                // bring children to front
-                auto nextChild = child;
-                while (nextChild) {
-                    SetWindowPos(nextChild->hwnd, hwnd, 0, 0, 0, 0,
-                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-                    nextChild = nextChild->child;
-                }
-            }
+            onActivate(wParam);
             return 0;
         }
         case WM_NCCALCSIZE:
@@ -278,9 +237,7 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
             }
             return TRUE;
         case WM_SIZE: {
-            RECT browserRect {0, CAPTION_HEIGHT, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-            browser->SetRect(nullptr, browserRect);
-            windowRectChanged();
+            onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             return 0;
         }
         case WM_COMMAND: {
@@ -289,21 +246,12 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
                 return 0;
             }
         }
-        /* user messages */
-        case MSG_FORCE_SORT: {
-            CComPtr<IFolderView2> view;
-            if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-                SORTCOLUMN column = {PKEY_ItemNameDisplay, SORT_ASCENDING};
-                view->SetSortColumns(&column, 1);
-            }
-            return 0;
-        }
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
-bool FolderWindow::handleTopLevelMessage(MSG *msg) {
+bool ItemWindow::handleTopLevelMessage(MSG *msg) {
     if (msg->message == WM_KEYDOWN || msg->message == WM_SYSKEYDOWN) {
         WPARAM vk = msg->wParam;
         bool shift = GetKeyState(VK_SHIFT) & 0x8000;
@@ -323,19 +271,12 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
             return true;
         } else if (vk == 'W' && !shift && ctrl && !alt) {
             close();
-        } else if ((vk == VK_F5 && !shift && !ctrl && !alt)
-                || (vk == 'R' && !shift && ctrl && !alt)) {
-            if (shellView)
-                shellView->Refresh();
-            return true;
         }
     }
-    if (shellView && shellView->TranslateAccelerator(msg) == S_OK)
-        return true;
     return false;
 }
 
-void FolderWindow::setupWindow() {
+void ItemWindow::onCreate() {
     BOOL disableAnimations = true;
     DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
         &disableAnimations, sizeof(disableAnimations));
@@ -346,84 +287,17 @@ void FolderWindow::setupWindow() {
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
-    // TODO ??
-    RECT browserRect;
-    GetClientRect(hwnd, &browserRect);
-    browserRect.top = CAPTION_HEIGHT;
-    browserRect.bottom += CAPTION_HEIGHT;
-
-    FOLDERSETTINGS folderSettings = {};
-    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see below)
-    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
-    EXPLORER_BROWSER_OPTIONS browserOptions = EBO_NAVIGATEONCE; // no navigation
-
-    if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
-            || FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
-        close();
-        return;
-    }
-    browser->SetOptions(browserOptions);
-    if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
-        // eg. browsing a subdirectory in the recycle bin
-        debugPrintf(L"Unable to browse to folder %s\n", &*title);
-        close();
-        return;
-    }
-
-    CComPtr<IFolderView2> view;
-    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-        int itemCount;
-        if (FAILED(view->ItemCount(SVGIO_ALLVIEW, &itemCount))) {
-            view = nullptr;
-            // will fail for control panel
-            browser->Destroy(); // destroy and recreate browser
-            if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
-                    || FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
-                close();
-                return;
-            }
-            browser->SetOptions(browserOptions);
-            resultsFolderFallback();
-        }
-    }
-
-    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-        // FVM_SMALLICON only seems to work if it's also specified with an icon size
-        // TODO should this be the shell small icon size?
-        // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
-        view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)); // = 16
-    }
-
-    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&shellView)))) {
-        if (child) {
-            // window was created by clicking the parent button
-            ignoreNextSelection = true; // TODO jank
-            CComHeapPtr<ITEMID_CHILD> childID;
-            CComQIPtr<IParentAndItem>(child->item)->GetParentAndItem(nullptr, nullptr, &childID);
-            shellView->SelectItem(childID, SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE);
-        }
-    }
-
-    IUnknown_SetSite(browser, (IServiceProvider *)this);
-
     CComPtr<IShellItem> parentItem;
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
     parentButton = CreateWindow(L"BUTTON", L"\uE96F", // ChevronLeftSmall
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
         -1, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT + 1,
-        hwnd, nullptr, globalHInstance, nullptr);
+        hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
     SetWindowSubclass(parentButton, captionButtonProc, 0, 0);
-
-    // ensure WM_NCCALCSIZE gets called
-    // for DWM custom frame
-    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
-        SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
-void FolderWindow::cleanupWindow() {
+void ItemWindow::onDestroy() {
     debugPrintf(L"Cleanup %s\n", &*title);
-    IUnknown_SetSite(browser, nullptr);
-    browser->Destroy();
     if (child) {
         child->parent = nullptr;
         child->close(); // recursive
@@ -434,13 +308,35 @@ void FolderWindow::cleanupWindow() {
         activeWindow = nullptr;
 }
 
-void FolderWindow::windowRectChanged() {
+void ItemWindow::onActivate(WPARAM wParam) {
+    // for DWM custom frame
+    // make sure frame is correct if window is maximized
+    extendWindowFrame();
+
+    if (wParam != WA_INACTIVE) {
+        activeWindow = this;
+
+        // bring children to front
+        auto nextChild = child;
+        while (nextChild) {
+            SetWindowPos(nextChild->hwnd, hwnd, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            nextChild = nextChild->child;
+        }
+    }
+}
+
+void ItemWindow::onSize(int, int) {
+    windowRectChanged();
+}
+
+void ItemWindow::windowRectChanged() {
     if (child) {
         child->setPos(childPos());
     }
 }
 
-void FolderWindow::extendWindowFrame() {
+void ItemWindow::extendWindowFrame() {
     MARGINS margins;
     margins.cxLeftWidth = 0;
     margins.cxRightWidth = 0;
@@ -451,7 +347,7 @@ void FolderWindow::extendWindowFrame() {
     }
 }
 
-LRESULT FolderWindow::hitTestNCA(POINT cursor) {
+LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-c-hittestnca-function
     // the default window proc handles the left, right, and bottom edges
     // so only need to check top edge and caption
@@ -477,7 +373,7 @@ LRESULT FolderWindow::hitTestNCA(POINT cursor) {
     }
 }
 
-void FolderWindow::paintCustomCaption(HDC hdc) {
+void ItemWindow::paintCustomCaption(HDC hdc) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-b-painting-the-caption-title
     // TODO clean this up
     RECT clientRect;
@@ -559,66 +455,7 @@ void FolderWindow::paintCustomCaption(HDC hdc) {
     CloseThemeData(theme);
 }
 
-void FolderWindow::clearSelection() {
-    if (shellView) {
-        shellView->SelectItem(nullptr, SVSI_DESELECTOTHERS);
-    }
-}
-
-void FolderWindow::selectionChanged() {
-    CComPtr<IFolderView2> view;
-    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-        int numSelected;
-        if (SUCCEEDED(view->ItemCount(SVGIO_SELECTION, &numSelected)) && numSelected == 1) {
-            int index;
-            // GetSelectedItem seems to ignore the iStart parameter!
-            if (view->GetSelectedItem(-1, &index) == S_OK) {
-                CComPtr<IShellItem> selected;
-                if (SUCCEEDED(view->GetItem(index, IID_PPV_ARGS(&selected)))) {
-                    openChild(selected);
-                }
-            }
-        } else {
-            // 0 or more than 1 item selected
-            closeChild();
-        }
-    }
-}
-
-void FolderWindow::resultsFolderFallback() {
-    debugPrintf(L"Using results folder fallback\n");
-    CComPtr<IEnumShellItems> enumItems;
-    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_EnumItems,
-            IID_PPV_ARGS(&enumItems)))) {
-        // create empty ResultsFolder
-        if (SUCCEEDED(browser->FillFromObject(nullptr, EBF_NODROPTARGET))) {
-            CComPtr<IFolderView2> view;
-            if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-                CComPtr<IResultsFolder> results;
-                if (SUCCEEDED(view->GetFolder(IID_PPV_ARGS(&results)))) {
-                    CComPtr<IShellItem> childItem;
-                    while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
-                        results->AddItem(childItem);
-                    }
-                    // for some reason changing the sort columns immediately after adding items
-                    // breaks the folder view, so delay it until the browser has had a chance to
-                    // process some messages
-                    PostMessage(hwnd, MSG_FORCE_SORT, 0, 0);
-                }
-            }
-        }
-    }
-}
-
-void FolderWindow::closeChild() {
-    if (child) {
-        child->parent = nullptr;
-        child->close();
-        child = nullptr;
-    }
-}
-
-void FolderWindow::openChild(CComPtr<IShellItem> childItem) {
+void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     childItem = resolveLink(childItem);
     if (child) {
         int compare;
@@ -634,25 +471,63 @@ void FolderWindow::openChild(CComPtr<IShellItem> childItem) {
             child.Attach(new FolderWindow(this, childItem));
             // will flush message queue
             POINT pos = childPos();
-            child->create({pos.x, pos.y, pos.x + DEFAULT_WIDTH, pos.y + DEFAULT_HEIGHT},
-                          SW_SHOWNOACTIVATE);
+            RECT childRect {pos.x, pos.y,
+                pos.x + FolderWindow::DEFAULT_WIDTH, pos.y + FolderWindow::DEFAULT_HEIGHT};
+            child->create(childRect, SW_SHOWNOACTIVATE);
         }
     }
 }
 
-void FolderWindow::openParent() {
+void ItemWindow::closeChild() {
+    if (child) {
+        child->parent = nullptr;
+        child->close();
+        child = nullptr;
+    }
+}
+
+void ItemWindow::openParent() {
     CComPtr<IShellItem> parentItem;
     if (SUCCEEDED(item->GetParent(&parentItem))) {
         parent.Attach(new FolderWindow(nullptr, parentItem));
         parent->child = this;
         POINT pos = parentPos();
-        parent->create({pos.x - DEFAULT_WIDTH, pos.y, pos.x, pos.y + DEFAULT_HEIGHT},
-                       SW_SHOWNORMAL);
+        RECT parentRect {pos.x - FolderWindow::DEFAULT_WIDTH, pos.y,
+            pos.x, pos.y + FolderWindow::DEFAULT_HEIGHT};
+        parent->create(parentRect, SW_SHOWNORMAL);
         ShowWindow(parentButton, SW_HIDE);
     }
 }
 
-CComPtr<IShellItem> FolderWindow::resolveLink(CComPtr<IShellItem> linkItem) {
+void ItemWindow::detachFromParent() {
+    if (parent && parent->child == this) {
+        parent->child = nullptr;
+        parent->onChildDetached();
+    }
+    parent = nullptr;
+    ShowWindow(parentButton, SW_SHOW);
+}
+
+void ItemWindow::onChildDetached() {}
+
+POINT ItemWindow::childPos() {
+    RECT windowRect = {}, clientRect = {};
+    // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
+    // GetWindowRect includes the drop shadow! (why??)
+    GetWindowRect(hwnd, &windowRect);
+    GetClientRect(hwnd, &clientRect);
+    return {windowRect.left + clientRect.right, windowRect.top};
+}
+
+POINT ItemWindow::parentPos() {
+    RECT windowRect = {};
+    GetWindowRect(hwnd, &windowRect);
+    POINT shadow = {windowRect.left, windowRect.top};
+    ScreenToClient(hwnd, &shadow); // determine size of drop shadow
+    return {windowRect.left - shadow.x * 2, windowRect.top};
+}
+
+CComPtr<IShellItem> ItemWindow::resolveLink(CComPtr<IShellItem> linkItem) {
     // https://stackoverflow.com/a/46064112
     CComPtr<IShellLink> link;
     if (SUCCEEDED(linkItem->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&link)))) {
@@ -672,48 +547,20 @@ CComPtr<IShellItem> FolderWindow::resolveLink(CComPtr<IShellItem> linkItem) {
     return linkItem;
 }
 
-POINT FolderWindow::childPos() {
-    RECT windowRect = {}, clientRect = {};
-    // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
-    // GetWindowRect includes the drop shadow! (why??)
-    GetWindowRect(hwnd, &windowRect);
-    GetClientRect(hwnd, &clientRect);
-    return {windowRect.left + clientRect.right, windowRect.top};
-}
-
-POINT FolderWindow::parentPos() {
-    RECT windowRect = {};
-    GetWindowRect(hwnd, &windowRect);
-    POINT shadow = {windowRect.left, windowRect.top};
-    ScreenToClient(hwnd, &shadow); // determine size of drop shadow
-    return {windowRect.left - shadow.x * 2, windowRect.top};
-}
-
-void FolderWindow::detachFromParent() {
-    if (parent && parent->child == this) {
-        parent->child = nullptr;
-        parent->clearSelection();
-    }
-    parent = nullptr;
-    ShowWindow(parentButton, SW_SHOW);
-}
-
 /* IUnknown */
 
-STDMETHODIMP FolderWindow::QueryInterface(REFIID id, void **obj) {
+STDMETHODIMP ItemWindow::QueryInterface(REFIID id, void **obj) {
     static const QITAB interfaces[] = {
-        QITABENT(FolderWindow, IServiceProvider),
-        QITABENT(FolderWindow, ICommDlgBrowser),
         {},
     };
     return QISearch(this, interfaces, id, obj);
 }
 
-STDMETHODIMP_(ULONG) FolderWindow::AddRef() {
+STDMETHODIMP_(ULONG) ItemWindow::AddRef() {
     return InterlockedIncrement(&refCount);
 }
 
-STDMETHODIMP_(ULONG) FolderWindow::Release() {
+STDMETHODIMP_(ULONG) ItemWindow::Release() {
     long r = InterlockedDecrement(&refCount);
     if (r == 0) {
         debugPrintf(L"Delete %s\n", &*title);
@@ -722,59 +569,6 @@ STDMETHODIMP_(ULONG) FolderWindow::Release() {
     return r;
 }
 
-/* IServiceProvider */
-
-STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void **ppv) {
-    // services that IExplorerBrowser queries for:
-    // 2BD6990F-2D1A-4B5A-9D61-AB6229A36CAA     ??
-    // 4C96BE40-915C-11CF-99D3-00AA004AE837     TopLevelBrowser
-    // 2E228BA3-EA25-4378-97B6-D574FAEBA356     ??
-    // 3934E4C2-8143-4E4C-A1DC-718F8563F337     ??
-    // A36A3ACE-8332-45CE-AA29-503CB76B2587     ??
-    // 04BA120E-AD52-4A2D-9807-2DA178D0C3E1
-    // DD1E21CC-E2C7-402C-BF05-10328D3F6BAD     ??
-    // 16770868-239C-445B-A01D-F26C7FBBF26C     ??
-    // 6CCB7BE0-6807-11D0-B810-00C04FD706EC     IShellTaskScheduler
-    // 000214F1-0000-0000-C000-000000000046     ICommDlgBrowser / SExplorerBrowserFrame
-    // 05A89298-6246-4C63-BB0D-9BDAF140BF3B     IBrowserWithActivationNotification
-    // 00021400-0000-0000-C000-000000000046     Desktop
-    // E38FE0F3-3DB0-47EE-A314-25CF7F4BF521     IInfoBarHost https://stackoverflow.com/a/63954982
-    // D7F81F62-491F-49BC-891D-5665085DF969     ??
-    // FAD451C2-AF58-4161-B9FF-57AFBBED0AD2     ??
-    // 9EA5491C-89C8-4BEF-93D3-7F665FB82A33     ??
-
-    HRESULT result = E_NOINTERFACE;
-    *ppv = nullptr;
-
-    if (guidService == SID_SExplorerBrowserFrame) {
-        // use ICommDlgBrowser implementation to receive selection events
-        result = QueryInterface(riid, ppv);
-    }
-    return result;
-}
-
-/* ICommDlgBrowser */
-
-// called when double-clicking a file
-STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *) {
-    return S_FALSE; // perform default action
-}
-
-STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
-    if (change == CDBOSC_SELCHANGE) {
-        if (!ignoreNextSelection) {
-            // TODO this can hang the browser and should really be done asynchronously with a message
-            // but that adds other complication
-            selectionChanged();
-        }
-        ignoreNextSelection = false;
-    }
-    return S_OK;
-}
-
-STDMETHODIMP FolderWindow::IncludeObject(IShellView *, PCUITEMID_CHILD) {
-    return S_OK; // include all objects
-}
 
 LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
@@ -821,64 +615,3 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
 }
 
 } // namespace
-
-#ifdef DEBUG
-int main(int, char**) {
-    wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
-}
-#endif
-
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR, int showCommand) {
-    debugPrintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
-    int argc;
-    wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
-
-    if (FAILED(OleInitialize(0))) // needed for drag/drop
-        return 0;
-
-    INITCOMMONCONTROLSEX controls;
-    controls.dwSize = sizeof(controls);
-    controls.dwICC = ICC_STANDARD_CLASSES;
-    InitCommonControlsEx(&controls);
-
-    chromabrowse::init(hInstance);
-    chromabrowse::FolderWindow::registerClass();
-
-    {
-        CComPtr<IShellItem> startItem;
-        if (argc > 1) {
-            // TODO parse name vs display name https://stackoverflow.com/q/42966489
-            if (FAILED(SHCreateItemFromParsingName(argv[1], nullptr, IID_PPV_ARGS(&startItem)))) {
-                debugPrintf(L"Unable to locate item at path\n");
-                return 0;
-            }
-        } else {
-            if (FAILED(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
-                    IID_PPV_ARGS(&startItem)))) {
-                debugPrintf(L"Couldn't get desktop!\n");
-                return 0;
-            }
-        }
-
-        RECT workArea;
-        SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-        RECT windowRect = {workArea.left, workArea.bottom - chromabrowse::DEFAULT_HEIGHT,
-                           workArea.left + chromabrowse::DEFAULT_WIDTH, workArea.bottom};
-
-        CComPtr<chromabrowse::FolderWindow> initialWindow;
-        initialWindow.Attach(new chromabrowse::FolderWindow(nullptr, startItem));
-        initialWindow->create(windowRect, showCommand);
-    }
-
-    MSG msg;
-    while (GetMessage(&msg, nullptr, 0, 0)) {
-        if (chromabrowse::activeWindow && chromabrowse::activeWindow->handleTopLevelMessage(&msg))
-            continue;
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
-
-    chromabrowse::close();
-    OleUninitialize();
-    return 0;
-}
