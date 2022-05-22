@@ -819,7 +819,7 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
 } // namespace
 
 #ifdef DEBUG
-int main(int argc, char* argv[]) {
+int main(int, char**) {
     wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
 }
 #endif
