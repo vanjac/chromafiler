@@ -321,6 +321,8 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
             else
                 openParent();
             return true;
+        } else if (vk == 'W' && !shift && ctrl && !alt) {
+            close();
         } else if ((vk == VK_F5 && !shift && !ctrl && !alt)
                 || (vk == 'R' && !shift && ctrl && !alt)) {
             if (shellView)
