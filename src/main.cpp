@@ -305,6 +305,8 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
     if (msg->message == WM_KEYDOWN && msg->wParam == VK_TAB) {
+        if ((GetKeyState(VK_CONTROL) & 0x8000) || (GetKeyState(VK_MENU) & 0x8000))
+            return false;
         if (GetKeyState(VK_SHIFT) & 0x8000) {
             if (parent)
                 parent->activate();
