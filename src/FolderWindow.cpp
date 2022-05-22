@@ -44,6 +44,8 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
 }
 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
+    if (ItemWindow::handleTopLevelMessage(msg))
+        return true;
     if (msg->message == WM_KEYDOWN || msg->message == WM_SYSKEYDOWN) {
         WPARAM vk = msg->wParam;
         bool shift = GetKeyState(VK_SHIFT) & 0x8000;
@@ -58,7 +60,7 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
     }
     if (shellView && shellView->TranslateAccelerator(msg) == S_OK)
         return true;
-    return ItemWindow::handleTopLevelMessage(msg);
+    return false;
 }
 
 void FolderWindow::onCreate() {
