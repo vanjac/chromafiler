@@ -1,5 +1,6 @@
 #include "ItemWindow.h"
 #include "FolderWindow.h"
+#include "ThumbnailWindow.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <dwmapi.h>
@@ -36,6 +37,15 @@ void ItemWindow::init() {
 
 void ItemWindow::uninit() {
     DeleteObject(symbolFont);
+}
+
+WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
+    WNDCLASS wndClass = {};
+    wndClass.lpfnWndProc = ItemWindow::windowProc;
+    wndClass.hInstance = GetModuleHandle(NULL);
+    wndClass.lpszClassName = name;
+    wndClass.style = CS_HREDRAW; // ensure caption gets redrawn if width changes
+    return wndClass;
 }
 
 LRESULT CALLBACK ItemWindow::windowProc(
@@ -469,12 +479,13 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     if (SUCCEEDED(childItem->GetAttributes(SFGAO_FOLDER, &attr))) {
         if (attr & SFGAO_FOLDER) {
             child.Attach(new FolderWindow(this, childItem));
-            // will flush message queue
-            POINT pos = childPos();
-            RECT childRect {pos.x, pos.y,
-                pos.x + FolderWindow::DEFAULT_WIDTH, pos.y + FolderWindow::DEFAULT_HEIGHT};
-            child->create(childRect, SW_SHOWNOACTIVATE);
+        } else {
+            child.Attach(new ThumbnailWindow(this, childItem));
         }
+        SIZE size = child->defaultSize();
+        POINT pos = childPos();
+        // will flush message queue
+        child->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNOACTIVATE);
     }
 }
 
@@ -491,10 +502,9 @@ void ItemWindow::openParent() {
     if (SUCCEEDED(item->GetParent(&parentItem))) {
         parent.Attach(new FolderWindow(nullptr, parentItem));
         parent->child = this;
+        SIZE size = parent->defaultSize();
         POINT pos = parentPos();
-        RECT parentRect {pos.x - FolderWindow::DEFAULT_WIDTH, pos.y,
-            pos.x, pos.y + FolderWindow::DEFAULT_HEIGHT};
-        parent->create(parentRect, SW_SHOWNORMAL);
+        parent->create({pos.x - size.cx, pos.y, pos.x, pos.y + size.cy}, SW_SHOWNORMAL);
         ShowWindow(parentButton, SW_HIDE);
     }
 }

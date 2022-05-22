@@ -1,4 +1,5 @@
 #include "FolderWindow.h"
+#include "ThumbnailWindow.h"
 #include <shlobj.h>
 
 // https://docs.microsoft.com/en-us/windows/win32/controls/cookbook-overview
@@ -27,6 +28,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     chromabrowse::ItemWindow::init();
     chromabrowse::FolderWindow::init();
+    chromabrowse::ThumbnailWindow::init();
 
     {
         CComPtr<IShellItem> startItem;
@@ -46,12 +48,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
         RECT workArea;
         SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-        RECT windowRect = {
-            workArea.left, workArea.bottom - chromabrowse::FolderWindow::DEFAULT_HEIGHT,
-            workArea.left + chromabrowse::FolderWindow::DEFAULT_WIDTH, workArea.bottom};
 
         CComPtr<chromabrowse::FolderWindow> initialWindow;
         initialWindow.Attach(new chromabrowse::FolderWindow(nullptr, startItem));
+        SIZE size = initialWindow->defaultSize();
+        RECT windowRect = {workArea.left, workArea.bottom - size.cy,
+                           workArea.left + size.cx, workArea.bottom};
         initialWindow->create(windowRect, showCommand);
     }
 

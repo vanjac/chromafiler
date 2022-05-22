@@ -7,16 +7,12 @@
 
 namespace chromabrowse {
 
-const wchar_t * CLASS_NAME = L"Folder Window";
+const wchar_t *FOLDER_WINDOW_CLASS = L"Folder Window";
 // user messages
 const UINT MSG_FORCE_SORT = WM_USER;
 
 void FolderWindow::init() {
-    WNDCLASS wndClass = {};
-    wndClass.lpfnWndProc = ItemWindow::windowProc;
-    wndClass.hInstance = GetModuleHandle(NULL);
-    wndClass.lpszClassName = CLASS_NAME;
-    wndClass.style = CS_HREDRAW; // ensure caption gets redrawn if width changes
+    WNDCLASS wndClass = createWindowClass(FOLDER_WINDOW_CLASS);
     RegisterClass(&wndClass);
 }
 
@@ -25,7 +21,11 @@ FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
 {}
 
 const wchar_t * FolderWindow::className() {
-    return CLASS_NAME;
+    return FOLDER_WINDOW_CLASS;
+}
+
+SIZE FolderWindow::defaultSize() {
+    return {231, 450}; // just wide enough for scrollbar tooltips
 }
 
 LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {

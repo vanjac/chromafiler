@@ -2,18 +2,16 @@
 #include <common.h>
 
 #include "ItemWindow.h"
-#include <windows.h>
 
 namespace chromabrowse {
 
 class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlgBrowser {
 public:
-    static const int DEFAULT_WIDTH = 231; // just large enough for scrollbar tooltips
-    static const int DEFAULT_HEIGHT = 450;
-
     static void init();
 
     FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
+
+    SIZE defaultSize() override;
 
     bool handleTopLevelMessage(MSG *msg) override;
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <common.h>
 
+#include <windows.h>
 #include <shobjidl.h>
 #include <atlbase.h>
 
@@ -20,10 +21,12 @@ protected:
 public:
     static void init();
     static void uninit();
+    static WNDCLASS createWindowClass(const wchar_t *name);
 
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
     virtual ~ItemWindow();
 
+    virtual SIZE defaultSize() = 0;
     bool create(RECT rect, int showCommand);
     void close();
     void activate();
