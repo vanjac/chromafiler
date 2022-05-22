@@ -304,19 +304,24 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
 }
 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
-    if (msg->message == WM_KEYDOWN && msg->wParam == VK_TAB) {
-        if ((GetKeyState(VK_CONTROL) & 0x8000) || (GetKeyState(VK_MENU) & 0x8000))
-            return false;
-        if (GetKeyState(VK_SHIFT) & 0x8000) {
+    if (msg->message == WM_KEYDOWN || msg->message == WM_SYSKEYDOWN) {
+        WPARAM vk = msg->wParam;
+        bool shift = GetKeyState(VK_SHIFT) & 0x8000;
+        bool ctrl = GetKeyState(VK_CONTROL) & 0x8000;
+        bool alt = GetKeyState(VK_MENU) & 0x8000;
+        if        ((vk == VK_TAB && !shift && !ctrl && !alt)
+                || (vk == VK_DOWN && !shift && !ctrl && alt)) {
+            if (child)
+                child->activate();
+            return true;
+        } else if ((vk == VK_TAB && shift && !ctrl && !alt)
+                || (vk == VK_UP && !shift && !ctrl && alt)) {
             if (parent)
                 parent->activate();
             else
                 openParent();
-        } else {
-            if (child)
-                child->activate();
+            return true;
         }
-        return true;
     }
     return false;
 }
