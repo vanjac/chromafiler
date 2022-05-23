@@ -53,8 +53,10 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
         bool alt = GetKeyState(VK_MENU) & 0x8000;
         if        ((vk == VK_F5 && !shift && !ctrl && !alt)
                 || (vk == 'R' && !shift && ctrl && !alt)) {
-            if (shellView)
+            if (shellView) {
                 shellView->Refresh();
+                ignoreNextSelection = true; // fix crash
+            }
             return true;
         }
     }
@@ -139,10 +141,11 @@ void FolderWindow::onDestroy() {
 void FolderWindow::onActivate(WPARAM wParam) {
     ItemWindow::onActivate(wParam);
     if (wParam != WA_INACTIVE) {
-        // fix a bug in details view where sort columns will be focused if shift is held
-        activateOnShiftRelease = GetKeyState(VK_SHIFT) & 0x8000;
-        if (shellView)
+        if (shellView) {
+            // fix a bug in details view where sort columns will be focused if shift is held
+            activateOnShiftRelease = GetKeyState(VK_SHIFT) & 0x8000;
             shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
+        }
     }
 }
 
