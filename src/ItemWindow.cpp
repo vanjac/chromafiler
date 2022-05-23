@@ -371,10 +371,10 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect);
 
-    if (cursor.x < windowRect.left || cursor.x > windowRect.right)
+    if (cursor.x < windowRect.left || cursor.x >= windowRect.right)
         return HTNOWHERE;
 
-    if (cursor.y < windowRect.top) {
+    if (cursor.y < windowRect.top || cursor.y >= windowRect.bottom) {
         return HTNOWHERE;
     } else if (cursor.y < windowRect.top + RESIZE_MARGIN) {
         if (cursor.x < windowRect.left + RESIZE_MARGIN * 2)
@@ -386,7 +386,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     } else if (cursor.y < windowRect.top + CAPTION_HEIGHT) {
         return HTCAPTION;
     } else {
-        return HTNOWHERE;
+        return HTCAPTION;
     }
 }
 
