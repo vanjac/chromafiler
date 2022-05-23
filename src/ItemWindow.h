@@ -8,7 +8,6 @@
 namespace chromabrowse {
 
 class ItemWindow;
-class FolderWindow;
 
 extern long numOpenWindows;
 extern CComPtr<ItemWindow> activeWindow;
