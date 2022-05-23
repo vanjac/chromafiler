@@ -308,7 +308,7 @@ void ItemWindow::onCreate() {
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
     parentButton = CreateWindow(L"BUTTON", L"\uE96F", // ChevronLeftSmall
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
-        -1, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT + 1,
+        0, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT,
         hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
     SetWindowSubclass(parentButton, captionButtonProc, 0, 0);
 }
@@ -606,13 +606,15 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
 
         HTHEME theme = OpenThemeData(hwnd, L"Button");
         if (theme) {
-            RECT clientRect;
-            GetClientRect(hwnd, &clientRect);
-            DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &clientRect, 0);
+            RECT buttonRect;
+            GetClientRect(hwnd, &buttonRect);
+            buttonRect = {buttonRect.left - 1, buttonRect.top,
+                          buttonRect.right + 1, buttonRect.bottom + 1};
+            DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect, 0);
 
             RECT contentRect;
             if (SUCCEEDED(GetThemeBackgroundContentRect(theme, hdc, BP_PUSHBUTTON, 
-                    themeState, &clientRect, &contentRect))) {
+                    themeState, &buttonRect, &contentRect))) {
                 wchar_t buttonText[32];
                 GetWindowText(hwnd, buttonText, 32);
                 HFONT oldFont = (HFONT) SelectObject(hdc, symbolFont);
