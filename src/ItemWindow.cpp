@@ -610,7 +610,11 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
             GetClientRect(hwnd, &buttonRect);
             buttonRect = {buttonRect.left - 1, buttonRect.top,
                           buttonRect.right + 1, buttonRect.bottom + 1};
-            DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect, 0);
+            if (themeState == PBS_NORMAL) {
+                // hacky way to hide button while still rendering text properly
+                InflateRect(&buttonRect, 8, 8);
+            }
+            DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect, &ps.rcPaint);
 
             RECT contentRect;
             if (SUCCEEDED(GetThemeBackgroundContentRect(theme, hdc, BP_PUSHBUTTON, 
