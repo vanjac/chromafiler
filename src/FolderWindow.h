@@ -45,7 +45,9 @@ private:
     CComPtr<IExplorerBrowser> browser;
     CComPtr<IShellView> shellView;
 
+    // jank flags
     bool ignoreNextSelection = false;
+    bool activateOnShiftRelease = false;
 };
 
 } // namespace

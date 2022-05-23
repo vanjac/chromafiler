@@ -58,6 +58,12 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
             return true;
         }
     }
+    if (activateOnShiftRelease && msg->message == WM_KEYUP && msg->wParam == VK_SHIFT) {
+        if (shellView)
+            shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
+        activateOnShiftRelease = false;
+        // don't return true
+    }
     if (shellView && shellView->TranslateAccelerator(msg) == S_OK)
         return true;
     return false;
@@ -133,6 +139,8 @@ void FolderWindow::onDestroy() {
 void FolderWindow::onActivate(WPARAM wParam) {
     ItemWindow::onActivate(wParam);
     if (wParam != WA_INACTIVE) {
+        // fix a bug in details view where sort columns will be focused if shift is held
+        activateOnShiftRelease = GetKeyState(VK_SHIFT) & 0x8000;
         if (shellView)
             shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
     }

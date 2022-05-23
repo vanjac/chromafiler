@@ -287,6 +287,7 @@ bool ItemWindow::handleTopLevelMessage(MSG *msg) {
             return true;
         } else if (vk == 'W' && !shift && ctrl && !alt) {
             close();
+            return true;
         }
     }
     return false;
