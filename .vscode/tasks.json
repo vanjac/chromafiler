@@ -11,7 +11,7 @@
 				"/nologo",
 				"/W4",
 				"/Fe:",
-				"${workspaceFolder}\\build\\out.exe",
+				"${workspaceFolder}\\build\\chromabrowse.exe",
 				"/I",
 				"${workspaceFolder}\\src",
 				"${workspaceFolder}\\src\\*.cpp",
