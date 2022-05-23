@@ -20,7 +20,6 @@
 				"Gdi32.lib",
 				"UxTheme.lib",
 				"Comctl32.lib",
-				"Msimg32.lib",
 				"/link",
 				"/incremental:no",
 			],
