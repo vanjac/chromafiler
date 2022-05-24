@@ -13,6 +13,10 @@ const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
 const int WINDOW_ICON_PADDING = 4;
 const int SNAP_DISTANCE = 32;
+// colors
+// a bit darker than windows default, 4.5:1 contrast ratio
+const COLORREF INACTIVE_CAPTION_COLOR = 0x767676;
+const COLORREF CAPTION_BUTTON_TEXT_COLOR = 0x444444;
 
 static HFONT symbolFont;
 
@@ -341,6 +345,7 @@ void ItemWindow::onActivate(WPARAM wParam, HWND prevWindow) {
     // for DWM custom frame
     // make sure frame is correct if window is maximized
     extendWindowFrame();
+    InvalidateRect(hwnd, nullptr, FALSE); // make sure to update caption text color
 
     if (wParam != WA_INACTIVE) {
         activeWindow = this;
@@ -452,6 +457,10 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             // Setup the theme drawing options.
             DTTOPTS textOpts = {sizeof(DTTOPTS)};
             textOpts.dwFlags = DTT_COMPOSITED;
+            if (GetActiveWindow() != hwnd) {
+                textOpts.crText = INACTIVE_CAPTION_COLOR;
+                textOpts.dwFlags |= DTT_TEXTCOLOR;
+            }
 
             // Select a font.
             LOGFONT logFont;
@@ -647,7 +656,7 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
                 wchar_t buttonText[32];
                 GetWindowText(hwnd, buttonText, 32);
                 HFONT oldFont = (HFONT) SelectObject(hdc, symbolFont);
-                SetTextColor(hdc, 0x333333);
+                SetTextColor(hdc, CAPTION_BUTTON_TEXT_COLOR);
                 SetBkMode(hdc, TRANSPARENT);
                 DrawText(hdc, buttonText, -1, &contentRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 SelectObject(hdc, oldFont);
