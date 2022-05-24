@@ -2,8 +2,21 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "Build resources",
+			"command": "rc.exe",
+			"args": [
+				"/fo",
+				"${workspaceFolder}\\build\\resource.res",
+				"${workspaceFolder}\\res\\resource.rc",
+			],
+			"group": {
+				"kind": "build",
+			},
+		},
+		{
 			"type": "cppbuild",
-			"label": "C/C++: cl.exe build active file",
+			"label": "C/C++: cl.exe build application",
+			"dependsOn": ["Build resources"],
 			"command": "cl.exe",
 			"args": [
 				"/Zi",      // remove for release
@@ -15,6 +28,7 @@
 				"/I",
 				"${workspaceFolder}\\src",
 				"${workspaceFolder}\\src\\*.cpp",
+				"${workspaceFolder}\\build\\resource.res",
 				"/link",
 				"/incremental:no",
 			],
