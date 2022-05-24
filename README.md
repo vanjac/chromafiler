@@ -20,7 +20,7 @@ See the [wiki](https://github.com/vanjac/chromabrowse/wiki/Tutorial) for an intr
 
 Building requires the [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) and [Visual Studio Code](https://code.visualstudio.com/).
 
-VS Code must be launched from the "x64 Native Tools Command Prompt" (search in Start menu) to access the correct MSVC build tools. Open the chromabrowse directory in VS Code, then open `src/main.cpp` and press `Ctrl+Shift+B` to build the app.
+VS Code must be launched from the "x64 Native Tools Command Prompt" (search in Start menu) to access the correct MSVC build tools. Type `code` in this prompt to launch VS Code. Open the chromabrowse directory, then open `src/main.cpp` and press `Ctrl+Shift+B` to build the app.
 
 ## Suggested pairings
 
