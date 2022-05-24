@@ -139,8 +139,8 @@ void FolderWindow::onDestroy() {
     browser->Destroy();
 }
 
-void FolderWindow::onActivate(WPARAM wParam) {
-    ItemWindow::onActivate(wParam);
+void FolderWindow::onActivate(WPARAM wParam, HWND prevWindow) {
+    ItemWindow::onActivate(wParam, prevWindow);
     if (wParam != WA_INACTIVE) {
         if (shellView) {
             // fix a bug in details view where sort columns will be focused if shift is held

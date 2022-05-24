@@ -31,7 +31,7 @@ protected:
 
     void onCreate() override;
     void onDestroy() override;
-    void onActivate(WPARAM wParam) override;
+    void onActivate(WPARAM wParam, HWND prevWindow) override;
     void onSize() override;
 
     void onChildDetached() override;

@@ -49,7 +49,7 @@ protected:
 
     virtual void onCreate();
     virtual void onDestroy();
-    virtual void onActivate(WPARAM wParam);
+    virtual void onActivate(WPARAM wParam, HWND prevWindow);
     virtual void onSize();
     virtual void onPaint(PAINTSTRUCT paint);
 

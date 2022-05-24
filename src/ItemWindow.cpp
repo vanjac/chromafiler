@@ -187,7 +187,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 PostQuitMessage(0);
             return 0;
         case WM_ACTIVATE: {
-            onActivate(wParam);
+            onActivate(wParam, (HWND)lParam);
             return 0;
         }
         case WM_NCCALCSIZE:
@@ -336,7 +336,7 @@ void ItemWindow::onDestroy() {
         activeWindow = nullptr;
 }
 
-void ItemWindow::onActivate(WPARAM wParam) {
+void ItemWindow::onActivate(WPARAM wParam, HWND prevWindow) {
     // for DWM custom frame
     // make sure frame is correct if window is maximized
     extendWindowFrame();
@@ -344,12 +344,22 @@ void ItemWindow::onActivate(WPARAM wParam) {
     if (wParam != WA_INACTIVE) {
         activeWindow = this;
 
-        // bring children to front
-        auto nextChild = child;
-        while (nextChild) {
-            SetWindowPos(nextChild->hwnd, hwnd, 0, 0, 0, 0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-            nextChild = nextChild->child;
+        ItemWindow *rootParent = this;
+        while (rootParent->parent)
+            rootParent = rootParent->parent;
+        bool bringGroupToFront = true;
+        for (ItemWindow *next = rootParent; next; next = next->child) {
+            if (next->hwnd == prevWindow) {
+                bringGroupToFront = false; // group was already front
+                break;
+            }
+        }
+        if (bringGroupToFront) {
+            for (ItemWindow *next = rootParent; next; next = next->child) {
+                if (next != this)
+                    SetWindowPos(next->hwnd, hwnd, 0, 0, 0, 0,
+                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
         }
     }
 }
