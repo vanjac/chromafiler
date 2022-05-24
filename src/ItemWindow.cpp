@@ -106,6 +106,17 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         }
     }
 
+    // keep window on screen
+    POINT testPoint = {rect.left, rect.top + CAPTION_HEIGHT};
+    HMONITOR nearestMonitor = MonitorFromPoint(testPoint, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo;
+    monitorInfo.cbSize = sizeof(monitorInfo);
+    GetMonitorInfo(nearestMonitor, &monitorInfo);
+    if (testPoint.x < monitorInfo.rcWork.left)
+        OffsetRect(&rect, monitorInfo.rcWork.left - testPoint.x, 0);
+    if (testPoint.y > monitorInfo.rcWork.bottom)
+        OffsetRect(&rect, 0, monitorInfo.rcWork.bottom - testPoint.y);
+
     HWND createHwnd = CreateWindow(
         className(),
         title,
