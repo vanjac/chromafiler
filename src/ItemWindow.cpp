@@ -231,6 +231,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 int moveAmount = max(abs(moveAccum.x), abs(moveAccum.y));
                 if (moveAmount > SNAP_DISTANCE) {
                     detachFromParent();
+                    bringGroupToFront();
                     desiredRect->left = curRect.left + moveAccum.x;
                     desiredRect->right = curRect.right + moveAccum.x;
                     desiredRect->top = curRect.top + moveAccum.y;
@@ -344,23 +345,15 @@ void ItemWindow::onActivate(WPARAM wParam, HWND prevWindow) {
     if (wParam != WA_INACTIVE) {
         activeWindow = this;
 
-        ItemWindow *rootParent = this;
-        while (rootParent->parent)
-            rootParent = rootParent->parent;
-        bool bringGroupToFront = true;
-        for (ItemWindow *next = rootParent; next; next = next->child) {
-            if (next->hwnd == prevWindow) {
-                bringGroupToFront = false; // group was already front
-                break;
-            }
+        for (ItemWindow *next = child; next; next = next->child) {
+            if (next->hwnd == prevWindow)
+                return; // group was already front
         }
-        if (bringGroupToFront) {
-            for (ItemWindow *next = rootParent; next; next = next->child) {
-                if (next != this)
-                    SetWindowPos(next->hwnd, hwnd, 0, 0, 0, 0,
-                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-            }
+        for (ItemWindow *next = parent; next; next = next->parent) {
+            if (next->hwnd == prevWindow)
+                return;
         }
+        bringGroupToFront();
     }
 }
 
@@ -371,6 +364,17 @@ void ItemWindow::onSize() {
 void ItemWindow::windowRectChanged() {
     if (child) {
         child->setPos(childPos());
+    }
+}
+
+void ItemWindow::bringGroupToFront() {
+    ItemWindow *rootParent = this;
+    while (rootParent->parent)
+        rootParent = rootParent->parent;
+    for (ItemWindow *next = rootParent; next; next = next->child) {
+        if (next != this)
+            SetWindowPos(next->hwnd, hwnd, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 }
 

@@ -66,6 +66,7 @@ private:
     virtual const wchar_t * className() = 0;
 
     void windowRectChanged();
+    void bringGroupToFront();
     // for DWM custom frame:
     void extendWindowFrame();
     LRESULT hitTestNCA(POINT cursor);
