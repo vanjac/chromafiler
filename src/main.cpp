@@ -34,6 +34,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     chromabrowse::FolderWindow::init();
     chromabrowse::ThumbnailWindow::init();
 
+    // https://docs.microsoft.com/en-us/windows/win32/shell/appids
+    SetCurrentProcessExplicitAppUserModelID(L"chroma.browse");
+
     {
         CComPtr<IShellItem> startItem;
         if (argc > 1) {
