@@ -345,7 +345,11 @@ void ItemWindow::onActivate(WPARAM wParam, HWND prevWindow) {
     // for DWM custom frame
     // make sure frame is correct if window is maximized
     extendWindowFrame();
-    InvalidateRect(hwnd, nullptr, FALSE); // make sure to update caption text color
+
+    RECT captionRect;
+    GetClientRect(hwnd, &captionRect);
+    captionRect.bottom = CAPTION_HEIGHT;
+    InvalidateRect(hwnd, &captionRect, FALSE); // make sure to update caption text color
 
     if (wParam != WA_INACTIVE) {
         activeWindow = this;
@@ -399,7 +403,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // the default window proc handles the left, right, and bottom edges
     // so only need to check top edge and caption
     RECT windowRect;
-    GetWindowRect(hwnd, &windowRect);
+    GetWindowRect(hwnd, &windowRect); // TODO what about the shadow??
 
     if (cursor.x < windowRect.left || cursor.x >= windowRect.right)
         return HTNOWHERE;
