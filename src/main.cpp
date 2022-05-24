@@ -1,6 +1,8 @@
 #include "FolderWindow.h"
 #include "ThumbnailWindow.h"
 #include <shlobj.h>
+#include <propkey.h>
+#include <Propvarutil.h>
 
 // https://docs.microsoft.com/en-us/windows/win32/controls/cookbook-overview
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -16,6 +18,9 @@ int main(int, char**) {
     wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
 }
 #endif
+
+DWORD WINAPI updateJumpListThread(void *);
+bool updateJumpList();
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     debugPrintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
@@ -35,12 +40,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     chromabrowse::ThumbnailWindow::init();
 
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
-    SetCurrentProcessExplicitAppUserModelID(L"chroma.browse");
+    SetCurrentProcessExplicitAppUserModelID(APP_ID);
+
+    DWORD threadId;
+    CreateThread(nullptr, 0, updateJumpListThread, nullptr, 0, &threadId);
 
     {
         CComPtr<IShellItem> startItem;
         if (argc > 1) {
-            // TODO parse name vs display name https://stackoverflow.com/q/42966489
+            // parse name vs display name https://stackoverflow.com/q/42966489
             if (FAILED(SHCreateItemFromParsingName(argv[1], nullptr, IID_PPV_ARGS(&startItem)))) {
                 debugPrintf(L"Unable to locate item at path\n");
                 return 0;
@@ -72,7 +80,87 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         DispatchMessage(&msg);
     }
 
+    updateJumpList();
+
     chromabrowse::ItemWindow::uninit();
     OleUninitialize();
     return 0;
+}
+
+DWORD WINAPI updateJumpListThread(void *) {
+    if (FAILED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
+        return 0;
+    if (!updateJumpList()) {
+        debugPrintf(L"Failed to update jump list\n");
+    }
+    CoUninitialize();
+    return 0;
+}
+
+bool updateJumpList() {
+    CComPtr<ICustomDestinationList> jumpList;
+    if (FAILED(jumpList.CoCreateInstance(__uuidof(DestinationList)))) {
+        CoUninitialize();
+        return false;
+    }
+    jumpList->SetAppID(APP_ID);
+    UINT minSlots;
+    CComPtr<IObjectArray> removedDestinations;
+    jumpList->BeginList(&minSlots, IID_PPV_ARGS(&removedDestinations));
+
+    CComPtr<IObjectCollection> tasks;
+    tasks.CoCreateInstance(__uuidof(EnumerableObjectCollection));
+
+    wchar_t exePath[MAX_PATH];
+    GetModuleFileName(GetModuleHandle(NULL), exePath, MAX_PATH);
+
+    CComPtr<IShellItem> quickAccessItem;
+    SHCreateItemFromParsingName(L"shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}",
+        nullptr, IID_PPV_ARGS(&quickAccessItem));
+    CComPtr<IEnumShellItems> enumItems;
+    if (quickAccessItem && SUCCEEDED(quickAccessItem->BindToHandler(
+            nullptr, BHID_EnumItems, IID_PPV_ARGS(&enumItems)))) {
+        CComPtr<IShellItem> childItem;
+        for (int i = 0; i < 20; i++)
+            enumItems->Next(1, &childItem, nullptr); // TODO: hack!! the first 20 items are recents
+        while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
+            CComHeapPtr<wchar_t> displayName, parsingName;
+            childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName);
+            childItem->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &parsingName);
+            wchar_t args[MAX_PATH + 3];
+            swprintf(args, MAX_PATH + 3, L"\"%s\"", &*parsingName);
+
+            CComPtr<IShellLink> link;
+            link.CoCreateInstance(__uuidof(ShellLink));
+            link->SetPath(exePath);
+            link->SetArguments(args);
+            link->SetIconLocation(exePath, 101);
+            CComQIPtr<IPropertyStore> linkProps(link);
+            PROPVARIANT propVar;
+            InitPropVariantFromString(displayName, &propVar);
+            linkProps->SetValue(PKEY_Title, propVar);
+            tasks->AddObject(link);
+
+            CComPtr<IExtractIcon> extractIcon;
+            if (SUCCEEDED(childItem->BindToHandler(nullptr, BHID_SFUIObject,
+                    IID_PPV_ARGS(&extractIcon)))) {
+                wchar_t iconFile[MAX_PATH];
+                int index;
+                UINT flags;
+                if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
+                    if (!(flags & GIL_NOTFILENAME))
+                        link->SetIconLocation(iconFile, index);
+                }
+            }
+        }
+    }
+
+    if (FAILED(jumpList->AddUserTasks(tasks))) {
+        debugPrintf(L"Failed to add user tasks\n");
+        return false;
+    }
+    jumpList->CommitList();
+
+    debugPrintf(L"Successfully updated jump list\n");
+    return true;
 }
