@@ -25,4 +25,4 @@ VS Code must be launched from the "x64 Native Tools Command Prompt" (search in S
 ## Suggested pairings
 
 - [Everything](https://www.voidtools.com/) by voidtools
-- [Microsoft Powertoys](https://github.com/microsoft/PowerToys)
+- [Microsoft PowerToys](https://github.com/microsoft/PowerToys)
