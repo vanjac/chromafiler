@@ -3,6 +3,7 @@
 #include <shlobj.h>
 #include <propkey.h>
 #include <Propvarutil.h>
+#include <strsafe.h>
 
 // https://docs.microsoft.com/en-us/windows/win32/controls/cookbook-overview
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
@@ -127,8 +128,10 @@ bool updateJumpList() {
             CComHeapPtr<wchar_t> displayName, parsingName;
             childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName);
             childItem->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &parsingName);
-            wchar_t args[MAX_PATH + 3];
-            swprintf(args, MAX_PATH + 3, L"\"%s\"", &*parsingName);
+            wchar_t args[MAX_PATH];
+            args[0] = L'"';
+            StringCchCopy(args + 1, MAX_PATH - 1, parsingName);
+            StringCchCat(args, MAX_PATH, L"\"");
 
             CComPtr<IShellLink> link;
             link.CoCreateInstance(__uuidof(ShellLink));

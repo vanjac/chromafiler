@@ -481,7 +481,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             int iconSize = GetSystemMetrics(SM_CXSMICON);
             int buttonWidth = GetSystemMetrics(SM_CXSIZE);
             SIZE titleSize = {};
-            GetTextExtentPoint32(hdcPaint, title, (int)wcslen(title), &titleSize);
+            GetTextExtentPoint32(hdcPaint, title, (int)lstrlen(title), &titleSize);
             // include padding on the right side of the text; makes it look more centered
             int headerWidth = iconSize + WINDOW_ICON_PADDING * 2 + titleSize.cx;
             int headerLeft = (width - headerWidth) / 2;
