@@ -51,7 +51,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         if (argc > 1) {
             // parse name vs display name https://stackoverflow.com/q/42966489
             if (FAILED(SHCreateItemFromParsingName(argv[1], nullptr, IID_PPV_ARGS(&startItem)))) {
-                debugPrintf(L"Unable to locate item at path\n");
+                debugPrintf(L"Unable to locate item at path %s\n", argv[1]);
                 return 0;
             }
         } else {
@@ -128,15 +128,19 @@ bool updateJumpList() {
             CComHeapPtr<wchar_t> displayName, parsingName;
             childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName);
             childItem->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &parsingName);
-            wchar_t args[MAX_PATH];
-            args[0] = L'"';
-            StringCchCopy(args + 1, MAX_PATH - 1, parsingName);
-            StringCchCat(args, MAX_PATH, L"\"");
 
             CComPtr<IShellLink> link;
             link.CoCreateInstance(__uuidof(ShellLink));
             link->SetPath(exePath);
-            link->SetArguments(args);
+            if (StrChr(parsingName, L' ')) {
+                wchar_t args[MAX_PATH];
+                args[0] = L'"';
+                StringCchCopy(args + 1, MAX_PATH - 2, parsingName);
+                StringCchCat(args, MAX_PATH, L"\"");
+                link->SetArguments(args);
+            } else {
+                link->SetArguments(parsingName);
+            }
             link->SetIconLocation(exePath, 101);
             CComQIPtr<IPropertyStore> linkProps(link);
             PROPVARIANT propVar;
