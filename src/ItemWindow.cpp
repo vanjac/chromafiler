@@ -336,7 +336,7 @@ void ItemWindow::onDestroy() {
         child->close(); // recursive
     }
     child = nullptr;
-    detachFromParent();
+    clearParent();
     if (activeWindow == this)
         activeWindow = nullptr;
 }
@@ -555,12 +555,16 @@ void ItemWindow::openParent() {
     }
 }
 
-void ItemWindow::detachFromParent() {
+void ItemWindow::clearParent() {
     if (parent && parent->child == this) {
         parent->child = nullptr;
         parent->onChildDetached();
     }
     parent = nullptr;
+}
+
+void ItemWindow::detachFromParent() {
+    clearParent();
     ShowWindow(parentButton, SW_SHOW);
 }
 

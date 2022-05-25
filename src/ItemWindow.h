@@ -72,7 +72,8 @@ private:
     LRESULT hitTestNCA(POINT cursor);
 
     void openParent();
-    void detachFromParent();
+    void clearParent();
+    void detachFromParent(); // updates UI state
     POINT childPos(); // top left corner of child
     POINT parentPos(); // top right corner of parent
     CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem);
