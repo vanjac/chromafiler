@@ -71,6 +71,9 @@ private:
     void extendWindowFrame();
     LRESULT hitTestNCA(POINT cursor);
 
+    void hideInTaskbar();
+    void showInTaskbar();
+
     void openParent();
     void clearParent();
     void detachFromParent(); // updates UI state

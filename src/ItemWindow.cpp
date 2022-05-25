@@ -320,6 +320,9 @@ void ItemWindow::onCreate() {
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
+    if (parent)
+        hideInTaskbar();
+
     CComPtr<IShellItem> parentItem;
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
     parentButton = CreateWindow(L"BUTTON", L"\uE96F", // ChevronLeftSmall
@@ -339,6 +342,7 @@ void ItemWindow::onDestroy() {
     clearParent();
     if (activeWindow == this)
         activeWindow = nullptr;
+    hideInTaskbar();
 }
 
 void ItemWindow::onActivate(WPARAM wParam, HWND prevWindow) {
@@ -511,6 +515,20 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     CloseThemeData(theme);
 }
 
+void ItemWindow::hideInTaskbar() {
+    CComPtr<ITaskbarList> taskbar;
+    if (SUCCEEDED(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
+        taskbar->DeleteTab(hwnd);
+    }
+}
+
+void ItemWindow::showInTaskbar() {
+    CComPtr<ITaskbarList> taskbar;
+    if (SUCCEEDED(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
+        taskbar->AddTab(hwnd);
+    }
+}
+
 void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     childItem = resolveLink(childItem);
     if (child) {
@@ -552,6 +570,7 @@ void ItemWindow::openParent() {
         POINT pos = parentPos();
         parent->create({pos.x - size.cx, pos.y, pos.x, pos.y + size.cy}, SW_SHOWNORMAL);
         ShowWindow(parentButton, SW_HIDE);
+        hideInTaskbar();
     }
 }
 
@@ -566,6 +585,7 @@ void ItemWindow::clearParent() {
 void ItemWindow::detachFromParent() {
     clearParent();
     ShowWindow(parentButton, SW_SHOW);
+    showInTaskbar();
 }
 
 void ItemWindow::onChildDetached() {}
