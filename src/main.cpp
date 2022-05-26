@@ -62,14 +62,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             }
         }
 
-        RECT workArea;
-        SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-
         CComPtr<chromabrowse::FolderWindow> initialWindow;
         initialWindow.Attach(new chromabrowse::FolderWindow(nullptr, startItem));
         SIZE size = initialWindow->defaultSize();
-        RECT windowRect = {workArea.left, workArea.bottom - size.cy,
-                           workArea.left + size.cx, workArea.bottom};
+        RECT windowRect;
+        if (argc > 1) {
+            windowRect = {CW_USEDEFAULT, CW_USEDEFAULT,
+                          CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
+        } else {
+            RECT workArea;
+            SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+            windowRect = {workArea.left, workArea.bottom - size.cy,
+                          workArea.left + size.cx, workArea.bottom};
+        }
         initialWindow->create(windowRect, showCommand);
     }
 
