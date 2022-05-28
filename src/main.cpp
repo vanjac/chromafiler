@@ -1,6 +1,7 @@
 #include "FolderWindow.h"
 #include "ThumbnailWindow.h"
 #include "ItemWindowFactory.h"
+#include <shellapi.h>
 #include <shlobj.h>
 #include <propkey.h>
 #include <Propvarutil.h>
