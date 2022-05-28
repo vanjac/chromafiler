@@ -49,6 +49,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     {
         CComPtr<IShellItem> startItem;
         if (argc > 1) {
+            int pathLen = lstrlen(argv[1]);
+            if (argv[1][pathLen - 1] == '"')
+                argv[1][pathLen - 1] = '\\'; // fix weird CommandLineToArgvW behavior with \"
             // parse name vs display name https://stackoverflow.com/q/42966489
             if (FAILED(SHCreateItemFromParsingName(argv[1], nullptr, IID_PPV_ARGS(&startItem)))) {
                 debugPrintf(L"Unable to locate item at path %s\n", argv[1]);
@@ -77,6 +80,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         }
         initialWindow->create(windowRect, showCommand);
     }
+    LocalFree(argv);
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
@@ -133,19 +137,15 @@ bool updateJumpList() {
             CComHeapPtr<wchar_t> displayName, parsingName;
             childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName);
             childItem->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &parsingName);
+            wchar_t args[MAX_PATH];
+            args[0] = L'"';
+            StringCchCopy(args + 1, MAX_PATH - 2, parsingName);
+            StringCchCat(args, MAX_PATH, L"\"");
 
             CComPtr<IShellLink> link;
             link.CoCreateInstance(__uuidof(ShellLink));
             link->SetPath(exePath);
-            if (StrChr(parsingName, L' ')) {
-                wchar_t args[MAX_PATH];
-                args[0] = L'"';
-                StringCchCopy(args + 1, MAX_PATH - 2, parsingName);
-                StringCchCat(args, MAX_PATH, L"\"");
-                link->SetArguments(args);
-            } else {
-                link->SetArguments(parsingName);
-            }
+            link->SetArguments(args);
             link->SetIconLocation(exePath, 101);
             CComQIPtr<IPropertyStore> linkProps(link);
             PROPVARIANT propVar;
