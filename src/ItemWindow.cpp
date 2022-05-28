@@ -1,6 +1,5 @@
 #include "ItemWindow.h"
-#include "FolderWindow.h"
-#include "ThumbnailWindow.h"
+#include "ItemWindowFactory.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <dwmapi.h>
@@ -541,18 +540,11 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
         }
         closeChild();
     }
-    SFGAOF attr;
-    if (SUCCEEDED(childItem->GetAttributes(SFGAO_FOLDER, &attr))) {
-        if (attr & SFGAO_FOLDER) {
-            child.Attach(new FolderWindow(this, childItem));
-        } else {
-            child.Attach(new ThumbnailWindow(this, childItem));
-        }
-        SIZE size = child->defaultSize();
-        POINT pos = childPos();
-        // will flush message queue
-        child->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNOACTIVATE);
-    }
+    child = createItemWindow(this, childItem);
+    SIZE size = child->defaultSize();
+    POINT pos = childPos();
+    // will flush message queue
+    child->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNOACTIVATE);
 }
 
 void ItemWindow::closeChild() {
@@ -566,7 +558,7 @@ void ItemWindow::closeChild() {
 void ItemWindow::openParent() {
     CComPtr<IShellItem> parentItem;
     if (SUCCEEDED(item->GetParent(&parentItem))) {
-        parent.Attach(new FolderWindow(nullptr, parentItem));
+        parent = createItemWindow(nullptr, parentItem);
         parent->child = this;
         SIZE size = parent->defaultSize();
         POINT pos = parentPos();

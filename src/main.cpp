@@ -1,5 +1,6 @@
 #include "FolderWindow.h"
 #include "ThumbnailWindow.h"
+#include "ItemWindowFactory.h"
 #include <shlobj.h>
 #include <propkey.h>
 #include <Propvarutil.h>
@@ -65,8 +66,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             }
         }
 
-        CComPtr<chromabrowse::FolderWindow> initialWindow;
-        initialWindow.Attach(new chromabrowse::FolderWindow(nullptr, startItem));
+        CComPtr<chromabrowse::ItemWindow> initialWindow
+            = chromabrowse::createItemWindow(nullptr, startItem);
         SIZE size = initialWindow->defaultSize();
         RECT windowRect;
         if (argc > 1) {
