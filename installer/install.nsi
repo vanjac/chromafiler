@@ -1,7 +1,9 @@
 !include LogicLib.nsh
 !include MUI2.nsh
 !include "nsis-shortcut-properties\shortcut-properties.nsh"
+
 !define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\chromabrowse"
+!define CONTEXT_MENU_TEXT "Open in chromabrowse"
 
 Name "chromabrowse"
 OutFile "..\build\chromabrowse-setup.exe"
@@ -47,11 +49,40 @@ Section "Start Menu Shortcut"
 	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\chromabrowse.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.browse"
 SectionEnd
 
+Section "Add to folder context menu" SecContext
+	SetRegView 64
+	WriteRegStr HKCR Directory\Shell "" "none"
+	WriteRegStr HKCR CompressedFolder\Shell "" "none"
+	WriteRegStr HKCR Drive\Shell "" "none"
+
+	WriteRegStr HKCR Directory\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKCR Directory\Background\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKCR CompressedFolder\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKCR Drive\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
+
+	Var /GLOBAL context_menu_command
+	StrCpy $context_menu_command '"$INSTDIR\chromabrowse.exe" "%v"'
+	WriteRegStr HKCR Directory\shell\chromabrowse\command "" '$context_menu_command'
+	WriteRegStr HKCR Directory\Background\shell\chromabrowse\command "" '$context_menu_command'
+	WriteRegStr HKCR CompressedFolder\shell\chromabrowse\command "" '$context_menu_command'
+	WriteRegStr HKCR Drive\shell\chromabrowse\command "" '$context_menu_command'
+SectionEnd
+
 Section "un.Uninstall"
 	Delete $INSTDIR\*.exe
 	RMDir $INSTDIR
 	SetRegView 64
 	DeleteRegKey HKLM "${REG_UNINST_KEY}"
 	DeleteRegKey HKLM Software\chromabrowse
+	DeleteRegKey HKCR Directory\shell\chromabrowse
+	DeleteRegKey HKCR Directory\Background\shell\chromabrowse
+	DeleteRegKey HKCR CompressedFolder\shell\chromabrowse
+	DeleteRegKey HKCR Drive\shell\chromabrowse
 	Delete $SMPROGRAMS\chromabrowse.lnk
 SectionEnd
+
+LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromabrowse' command when right-clicking a folder."
+
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecContext} $(DESC_SecContext)
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
