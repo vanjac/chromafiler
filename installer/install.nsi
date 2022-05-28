@@ -60,6 +60,11 @@ Section "Add to folder context menu" SecContext
 	WriteRegStr HKCR CompressedFolder\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
 	WriteRegStr HKCR Drive\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
 
+	WriteRegStr HKCR Directory\shell\chromabrowse "Icon" "$INSTDIR\chromabrowse.exe"
+	WriteRegStr HKCR Directory\Background\shell\chromabrowse "Icon" "$INSTDIR\chromabrowse.exe"
+	WriteRegStr HKCR CompressedFolder\shell\chromabrowse "Icon" "$INSTDIR\chromabrowse.exe"
+	WriteRegStr HKCR Drive\shell\chromabrowse "Icon" "$INSTDIR\chromabrowse.exe"
+
 	Var /GLOBAL context_menu_command
 	StrCpy $context_menu_command '"$INSTDIR\chromabrowse.exe" "%v"'
 	WriteRegStr HKCR Directory\shell\chromabrowse\command "" '$context_menu_command'
