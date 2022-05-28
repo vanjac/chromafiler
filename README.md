@@ -22,6 +22,8 @@ Building requires the [Windows SDK](https://developer.microsoft.com/en-us/window
 
 VS Code must be launched from the "x64 Native Tools Command Prompt" (search in Start menu) to access the correct MSVC build tools. Type `code` in this prompt to launch VS Code. Open the chromabrowse directory, then open `src/main.cpp` and press `Ctrl+Shift+B` to build the app.
 
+The installer is built using [NSIS](https://nsis.sourceforge.io/Main_Page).
+
 ## Suggested pairings
 
 - [Everything](https://www.voidtools.com/) by voidtools

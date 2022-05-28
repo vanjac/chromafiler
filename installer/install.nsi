@@ -1,9 +1,10 @@
 !include LogicLib.nsh
 !include MUI2.nsh
+!include "nsis-shortcut-properties\shortcut-properties.nsh"
 !define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\chromabrowse"
 
 Name "chromabrowse"
-OutFile "build\chromabrowse-setup.exe"
+OutFile "..\build\chromabrowse-setup.exe"
 RequestExecutionLevel admin
 Unicode True
 
@@ -38,11 +39,12 @@ Section "chromabrowse"
 	WriteRegStr HKLM "${REG_UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
 	WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoModify" 1
 	WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoRepair" 1
-	File build\chromabrowse.exe
+	File ..\build\chromabrowse.exe
 SectionEnd
 
 Section "Start Menu Shortcut"
 	CreateShortcut /NoWorkingDir "$SMPROGRAMS\chromabrowse.lnk" "$INSTDIR\chromabrowse.exe"
+	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\chromabrowse.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.browse"
 SectionEnd
 
 Section "un.Uninstall"
