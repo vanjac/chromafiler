@@ -51,7 +51,7 @@ SectionEnd
 
 Section "Add to folder context menu" SecContext
 	SetRegView 64
-	WriteRegStr HKCR Directory\Shell "" "none"
+	WriteRegStr HKCR Directory\Shell "" "none" ; change to "chromabrowse" to make default
 	WriteRegStr HKCR CompressedFolder\Shell "" "none"
 	WriteRegStr HKCR Drive\Shell "" "none"
 
