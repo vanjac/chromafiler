@@ -1,6 +1,7 @@
 #include "FolderWindow.h"
 #include <shlobj.h>
 #include <propkey.h>
+#include <Propvarutil.h>
 
 // Example of how to host an IExplorerBrowser:
 // https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/shell/appplatform/ExplorerBrowserCustomContents
@@ -8,6 +9,8 @@
 namespace chromabrowse {
 
 const wchar_t *FOLDER_WINDOW_CLASS = L"Folder Window";
+const wchar_t *PROPERTY_BAG = L"chromabrowse";
+const wchar_t *PROP_VISITED = L"chromabrowse.visited";
 // user messages
 const UINT MSG_FORCE_SORT = WM_USER;
 
@@ -88,6 +91,7 @@ void FolderWindow::onCreate() {
         return;
     }
     browser->SetOptions(browserOptions);
+    browser->SetPropertyBag(PROPERTY_BAG);
     if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
         debugPrintf(L"Unable to browse to folder %s\n", &*title);
@@ -95,6 +99,7 @@ void FolderWindow::onCreate() {
         return;
     }
 
+    bool fallback = false;
     CComPtr<IFolderView2> view;
     if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         int itemCount;
@@ -108,11 +113,32 @@ void FolderWindow::onCreate() {
                 return;
             }
             browser->SetOptions(browserOptions);
+            // don't set property bag! (breaks sorting)
             resultsFolderFallback();
+            fallback = true;
         }
     }
 
-    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+    bool visited = false; // folder has been visited by chromabrowse before
+    if (!fallback) {
+        CComHeapPtr<ITEMIDLIST> idList;
+        if (SUCCEEDED(SHGetIDListFromObject(item, &idList))) {
+            CComPtr<IPropertyBag> propBag;
+            if (SUCCEEDED(SHGetViewStatePropertyBag(idList, PROPERTY_BAG, SHGVSPB_FOLDERNODEFAULTS,
+                    IID_PPV_ARGS(&propBag)))) {
+                VARIANT var = {};
+                if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr))) {
+                    visited = true;
+                } else {
+                    if (SUCCEEDED(InitVariantFromBoolean(TRUE, &var))) {
+                        propBag->Write(PROP_VISITED, &var);
+                    }
+                }
+            }
+        }
+    }
+
+    if (!visited && SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         // FVM_SMALLICON only seems to work if it's also specified with an icon size
         // TODO should this be the shell small icon size?
         // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons

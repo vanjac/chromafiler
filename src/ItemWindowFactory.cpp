@@ -6,7 +6,7 @@
 
 namespace chromabrowse {
 
-const wchar_t IPreviewHandlerIID[] = L"{8895b1c6-b41f-4c1c-a562-0d564250836f}";
+const wchar_t *IPreviewHandlerIID = L"{8895b1c6-b41f-4c1c-a562-0d564250836f}";
 
 bool previewHandlerCLSID(CComPtr<IShellItem> item, CLSID *previewID);
 
