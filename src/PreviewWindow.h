@@ -24,6 +24,7 @@ public:
 protected:
     void onCreate() override;
     void onDestroy() override;
+    void onActivate(WPARAM wParam, HWND prevWindow) override;
     void onSize() override;
 
 private:

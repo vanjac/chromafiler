@@ -80,6 +80,14 @@ void PreviewWindow::onDestroy() {
     }
 }
 
+void PreviewWindow::onActivate(WPARAM wParam, HWND prevWindow) {
+    ItemWindow::onActivate(wParam, prevWindow);
+    if (wParam != WA_INACTIVE) {
+        if (preview)
+            preview->SetFocus();
+    }
+}
+
 void PreviewWindow::onSize() {
     ItemWindow::onSize();
     if (preview) {
