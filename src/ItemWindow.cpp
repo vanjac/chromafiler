@@ -205,7 +205,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 PostQuitMessage(0);
             return 0;
         case WM_ACTIVATE: {
-            onActivate(wParam, (HWND)lParam);
+            onActivate(LOWORD(wParam), (HWND)lParam);
             return 0;
         }
         case WM_NCCALCSIZE:
@@ -280,7 +280,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             return TRUE;
         case WM_SIZE: {
-            onSize();
+            onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             return 0;
         }
         case WM_COMMAND: {
@@ -356,7 +356,7 @@ void ItemWindow::onDestroy() {
     hideInTaskbar();
 }
 
-void ItemWindow::onActivate(WPARAM wParam, HWND prevWindow) {
+void ItemWindow::onActivate(WORD state, HWND prevWindow) {
     // for DWM custom frame
     // make sure frame is correct if window is maximized
     extendWindowFrame();
@@ -366,7 +366,7 @@ void ItemWindow::onActivate(WPARAM wParam, HWND prevWindow) {
     captionRect.bottom = CAPTION_HEIGHT;
     InvalidateRect(hwnd, &captionRect, FALSE); // make sure to update caption text color
 
-    if (wParam != WA_INACTIVE) {
+    if (state != WA_INACTIVE) {
         activeWindow = this;
 
         for (ItemWindow *next = child; next; next = next->child) {
@@ -381,7 +381,7 @@ void ItemWindow::onActivate(WPARAM wParam, HWND prevWindow) {
     }
 }
 
-void ItemWindow::onSize() {
+void ItemWindow::onSize(int, int) {
     windowRectChanged();
 }
 

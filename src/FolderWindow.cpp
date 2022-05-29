@@ -165,9 +165,9 @@ void FolderWindow::onDestroy() {
     browser->Destroy();
 }
 
-void FolderWindow::onActivate(WPARAM wParam, HWND prevWindow) {
-    ItemWindow::onActivate(wParam, prevWindow);
-    if (wParam != WA_INACTIVE) {
+void FolderWindow::onActivate(WORD state, HWND prevWindow) {
+    ItemWindow::onActivate(state, prevWindow);
+    if (state != WA_INACTIVE) {
         if (shellView) {
             // override behavior causing sort columns to be focused when shift is held
             activateOnShiftRelease = GetKeyState(VK_SHIFT) & 0x8000;
@@ -176,8 +176,8 @@ void FolderWindow::onActivate(WPARAM wParam, HWND prevWindow) {
     }
 }
 
-void FolderWindow::onSize() {
-    ItemWindow::onSize();
+void FolderWindow::onSize(int width, int height) {
+    ItemWindow::onSize(width, height);
     if (browser) {
         browser->SetRect(nullptr, windowBody());
     }

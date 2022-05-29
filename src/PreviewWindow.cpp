@@ -80,16 +80,16 @@ void PreviewWindow::onDestroy() {
     }
 }
 
-void PreviewWindow::onActivate(WPARAM wParam, HWND prevWindow) {
-    ItemWindow::onActivate(wParam, prevWindow);
-    if (wParam != WA_INACTIVE) {
+void PreviewWindow::onActivate(WORD state, HWND prevWindow) {
+    ItemWindow::onActivate(state, prevWindow);
+    if (state != WA_INACTIVE) {
         if (preview)
             preview->SetFocus();
     }
 }
 
-void PreviewWindow::onSize() {
-    ItemWindow::onSize();
+void PreviewWindow::onSize(int width, int height) {
+    ItemWindow::onSize(width, height);
     if (preview) {
         RECT previewRect = windowBody();
         RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};

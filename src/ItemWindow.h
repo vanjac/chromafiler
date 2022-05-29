@@ -51,8 +51,8 @@ protected:
 
     virtual void onCreate();
     virtual void onDestroy();
-    virtual void onActivate(WPARAM wParam, HWND prevWindow);
-    virtual void onSize();
+    virtual void onActivate(WORD state, HWND prevWindow);
+    virtual void onSize(int width, int height);
     virtual void onPaint(PAINTSTRUCT paint);
 
     void openChild(CComPtr<IShellItem> childItem);
