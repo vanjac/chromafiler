@@ -28,3 +28,4 @@ The installer is built using [NSIS](https://nsis.sourceforge.io/Main_Page).
 
 - [Everything](https://www.voidtools.com/) by voidtools
 - [Microsoft PowerToys](https://github.com/microsoft/PowerToys)
+    - The PowerToys PDF preview handler is **not** recommended. It is slow and buggy, and Windows already comes with a built-in PDF previewer (or you can use [SumatraPDF](https://www.sumatrapdfreader.org/free-pdf-reader))
