@@ -15,12 +15,12 @@
 		},
 		{
 			"type": "cppbuild",
-			"label": "C/C++: cl.exe build application",
+			"label": "Debug build",
 			"dependsOn": ["Build resources"],
 			"command": "cl.exe",
 			"args": [
-				"/Zi",      // remove for release
-				"/EHsc",    // remove for release
+				"/Zi",      // debug only
+				"/EHsc",    // debug only
 				"/nologo",
 				"/W4",
 				"/Fe:",
@@ -43,7 +43,36 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"detail": "compiler: cl.exe"
+		},
+		{
+			"type": "cppbuild",
+			"label": "Release build",
+			"dependsOn": ["Build resources"],
+			"command": "cl.exe",
+			"args": [
+				"/GL",      // release only
+				"/O2",		// release only
+				"/nologo",
+				"/W4",
+				"/Fe:",
+				"${workspaceFolder}\\build\\chromabrowse.exe",
+				"/I",
+				"${workspaceFolder}\\src",
+				"${workspaceFolder}\\src\\*.cpp",
+				"${workspaceFolder}\\build\\resource.res",
+				"/link",
+				"/incremental:no",
+				"/manifest:embed",
+			],
+			"options": {
+				"cwd": "${workspaceFolder}\\build"
+			},
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": {
+				"kind": "build",
+			},
 		}
 	]
 }
