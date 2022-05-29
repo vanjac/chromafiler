@@ -1,4 +1,5 @@
 #include "ThumbnailWindow.h"
+#include "RectUtil.h"
 
 namespace chromabrowse {
 
@@ -30,7 +31,7 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
     if (!imageFactory)
         return;
     RECT bodyRect = windowBody();
-    SIZE bodySize = {bodyRect.right - bodyRect.left, bodyRect.bottom - bodyRect.top};
+    SIZE bodySize = rectSize(bodyRect);
     HBITMAP hBitmap;
     bool hasAlpha = true;
     // TODO this should be done asynchronously!!

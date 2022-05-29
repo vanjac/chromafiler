@@ -1,4 +1,5 @@
 #include "PreviewWindow.h"
+#include "RectUtil.h"
 #include <shlobj.h>
 
 // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-2-interop/
@@ -59,8 +60,7 @@ void PreviewWindow::onCreate() {
 
     RECT previewRect = windowBody();
     previewRect.bottom += previewRect.top; // initial rect is wrong
-    RECT containerClientRect = {0, 0,
-        previewRect.right - previewRect.left, previewRect.bottom - previewRect.top};
+    RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
 
     // some preview handlers don't respect the given rect and always fill their window
     // so wrap the preview handler in a container window
@@ -92,8 +92,7 @@ void PreviewWindow::onSize() {
     ItemWindow::onSize();
     if (preview) {
         RECT previewRect = windowBody();
-        RECT containerClientRect = {0, 0,
-            previewRect.right - previewRect.left, previewRect.bottom - previewRect.top};
+        RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
         SetWindowPos(container, 0,
             previewRect.left, previewRect.top,
             containerClientRect.right, containerClientRect.bottom,

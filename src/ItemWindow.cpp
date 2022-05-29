@@ -1,5 +1,6 @@
 #include "ItemWindow.h"
 #include "ItemWindowFactory.h"
+#include "RectUtil.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <dwmapi.h>
@@ -142,7 +143,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX) | WS_CLIPCHILDREN,
 
         // position/size
-        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+        rect.left, rect.top, rectWidth(rect), rectHeight(rect),
 
         nullptr,                // parent window
         nullptr,                // menu
@@ -249,10 +250,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 if (moveAmount > SNAP_DISTANCE) {
                     detachFromParent();
                     bringGroupToFront();
-                    desiredRect->left = curRect.left + moveAccum.x;
-                    desiredRect->right = curRect.right + moveAccum.x;
-                    desiredRect->top = curRect.top + moveAccum.y;
-                    desiredRect->bottom = curRect.bottom + moveAccum.y;
+                    OffsetRect(desiredRect, moveAccum.x, moveAccum.y);
                 } else {
                     *desiredRect = curRect;
                 }
@@ -434,10 +432,8 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
             return HTTOPRIGHT;
         else
             return HTTOP;
-    } else if (cursor.y < windowRect.top + CAPTION_HEIGHT) {
-        return HTCAPTION;
     } else {
-        return HTCAPTION;
+        return HTCAPTION; // can drag anywhere else in window to move!
     }
 }
 
@@ -455,7 +451,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
 
     HDC hdcPaint = CreateCompatibleDC(paint.hdc);
     if (hdcPaint) {
-        int width = clientRect.right - clientRect.left;
+        int width = rectWidth(clientRect);
         int height = CAPTION_HEIGHT;
 
         // Define the BITMAPINFO structure used to draw text.
