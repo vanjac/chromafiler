@@ -1,5 +1,6 @@
 #include "FolderWindow.h"
 #include "ThumbnailWindow.h"
+#include "PreviewWindow.h"
 #include "ItemWindowFactory.h"
 #include <shellapi.h>
 #include <shlobj.h>
@@ -41,6 +42,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     chromabrowse::ItemWindow::init();
     chromabrowse::FolderWindow::init();
     chromabrowse::ThumbnailWindow::init();
+    chromabrowse::PreviewWindow::init();
 
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     SetCurrentProcessExplicitAppUserModelID(APP_ID);

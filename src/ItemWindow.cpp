@@ -26,6 +26,8 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
     WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
 int ItemWindow::CAPTION_HEIGHT = 0;
+HACCEL ItemWindow::ACCEL_TABLE;
+const int ItemWindow::NUM_ACCELERATORS = 5;
 
 void ItemWindow::init() {
     RECT adjustedRect = {};
@@ -36,10 +38,20 @@ void ItemWindow::init() {
     symbolFont = CreateFont(12, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET,
         OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
+
+    ACCEL accelerators[NUM_ACCELERATORS] = { // TODO redundant with handleTopLevelMessage
+        {FVIRTKEY, VK_TAB, 0},
+        {FVIRTKEY | FALT, VK_DOWN, 0},
+        {FVIRTKEY | FSHIFT, VK_TAB, 0},
+        {FVIRTKEY | FALT, VK_UP, 0},
+        {FVIRTKEY | FCONTROL, 'W', 0},
+    };
+    ACCEL_TABLE = CreateAcceleratorTable(accelerators, sizeof(accelerators)/sizeof(ACCEL));
 }
 
 void ItemWindow::uninit() {
     DeleteObject(symbolFont);
+    DestroyAcceleratorTable(ACCEL_TABLE);
 }
 
 WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
@@ -158,7 +170,7 @@ void ItemWindow::activate() {
 
 void ItemWindow::setPos(POINT pos) {
     // TODO SWP_ASYNCWINDOWPOS?
-    SetWindowPos(hwnd, 0, pos.x, pos.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+    SetWindowPos(hwnd, nullptr, pos.x, pos.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
 void ItemWindow::move(int x, int y) {

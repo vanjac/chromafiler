@@ -143,7 +143,7 @@ void FolderWindow::onActivate(WPARAM wParam, HWND prevWindow) {
     ItemWindow::onActivate(wParam, prevWindow);
     if (wParam != WA_INACTIVE) {
         if (shellView) {
-            // fix a bug in details view where sort columns will be focused if shift is held
+            // override behavior causing sort columns to be focused when shift is held
             activateOnShiftRelease = GetKeyState(VK_SHIFT) & 0x8000;
             shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
         }
