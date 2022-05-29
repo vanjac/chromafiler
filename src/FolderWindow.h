@@ -44,6 +44,10 @@ private:
 
     CComPtr<IExplorerBrowser> browser;
     CComPtr<IShellView> shellView;
+    CComPtr<IPropertyBag> propBag;
+
+    SIZE lastSize = {-1, -1};
+    bool sizeChanged = false;
 
     // jank flags
     bool ignoreNextSelection = false;

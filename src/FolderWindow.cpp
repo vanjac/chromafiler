@@ -1,4 +1,6 @@
 #include "FolderWindow.h"
+#include "RectUtil.h"
+#include <windowsx.h>
 #include <shlobj.h>
 #include <propkey.h>
 #include <Propvarutil.h>
@@ -11,6 +13,7 @@ namespace chromabrowse {
 const wchar_t *FOLDER_WINDOW_CLASS = L"Folder Window";
 const wchar_t *PROPERTY_BAG = L"chromabrowse";
 const wchar_t *PROP_VISITED = L"chromabrowse.visited";
+const wchar_t *PROP_SIZE = L"chromabrowse.size";
 // user messages
 const UINT MSG_FORCE_SORT = WM_USER;
 
@@ -20,14 +23,26 @@ void FolderWindow::init() {
 }
 
 FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
-    : ItemWindow(parent, item)
-{}
+        : ItemWindow(parent, item) {
+    CComHeapPtr<ITEMIDLIST> idList;
+    if (SUCCEEDED(SHGetIDListFromObject(item, &idList))) {
+        SHGetViewStatePropertyBag(idList, PROPERTY_BAG, SHGVSPB_FOLDERNODEFAULTS,
+            IID_PPV_ARGS(&propBag));
+    }
+}
 
 const wchar_t * FolderWindow::className() {
     return FOLDER_WINDOW_CLASS;
 }
 
 SIZE FolderWindow::defaultSize() {
+    if (propBag) {
+        VARIANT sizeVar = {};
+        sizeVar.vt = VT_UI4;
+        if (SUCCEEDED(propBag->Read(PROP_SIZE, &sizeVar, nullptr))) {
+            return {GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)};
+        }
+    }
     return {231, 450}; // just wide enough for scrollbar tooltips
 }
 
@@ -120,20 +135,13 @@ void FolderWindow::onCreate() {
     }
 
     bool visited = false; // folder has been visited by chromabrowse before
-    if (!fallback) {
-        CComHeapPtr<ITEMIDLIST> idList;
-        if (SUCCEEDED(SHGetIDListFromObject(item, &idList))) {
-            CComPtr<IPropertyBag> propBag;
-            if (SUCCEEDED(SHGetViewStatePropertyBag(idList, PROPERTY_BAG, SHGVSPB_FOLDERNODEFAULTS,
-                    IID_PPV_ARGS(&propBag)))) {
-                VARIANT var = {};
-                if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr))) {
-                    visited = true;
-                } else {
-                    if (SUCCEEDED(InitVariantFromBoolean(TRUE, &var))) {
-                        propBag->Write(PROP_VISITED, &var);
-                    }
-                }
+    if (!fallback && propBag) {
+        VARIANT var = {};
+        if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr))) {
+            visited = true;
+        } else {
+            if (SUCCEEDED(InitVariantFromBoolean(TRUE, &var))) {
+                propBag->Write(PROP_VISITED, &var);
             }
         }
     }
@@ -160,6 +168,11 @@ void FolderWindow::onCreate() {
 }
 
 void FolderWindow::onDestroy() {
+    if (sizeChanged && propBag) {
+        VARIANT var = {};
+        if (SUCCEEDED(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var)))
+            propBag->Write(PROP_SIZE, &var);
+    }
     ItemWindow::onDestroy();
     IUnknown_SetSite(browser, nullptr);
     browser->Destroy();
@@ -178,6 +191,14 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
 
 void FolderWindow::onSize(int width, int height) {
     ItemWindow::onSize(width, height);
+
+    RECT windowRect;
+    GetWindowRect(hwnd, &windowRect);
+    SIZE windowSize = rectSize(windowRect);
+    if (lastSize.cx != -1 && (windowSize.cx != lastSize.cx || windowSize.cy != lastSize.cy))
+        sizeChanged = true;
+    lastSize = windowSize;
+
     if (browser) {
         browser->SetRect(nullptr, windowBody());
     }
