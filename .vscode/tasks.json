@@ -21,6 +21,7 @@
 			"args": [
 				"/Zi",      // debug only
 				"/EHsc",    // debug only
+				"/D", "CHROMABROWSE_DEBUG", // debug only
 				"/nologo",
 				"/W4",
 				"/Fe:",
@@ -32,6 +33,7 @@
 				"/link",
 				"/incremental:no",
 				"/manifest:embed",
+				"/subsystem:console",   // debug only
 			],
 			"options": {
 				"cwd": "${workspaceFolder}\\build"
@@ -51,7 +53,7 @@
 			"command": "cl.exe",
 			"args": [
 				"/GL",      // release only
-				"/O2",		// release only
+				"/O2",      // release only
 				"/nologo",
 				"/W4",
 				"/Fe:",

@@ -1,7 +1,5 @@
 #pragma once
 
-//#define DEBUG
-
 #define APP_ID L"chroma.browse"
 
 // win32
@@ -16,7 +14,7 @@
 #define _WIN32_WINNT 0x0601
 
 
-#ifdef DEBUG
+#ifdef CHROMABROWSE_DEBUG
 #define debugPrintf wprintf
 #else
 #define debugPrintf(...)
