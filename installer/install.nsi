@@ -6,7 +6,7 @@
 !define CONTEXT_MENU_TEXT "Open in chromabrowse"
 
 Name "chromabrowse"
-OutFile "..\build\chromabrowse-setup.exe"
+OutFile "..\build\chromabrowse-install.exe"
 RequestExecutionLevel admin
 Unicode True
 SetCompressor LZMA
