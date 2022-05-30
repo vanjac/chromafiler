@@ -9,6 +9,7 @@ Name "chromabrowse"
 OutFile "..\build\chromabrowse-setup.exe"
 RequestExecutionLevel admin
 Unicode True
+SetCompressor LZMA
 
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
