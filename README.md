@@ -18,11 +18,9 @@ See the [wiki](https://github.com/vanjac/chromabrowse/wiki/Tutorial) for an intr
 
 ## Building
 
-Building requires the [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) and [Visual Studio Code](https://code.visualstudio.com/).
+Building requires the [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) and [Visual Studio Code](https://code.visualstudio.com/). The installer is built using [NSIS](https://nsis.sourceforge.io/Main_Page). (You will need to [clone all submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules#_cloning_submodules).)
 
-VS Code must be launched from the "x64 Native Tools Command Prompt" (search in Start menu) to access the correct MSVC build tools. Type `code` in this prompt to launch VS Code. Open the chromabrowse directory, then open `src/main.cpp` and press `Ctrl+Shift+B` to build the app.
-
-The installer is built using [NSIS](https://nsis.sourceforge.io/Main_Page).
+VS Code must be launched from the "x64 Native Tools Command Prompt" (search in Start menu) to access the correct MSVC build tools. Type `code` in this prompt to launch VS Code. Open the chromabrowse directory, then open `src/main.cpp` and press `Ctrl+Shift+B` to build the app in the Debug configuration.
 
 ## Suggested pairings
 
