@@ -115,10 +115,8 @@ DWORD WINAPI updateJumpListThread(void *) {
 
 bool updateJumpList() {
     CComPtr<ICustomDestinationList> jumpList;
-    if (FAILED(jumpList.CoCreateInstance(__uuidof(DestinationList)))) {
-        CoUninitialize();
+    if (FAILED(jumpList.CoCreateInstance(__uuidof(DestinationList))))
         return false;
-    }
     jumpList->SetAppID(APP_ID);
     UINT minSlots;
     CComPtr<IObjectArray> removedDestinations;
