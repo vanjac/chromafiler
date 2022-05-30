@@ -10,7 +10,7 @@ chromabrowse works on Windows 10 and 11. Windows 7 support will be added eventua
 
 ## Download
 
-Check the [Releases](https://github.com/vanjac/chromabrowse/releases) page for the latest alpha build. **May be unstable, use at your own risk!**
+Check the [Releases](https://github.com/vanjac/chromabrowse/releases) page for the latest alpha build. **May be unstable, use at your own risk!** See [installation instructions](https://github.com/vanjac/chromabrowse/wiki/Installation) for additional information.
 
 ## Tutorial
 
@@ -28,4 +28,3 @@ The installer is built using [NSIS](https://nsis.sourceforge.io/Main_Page).
 
 - [Everything](https://www.voidtools.com/) by voidtools
 - [Microsoft PowerToys](https://github.com/microsoft/PowerToys)
-    - The PowerToys PDF preview handler is **not** recommended. It is slow and buggy, and Windows already comes with a built-in PDF previewer (or you can use [SumatraPDF](https://www.sumatrapdfreader.org/free-pdf-reader))
