@@ -1,7 +1,5 @@
 #pragma once
 
-#define APP_ID L"chroma.browse"
-
 // win32
 #ifndef UNICODE
 #define UNICODE
