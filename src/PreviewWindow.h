@@ -11,8 +11,6 @@ public:
 
     PreviewWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, CLSID previewID);
 
-    SIZE defaultSize() override;
-
     // IUnknown
     STDMETHODIMP QueryInterface(REFIID id, void **obj) override;
     STDMETHODIMP_(ULONG) AddRef() override;

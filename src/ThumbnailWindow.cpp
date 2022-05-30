@@ -20,10 +20,6 @@ const wchar_t * ThumbnailWindow::className() {
     return THUMBNAIL_WINDOW_CLASS;
 }
 
-SIZE ThumbnailWindow::defaultSize() {
-    return {450, 450};
-}
-
 void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
     ItemWindow::onPaint(paint);
 

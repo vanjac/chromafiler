@@ -73,7 +73,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
         CComPtr<chromabrowse::ItemWindow> initialWindow
             = chromabrowse::createItemWindow(nullptr, startItem);
-        SIZE size = initialWindow->defaultSize();
+        SIZE size = initialWindow->requestedSize();
         RECT windowRect;
         if (argc > 1) {
             windowRect = {CW_USEDEFAULT, CW_USEDEFAULT,

@@ -35,7 +35,11 @@ const wchar_t * FolderWindow::className() {
     return FOLDER_WINDOW_CLASS;
 }
 
-SIZE FolderWindow::defaultSize() {
+bool FolderWindow::preserveSize() {
+    return false;
+}
+
+SIZE FolderWindow::requestedSize() {
     if (propBag) {
         VARIANT sizeVar = {};
         sizeVar.vt = VT_UI4;
@@ -170,8 +174,10 @@ void FolderWindow::onCreate() {
 void FolderWindow::onDestroy() {
     if (sizeChanged && propBag) {
         VARIANT var = {};
-        if (SUCCEEDED(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var)))
+        if (SUCCEEDED(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var))) {
+            debugPrintf(L"Write window size\n");
             propBag->Write(PROP_SIZE, &var);
+        }
     }
     ItemWindow::onDestroy();
     IUnknown_SetSite(browser, nullptr);

@@ -27,7 +27,9 @@ public:
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
     virtual ~ItemWindow();
 
-    virtual SIZE defaultSize() = 0;
+    virtual bool preserveSize(); // if true, requested size will be ignored by parent
+    virtual SIZE requestedSize();
+
     bool create(RECT rect, int showCommand);
     void close();
     void activate();
@@ -87,6 +89,7 @@ private:
 
     HWND parentButton;
 
+    SIZE storedChildSize;
     POINT moveAccum;
 
     // IUnknown

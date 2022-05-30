@@ -11,7 +11,8 @@ public:
 
     FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
-    SIZE defaultSize() override;
+    bool preserveSize() override;
+    SIZE requestedSize() override;
 
     bool handleTopLevelMessage(MSG *msg) override;
 

@@ -13,6 +13,7 @@ const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
 const int WINDOW_ICON_PADDING = 4;
 const int SNAP_DISTANCE = 32;
+const SIZE DEFAULT_SIZE = {450, 450};
 // colors
 // a bit darker than windows default, 4.5:1 contrast ratio
 const COLORREF INACTIVE_CAPTION_COLOR = 0x767676;
@@ -91,6 +92,7 @@ LRESULT CALLBACK ItemWindow::windowProc(
 ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
     : parent(parent)
     , item(item)
+    , storedChildSize(DEFAULT_SIZE)
 {}
 
 ItemWindow::~ItemWindow() {
@@ -98,6 +100,14 @@ ItemWindow::~ItemWindow() {
         DestroyIcon(iconLarge);
     if (iconSmall)
         DestroyIcon(iconSmall);
+}
+
+bool ItemWindow::preserveSize() {
+    return true;
+}
+
+SIZE ItemWindow::requestedSize() {
+    return DEFAULT_SIZE;
 }
 
 bool ItemWindow::create(RECT rect, int showCommand) {
@@ -383,6 +393,11 @@ void ItemWindow::onActivate(WORD state, HWND prevWindow) {
 
 void ItemWindow::onSize(int, int) {
     windowRectChanged();
+    if (parent && preserveSize()) {
+        RECT rect;
+        GetWindowRect(hwnd, &rect);
+        parent->storedChildSize = rectSize(rect);
+    }
 }
 
 void ItemWindow::windowRectChanged() {
@@ -549,7 +564,7 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
         closeChild();
     }
     child = createItemWindow(this, childItem);
-    SIZE size = child->defaultSize();
+    SIZE size = child->preserveSize() ? storedChildSize : child->requestedSize();
     POINT pos = childPos();
     // will flush message queue
     child->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNOACTIVATE);
@@ -568,7 +583,7 @@ void ItemWindow::openParent() {
     if (SUCCEEDED(item->GetParent(&parentItem))) {
         parent = createItemWindow(nullptr, parentItem);
         parent->child = this;
-        SIZE size = parent->defaultSize();
+        SIZE size = parent->requestedSize();
         POINT pos = parentPos();
         parent->create({pos.x - size.cx, pos.y, pos.x, pos.y + size.cy}, SW_SHOWNORMAL);
         ShowWindow(parentButton, SW_HIDE);

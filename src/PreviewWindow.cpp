@@ -29,10 +29,6 @@ const wchar_t * PreviewWindow::className() {
     return PREVIEW_WINDOW_CLASS;
 }
 
-SIZE PreviewWindow::defaultSize() {
-    return {450, 450};
-}
-
 void PreviewWindow::onCreate() {
     ItemWindow::onCreate();
 

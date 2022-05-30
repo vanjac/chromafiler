@@ -11,8 +11,6 @@ public:
 
     ThumbnailWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
-    SIZE defaultSize() override;
-
 protected:
     void onPaint(PAINTSTRUCT paint) override;
 
