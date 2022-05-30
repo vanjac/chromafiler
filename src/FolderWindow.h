@@ -40,6 +40,7 @@ protected:
 private:
     const wchar_t * className() override;
 
+    bool initBrowser();
     void selectionChanged();
     void resultsFolderFallback();
 

@@ -96,20 +96,10 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
 void FolderWindow::onCreate() {
     ItemWindow::onCreate();
 
-    RECT browserRect = windowBody();
-    browserRect.bottom += browserRect.top; // initial rect is wrong
-
-    FOLDERSETTINGS folderSettings = {};
-    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see below)
-    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
-    EXPLORER_BROWSER_OPTIONS browserOptions = EBO_NAVIGATEONCE; // no navigation
-
-    if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
-            || FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
+    if (!initBrowser()) {
         close();
         return;
     }
-    browser->SetOptions(browserOptions);
     browser->SetPropertyBag(PROPERTY_BAG);
     if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
@@ -122,16 +112,15 @@ void FolderWindow::onCreate() {
     CComPtr<IFolderView2> view;
     if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         int itemCount;
+        // will fail for eg. control panel
         if (FAILED(view->ItemCount(SVGIO_ALLVIEW, &itemCount))) {
             view = nullptr;
-            // will fail for control panel
-            browser->Destroy(); // destroy and recreate browser
-            if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
-                    || FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
+            // destroy and recreate browser
+            browser->Destroy();
+            if (!initBrowser()) {
                 close();
                 return;
             }
-            browser->SetOptions(browserOptions);
             // don't set property bag! (breaks sorting)
             resultsFolderFallback();
             fallback = true;
@@ -169,6 +158,20 @@ void FolderWindow::onCreate() {
     }
 
     IUnknown_SetSite(browser, (IServiceProvider *)this);
+}
+
+bool FolderWindow::initBrowser() {
+    RECT browserRect = windowBody();
+    browserRect.bottom += browserRect.top; // initial rect is wrong
+
+    FOLDERSETTINGS folderSettings = {};
+    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly
+    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
+    if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
+            || FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings)))
+        return false;
+    browser->SetOptions(EBO_NAVIGATEONCE); // no navigation
+    return true;
 }
 
 void FolderWindow::onDestroy() {
