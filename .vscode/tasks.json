@@ -7,7 +7,7 @@
 			"args": [
 				"/fo",
 				"${workspaceFolder}\\build\\resource.res",
-				"${workspaceFolder}\\res\\resource.rc",
+				"${workspaceFolder}\\src\\resource.rc",
 			],
 			"group": {
 				"kind": "build",

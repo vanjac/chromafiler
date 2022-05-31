@@ -1,0 +1,3 @@
+#include "resource.h"
+
+IDR_APP_ICON    ICON    "res\folder.ico"

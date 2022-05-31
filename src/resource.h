@@ -1,0 +1,1 @@
+#define IDR_APP_ICON 101

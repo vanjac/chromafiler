@@ -2,6 +2,7 @@
 #include "ThumbnailWindow.h"
 #include "PreviewWindow.h"
 #include "ItemWindowFactory.h"
+#include "resource.h"
 #include <shellapi.h>
 #include <shlobj.h>
 #include <propkey.h>
@@ -150,7 +151,7 @@ bool updateJumpList() {
             link.CoCreateInstance(__uuidof(ShellLink));
             link->SetPath(exePath);
             link->SetArguments(args);
-            link->SetIconLocation(exePath, 101);
+            link->SetIconLocation(exePath, IDR_APP_ICON);
             CComQIPtr<IPropertyStore> linkProps(link);
             PROPVARIANT propVar;
             InitPropVariantFromString(displayName, &propVar);
