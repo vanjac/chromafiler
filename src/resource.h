@@ -1,6 +1,7 @@
 #define IDR_APP_ICON 101
 
 #define IDR_ITEM_ACCEL  102
+#define ID_IGNORE       1000
 #define ID_NEXT_WINDOW  1001
 #define ID_PREV_WINDOW  1002
 #define ID_CLOSE_WINDOW 1003
