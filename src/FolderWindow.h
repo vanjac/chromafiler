@@ -37,6 +37,8 @@ protected:
 
     void onChildDetached() override;
 
+    void refresh() override;
+
 private:
     const wchar_t * className() override;
 

@@ -61,6 +61,8 @@ protected:
     void closeChild();
     virtual void onChildDetached();
 
+    virtual void refresh();
+
     HWND hwnd;
     CComHeapPtr<wchar_t> title;
 

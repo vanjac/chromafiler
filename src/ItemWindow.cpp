@@ -30,7 +30,7 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
 
 int ItemWindow::CAPTION_HEIGHT = 0;
 HACCEL ItemWindow::ACCEL_TABLE;
-const int ItemWindow::NUM_ACCELERATORS = 6;
+const int ItemWindow::NUM_ACCELERATORS = 8;
 
 void ItemWindow::init() {
     RECT adjustedRect = {};
@@ -48,6 +48,8 @@ void ItemWindow::init() {
         {FVIRTKEY | FSHIFT, VK_TAB, 0},
         {FVIRTKEY | FALT, VK_UP, 0},
         {FVIRTKEY | FCONTROL, 'W', 0},
+        {FVIRTKEY, VK_F5, 0},
+        {FVIRTKEY | FCONTROL, 'R', 0},
         {FVIRTKEY, VK_F1, 0},
     };
     ACCEL_TABLE = CreateAcceleratorTable(accelerators, sizeof(accelerators)/sizeof(ACCEL));
@@ -326,6 +328,10 @@ bool ItemWindow::handleTopLevelMessage(MSG *msg) {
             return true;
         } else if (vk == 'W' && !shift && ctrl && !alt) {
             close();
+            return true;
+        } else if ((vk == VK_F5 && !shift && !ctrl && !alt)
+                || (vk == 'R' && !shift && ctrl && !alt)) {
+            refresh();
             return true;
         } else if (vk == VK_F1 && !shift && !ctrl && !alt) {
             ShellExecute(NULL, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
@@ -649,6 +655,8 @@ CComPtr<IShellItem> ItemWindow::resolveLink(CComPtr<IShellItem> linkItem) {
     }
     return linkItem;
 }
+
+void ItemWindow::refresh() {}
 
 /* IUnknown */
 

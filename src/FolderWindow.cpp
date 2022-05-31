@@ -68,20 +68,6 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
     if (ItemWindow::handleTopLevelMessage(msg))
         return true;
-    if (msg->message == WM_KEYDOWN || msg->message == WM_SYSKEYDOWN) {
-        WPARAM vk = msg->wParam;
-        bool shift = GetKeyState(VK_SHIFT) & 0x8000;
-        bool ctrl = GetKeyState(VK_CONTROL) & 0x8000;
-        bool alt = GetKeyState(VK_MENU) & 0x8000;
-        if        ((vk == VK_F5 && !shift && !ctrl && !alt)
-                || (vk == 'R' && !shift && ctrl && !alt)) {
-            if (shellView) {
-                shellView->Refresh();
-                ignoreNextSelection = true; // fix crash
-            }
-            return true;
-        }
-    }
     if (activateOnShiftRelease && msg->message == WM_KEYUP && msg->wParam == VK_SHIFT) {
         if (shellView)
             shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
@@ -262,6 +248,13 @@ void FolderWindow::onChildDetached() {
     if (shellView) {
         // clear selection
         shellView->SelectItem(nullptr, SVSI_DESELECTOTHERS);
+    }
+}
+
+void FolderWindow::refresh() {
+    if (shellView) {
+        shellView->Refresh();
+        ignoreNextSelection = true; // fix crash
     }
 }
 
