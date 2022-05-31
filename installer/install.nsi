@@ -11,6 +11,8 @@ RequestExecutionLevel admin
 Unicode True
 SetCompressor LZMA
 
+!define MUI_COMPONENTSPAGE_SMALLDESC
+
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -52,7 +54,7 @@ SectionEnd
 
 Section "Add to folder context menu" SecContext
 	SetRegView 64
-	WriteRegStr HKCR Directory\Shell "" "none" ; change to "chromabrowse" to make default
+	WriteRegStr HKCR Directory\Shell "" "none"
 	WriteRegStr HKCR CompressedFolder\Shell "" "none"
 	WriteRegStr HKCR Drive\Shell "" "none"
 
@@ -74,10 +76,20 @@ Section "Add to folder context menu" SecContext
 	WriteRegStr HKCR Drive\shell\chromabrowse\command "" '$context_menu_command'
 SectionEnd
 
+Section /o "    (DANGER) Make default file browser" SecDefault
+	SetRegView 64
+	WriteRegStr HKCR Directory\Shell "" "chromabrowse"
+	WriteRegStr HKCR CompressedFolder\Shell "" "chromabrowse"
+	WriteRegStr HKCR Drive\Shell "" "chromabrowse"
+SectionEnd
+
 Section "un.Uninstall"
 	Delete $INSTDIR\*.exe
 	RMDir $INSTDIR
 	SetRegView 64
+	WriteRegStr HKCR Directory\Shell "" "none"
+	WriteRegStr HKCR CompressedFolder\Shell "" "none"
+	WriteRegStr HKCR Drive\Shell "" "none"
 	DeleteRegKey HKLM "${REG_UNINST_KEY}"
 	DeleteRegKey HKLM Software\chromabrowse
 	DeleteRegKey HKCR Directory\shell\chromabrowse
@@ -88,7 +100,19 @@ Section "un.Uninstall"
 SectionEnd
 
 LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromabrowse' command when right-clicking a folder."
+LangString DESC_SecDefault ${LANG_ENGLISH} "Replace File Explorer as the default program for opening folders. WARNING: Experimental, could cause instability."
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecContext} $(DESC_SecContext)
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecDefault} $(DESC_SecDefault)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
+
+Function .onSelChange
+	; SecDefault depends on SecContext
+	${IfNot} ${SectionIsSelected} ${SecContext}
+		!insertmacro SetSectionFlag ${SecDefault} ${SF_RO}
+		!insertmacro UnselectSection ${SecDefault}
+	${Else}
+		!insertmacro ClearSectionFlag ${SecDefault} ${SF_RO}
+	${EndIf}
+FunctionEnd
