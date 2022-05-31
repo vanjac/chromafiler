@@ -1,3 +1,15 @@
+#include <windows.h>
 #include "resource.h"
 
 IDR_APP_ICON    ICON    "res\folder.ico"
+
+IDR_ITEM_ACCEL  ACCELERATORS {
+    VK_TAB,     ID_NEXT_WINDOW,     VIRTKEY
+    VK_DOWN,    ID_NEXT_WINDOW,     VIRTKEY, ALT
+    VK_TAB,     ID_PREV_WINDOW,     VIRTKEY, SHIFT
+    VK_UP,      ID_PREV_WINDOW,     VIRTKEY, ALT
+    "W",        ID_CLOSE_WINDOW,    VIRTKEY, CONTROL
+    VK_F5,      ID_REFRESH,         VIRTKEY
+    "R",        ID_REFRESH,         VIRTKEY, CONTROL
+    VK_F1,      ID_HELP,            VIRTKEY
+}

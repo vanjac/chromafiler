@@ -176,8 +176,8 @@ STDMETHODIMP_(ULONG) PreviewWindow::Release() {
 
 STDMETHODIMP PreviewWindow::GetWindowContext(PREVIEWHANDLERFRAMEINFO *info) {
     // fixes shortcuts in eg. Excel handler
-    info->cAccelEntries = NUM_ACCELERATORS;
-    info->haccel = ACCEL_TABLE;
+    info->cAccelEntries = CopyAcceleratorTable(accelTable, nullptr, 0);
+    info->haccel = accelTable;
     return S_OK;
 }
 

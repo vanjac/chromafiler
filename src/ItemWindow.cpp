@@ -1,6 +1,7 @@
 #include "ItemWindow.h"
 #include "ItemWindowFactory.h"
 #include "RectUtil.h"
+#include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <dwmapi.h>
@@ -29,8 +30,7 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
     WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
 int ItemWindow::CAPTION_HEIGHT = 0;
-HACCEL ItemWindow::ACCEL_TABLE;
-const int ItemWindow::NUM_ACCELERATORS = 8;
+HACCEL ItemWindow::accelTable;
 
 void ItemWindow::init() {
     RECT adjustedRect = {};
@@ -42,22 +42,12 @@ void ItemWindow::init() {
         OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
 
-    ACCEL accelerators[NUM_ACCELERATORS] = { // TODO redundant with handleTopLevelMessage
-        {FVIRTKEY, VK_TAB, 0},
-        {FVIRTKEY | FALT, VK_DOWN, 0},
-        {FVIRTKEY | FSHIFT, VK_TAB, 0},
-        {FVIRTKEY | FALT, VK_UP, 0},
-        {FVIRTKEY | FCONTROL, 'W', 0},
-        {FVIRTKEY, VK_F5, 0},
-        {FVIRTKEY | FCONTROL, 'R', 0},
-        {FVIRTKEY, VK_F1, 0},
-    };
-    ACCEL_TABLE = CreateAcceleratorTable(accelerators, sizeof(accelerators)/sizeof(ACCEL));
+    accelTable = LoadAccelerators(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_ITEM_ACCEL));
 }
 
 void ItemWindow::uninit() {
     DeleteObject(symbolFont);
-    DestroyAcceleratorTable(ACCEL_TABLE);
+    DestroyAcceleratorTable(accelTable);
 }
 
 WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
@@ -302,6 +292,28 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 openParent();
                 return 0;
             }
+            switch (LOWORD(wParam)) {
+                case ID_NEXT_WINDOW:
+                    if (child)
+                        child->activate();
+                    return 0;
+                case ID_PREV_WINDOW:
+                    if (parent)
+                        parent->activate();
+                    else
+                        openParent();
+                    return 0;
+                case ID_CLOSE_WINDOW:
+                    close();
+                    return 0;
+                case ID_REFRESH:
+                    refresh();
+                    return 0;
+                case ID_HELP:
+                    ShellExecute(NULL, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
+                        NULL, NULL, SW_SHOWNORMAL);
+                    return 0;
+            }
         }
     }
 
@@ -309,36 +321,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
 }
 
 bool ItemWindow::handleTopLevelMessage(MSG *msg) {
-    if (msg->message == WM_KEYDOWN || msg->message == WM_SYSKEYDOWN) {
-        WPARAM vk = msg->wParam;
-        bool shift = GetKeyState(VK_SHIFT) & 0x8000;
-        bool ctrl = GetKeyState(VK_CONTROL) & 0x8000;
-        bool alt = GetKeyState(VK_MENU) & 0x8000;
-        if        ((vk == VK_TAB && !shift && !ctrl && !alt)
-                || (vk == VK_DOWN && !shift && !ctrl && alt)) {
-            if (child)
-                child->activate();
-            return true;
-        } else if ((vk == VK_TAB && shift && !ctrl && !alt)
-                || (vk == VK_UP && !shift && !ctrl && alt)) {
-            if (parent)
-                parent->activate();
-            else
-                openParent();
-            return true;
-        } else if (vk == 'W' && !shift && ctrl && !alt) {
-            close();
-            return true;
-        } else if ((vk == VK_F5 && !shift && !ctrl && !alt)
-                || (vk == 'R' && !shift && ctrl && !alt)) {
-            refresh();
-            return true;
-        } else if (vk == VK_F1 && !shift && !ctrl && !alt) {
-            ShellExecute(NULL, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
-                NULL, NULL, SW_SHOWNORMAL);
-            return true;
-        }
-    }
+    if (TranslateAccelerator(hwnd, accelTable, msg))
+        return true;
     return false;
 }
 

@@ -16,8 +16,7 @@ class ItemWindow : public IUnknown {
 protected:
     // calculated in init()
     static int CAPTION_HEIGHT;
-    static HACCEL ACCEL_TABLE;
-    static const int NUM_ACCELERATORS;
+    static HACCEL accelTable;
 
 public:
     static void init();
