@@ -17,9 +17,9 @@ const int WINDOW_ICON_PADDING = 4;
 const int SNAP_DISTANCE = 32;
 const SIZE DEFAULT_SIZE = {450, 450};
 // colors
-// a bit darker than windows default, 4.5:1 contrast ratio
-const COLORREF INACTIVE_CAPTION_COLOR = 0x767676;
-const COLORREF CAPTION_BUTTON_TEXT_COLOR = 0x444444;
+// this is the color used in every high-contrast theme
+// regular light mode theme uses #999999
+const COLORREF INACTIVE_CAPTION_COLOR = 0x636363;
 
 static HFONT symbolFont;
 
@@ -484,11 +484,11 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
 
             // Setup the theme drawing options.
             DTTOPTS textOpts = {sizeof(DTTOPTS)};
-            textOpts.dwFlags = DTT_COMPOSITED;
-            if (GetActiveWindow() != hwnd) {
-                textOpts.crText = INACTIVE_CAPTION_COLOR;
-                textOpts.dwFlags |= DTT_TEXTCOLOR;
-            }
+            // COLOR_INACTIVECAPTIONTEXT doesn't work in Windows 10
+            // the documentation says COLOR_CAPTIONTEXT isn't supported either but it seems to work
+            textOpts.crText = GetActiveWindow() == hwnd ? GetSysColor(COLOR_CAPTIONTEXT)
+                : INACTIVE_CAPTION_COLOR;
+            textOpts.dwFlags = DTT_COMPOSITED | DTT_TEXTCOLOR;
 
             // Select a font.
             LOGFONT logFont;
@@ -699,7 +699,7 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
                 wchar_t buttonText[32];
                 GetWindowText(hwnd, buttonText, 32);
                 HFONT oldFont = (HFONT) SelectObject(hdc, symbolFont);
-                SetTextColor(hdc, CAPTION_BUTTON_TEXT_COLOR);
+                SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
                 SetBkMode(hdc, TRANSPARENT);
                 DrawText(hdc, buttonText, -1, &contentRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 SelectObject(hdc, oldFont);
