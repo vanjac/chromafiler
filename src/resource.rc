@@ -1,6 +1,8 @@
 #include <windows.h>
 #include "resource.h"
 
+IDR_RT_MANIFEST1 RT_MANIFEST "res\chromabrowse.exe.manifest"
+
 IDR_APP_ICON    ICON    "res\folder.ico"
 
 IDR_ITEM_ACCEL  ACCELERATORS {

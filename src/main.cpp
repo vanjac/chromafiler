@@ -9,10 +9,6 @@
 #include <Propvarutil.h>
 #include <strsafe.h>
 
-// https://docs.microsoft.com/en-us/windows/win32/controls/cookbook-overview
-#pragma comment(linker,"\"/manifestdependency:type='win32' \
-    name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
-    processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #pragma comment(lib, "Dwmapi.lib")
 #pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "UxTheme.lib")

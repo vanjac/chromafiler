@@ -32,7 +32,7 @@
 				"${workspaceFolder}\\build\\resource.res",
 				"/link",
 				"/incremental:no",
-				"/manifest:embed",
+				"/manifest:no",
 				"/subsystem:console",   // debug only
 			],
 			"options": {
@@ -64,7 +64,7 @@
 				"${workspaceFolder}\\build\\resource.res",
 				"/link",
 				"/incremental:no",
-				"/manifest:embed",
+				"/manifest:no",
 			],
 			"options": {
 				"cwd": "${workspaceFolder}\\build"
