@@ -5,6 +5,7 @@
 #include <shlobj.h>
 #include <dwmapi.h>
 #include <vssym32.h>
+#include <shellapi.h>
 
 namespace chromabrowse {
 
@@ -29,7 +30,7 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
 
 int ItemWindow::CAPTION_HEIGHT = 0;
 HACCEL ItemWindow::ACCEL_TABLE;
-const int ItemWindow::NUM_ACCELERATORS = 5;
+const int ItemWindow::NUM_ACCELERATORS = 6;
 
 void ItemWindow::init() {
     RECT adjustedRect = {};
@@ -47,6 +48,7 @@ void ItemWindow::init() {
         {FVIRTKEY | FSHIFT, VK_TAB, 0},
         {FVIRTKEY | FALT, VK_UP, 0},
         {FVIRTKEY | FCONTROL, 'W', 0},
+        {FVIRTKEY, VK_F1, 0},
     };
     ACCEL_TABLE = CreateAcceleratorTable(accelerators, sizeof(accelerators)/sizeof(ACCEL));
 }
@@ -324,6 +326,10 @@ bool ItemWindow::handleTopLevelMessage(MSG *msg) {
             return true;
         } else if (vk == 'W' && !shift && ctrl && !alt) {
             close();
+            return true;
+        } else if (vk == VK_F1 && !shift && !ctrl && !alt) {
+            ShellExecute(NULL, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
+                NULL, NULL, SW_SHOWNORMAL);
             return true;
         }
     }
