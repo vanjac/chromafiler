@@ -25,9 +25,12 @@ protected:
     void onActivate(WORD state, HWND prevWindow) override;
     void onSize(int width, int height) override;
 
+    void refresh() override;
+
 private:
     const wchar_t * className() override;
 
+    bool initPreview();
     bool initPreviewWithItem();
 
     CLSID previewID;

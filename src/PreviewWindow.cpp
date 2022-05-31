@@ -32,40 +32,17 @@ const wchar_t * PreviewWindow::className() {
 void PreviewWindow::onCreate() {
     ItemWindow::onCreate();
 
-    if (FAILED(preview.CoCreateInstance(previewID, nullptr, CLSCTX_LOCAL_SERVER))) {
-        debugPrintf(L"Could not create preview handler");
-        close();
-        return;
-    }
-    if (FAILED(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this))) {
-        debugPrintf(L"Could not set preview handler site");
-        close();
-        return;
-    }
-
-    if (!initPreviewWithItem()) {
-        close();
-        return;
-    }
-
-    CComQIPtr<IPreviewHandlerVisuals> visuals(preview);
-    if (visuals) {
-        visuals->SetBackgroundColor(GetSysColor(COLOR_WINDOW));
-        visuals->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
-    }
-
     RECT previewRect = windowBody();
     previewRect.bottom += previewRect.top; // initial rect is wrong
     RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
-
     // some preview handlers don't respect the given rect and always fill their window
     // so wrap the preview handler in a container window
     container = CreateWindow(PREVIEW_CONTAINER_CLASS, nullptr, WS_VISIBLE | WS_CHILD,
         previewRect.left, previewRect.top, containerClientRect.right, containerClientRect.bottom,
         hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
 
-    preview->SetWindow(container, &containerClientRect);
-    preview->DoPreview();
+    if (!initPreview())
+        close();
 }
 
 void PreviewWindow::onDestroy() {
@@ -95,6 +72,32 @@ void PreviewWindow::onSize(int width, int height) {
             SWP_NOZORDER | SWP_NOACTIVATE);
         preview->SetRect(&containerClientRect);
     }
+}
+
+bool PreviewWindow::initPreview() {
+    if (FAILED(preview.CoCreateInstance(previewID, nullptr, CLSCTX_LOCAL_SERVER))) {
+        debugPrintf(L"Could not create preview handler");
+        return false;
+    }
+    if (FAILED(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this))) {
+        debugPrintf(L"Could not set preview handler site");
+        return false;
+    }
+
+    if (!initPreviewWithItem())
+        return false;
+
+    CComQIPtr<IPreviewHandlerVisuals> visuals(preview);
+    if (visuals) {
+        visuals->SetBackgroundColor(GetSysColor(COLOR_WINDOW));
+        visuals->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
+    }
+
+    RECT containerClientRect;
+    GetClientRect(container, &containerClientRect);
+    preview->SetWindow(container, &containerClientRect);
+    preview->DoPreview();
+    return true;
 }
 
 bool PreviewWindow::initPreviewWithItem() {
@@ -136,6 +139,16 @@ bool PreviewWindow::initPreviewWithItem() {
 
     debugPrintf(L"Preview handler initialization failed!\n");
     return false;
+}
+
+void PreviewWindow::refresh() {
+    if (preview) {
+        IUnknown_SetSite(preview, nullptr);
+        preview->Unload();
+        preview = nullptr;
+        if (!initPreview())
+            close();
+    }
 }
 
 /* IUnknown */
