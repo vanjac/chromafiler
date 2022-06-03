@@ -10,6 +10,8 @@
 
 namespace chromabrowse {
 
+const wchar_t *CHAIN_OWNER_CLASS = L"Chain";
+
 // dimensions
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
@@ -33,6 +35,12 @@ int ItemWindow::CAPTION_HEIGHT = 0;
 HACCEL ItemWindow::accelTable;
 
 void ItemWindow::init() {
+    WNDCLASS chainClass = {};
+    chainClass.lpszClassName = CHAIN_OWNER_CLASS;
+    chainClass.lpfnWndProc = DefWindowProc;
+    chainClass.hInstance = GetModuleHandle(NULL);
+    RegisterClass(&chainClass);
+
     RECT adjustedRect = {};
     AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
     CAPTION_HEIGHT = -adjustedRect.top; // = 31
@@ -139,6 +147,14 @@ bool ItemWindow::create(RECT rect, int showCommand) {
             OffsetRect(&rect, 0, monitorInfo.rcWork.bottom - testPoint.y);
     }
 
+    HWND owner;
+    if (parent)
+        owner = GetWindow(parent->hwnd, GW_OWNER);
+    else if (child)
+        owner = GetWindow(child->hwnd, GW_OWNER);
+    else
+        owner = createChainOwner();
+
     HWND createHwnd = CreateWindow(
         className(),
         title,
@@ -149,7 +165,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         // position/size
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
 
-        nullptr,                // parent window
+        owner,                  // parent window
         nullptr,                // menu
         GetModuleHandle(NULL),  // instance handle
         this);                  // application data
@@ -157,12 +173,20 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         debugPrintf(L"Couldn't create window\n");
         return false;
     }
+    SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) + 1);
 
     ShowWindow(createHwnd, showCommand);
 
     AddRef(); // keep window alive while open
     InterlockedIncrement(&numOpenWindows);
     return true;
+}
+
+HWND ItemWindow::createChainOwner() {
+    HWND window = CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
+        nullptr, nullptr, GetModuleHandle(NULL), 0); // user data stores num owned windows
+    ShowWindow(window, SW_SHOWNORMAL); // show in taskbar
+    return window;
 }
 
 void ItemWindow::close() {
@@ -204,9 +228,9 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         case WM_NCDESTROY:
             hwnd = nullptr;
-            Release(); // allow window to be deleted
             if (InterlockedDecrement(&numOpenWindows) == 0)
                 PostQuitMessage(0);
+            Release(); // allow window to be deleted
             return 0;
         case WM_ACTIVATE: {
             onActivate(LOWORD(wParam), (HWND)lParam);
@@ -253,7 +277,6 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 int moveAmount = max(abs(moveAccum.x), abs(moveAccum.y));
                 if (moveAmount > SNAP_DISTANCE) {
                     detachFromParent();
-                    bringGroupToFront();
                     OffsetRect(desiredRect, moveAccum.x, moveAccum.y);
                 } else {
                     *desiredRect = curRect;
@@ -337,9 +360,6 @@ void ItemWindow::onCreate() {
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
-    if (parent)
-        hideInTaskbar();
-
     CComPtr<IShellItem> parentItem;
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
     parentButton = CreateWindow(L"BUTTON", L"\uE96F", // ChevronLeftSmall
@@ -359,10 +379,12 @@ void ItemWindow::onDestroy() {
     clearParent();
     if (activeWindow == this)
         activeWindow = nullptr;
-    hideInTaskbar();
+    HWND owner = GetWindow(hwnd, GW_OWNER);
+    if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
+        PostMessage(owner, WM_CLOSE, 0, 0); // last window in group
 }
 
-void ItemWindow::onActivate(WORD state, HWND prevWindow) {
+void ItemWindow::onActivate(WORD state, HWND) {
     // for DWM custom frame
     // make sure frame is correct if window is maximized
     extendWindowFrame();
@@ -374,16 +396,10 @@ void ItemWindow::onActivate(WORD state, HWND prevWindow) {
 
     if (state != WA_INACTIVE) {
         activeWindow = this;
-
-        for (ItemWindow *next = child; next; next = next->child) {
-            if (next->hwnd == prevWindow)
-                return; // group was already front
-        }
-        for (ItemWindow *next = parent; next; next = next->parent) {
-            if (next->hwnd == prevWindow)
-                return;
-        }
-        bringGroupToFront();
+        HWND owner = GetWindow(hwnd, GW_OWNER);
+        SetWindowText(owner, title); // update taskbar / alt-tab
+        PostMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
+        PostMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
     }
 }
 
@@ -399,17 +415,6 @@ void ItemWindow::onSize(int, int) {
 void ItemWindow::windowRectChanged() {
     if (child) {
         child->setPos(childPos());
-    }
-}
-
-void ItemWindow::bringGroupToFront() {
-    ItemWindow *rootParent = this;
-    while (rootParent->parent)
-        rootParent = rootParent->parent;
-    for (ItemWindow *next = rootParent; next; next = next->child) {
-        if (next != this)
-            SetWindowPos(next->hwnd, hwnd, 0, 0, 0, 0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     }
 }
 
@@ -535,20 +540,6 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     CloseThemeData(theme);
 }
 
-void ItemWindow::hideInTaskbar() {
-    CComPtr<ITaskbarList> taskbar;
-    if (SUCCEEDED(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
-        taskbar->DeleteTab(hwnd);
-    }
-}
-
-void ItemWindow::showInTaskbar() {
-    CComPtr<ITaskbarList> taskbar;
-    if (SUCCEEDED(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
-        taskbar->AddTab(hwnd);
-    }
-}
-
 void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     childItem = resolveLink(childItem);
     if (child) {
@@ -583,7 +574,6 @@ void ItemWindow::openParent() {
         POINT pos = parentPos();
         parent->create({pos.x - size.cx, pos.y, pos.x, pos.y + size.cy}, SW_SHOWNORMAL);
         ShowWindow(parentButton, SW_HIDE);
-        hideInTaskbar();
     }
 }
 
@@ -596,9 +586,20 @@ void ItemWindow::clearParent() {
 }
 
 void ItemWindow::detachFromParent() {
+    SetActiveWindow(parent->hwnd); // focus parent in chain
     clearParent();
     ShowWindow(parentButton, SW_SHOW);
-    showInTaskbar();
+    HWND prevOwner = GetWindow(hwnd, GW_OWNER);
+    HWND owner = createChainOwner();
+    int numChildren = 0;
+    for (ItemWindow *next = this; next != nullptr; next = next->child) {
+        SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
+        numChildren++;
+    }
+    SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
+    SetWindowLongPtr(prevOwner, GWLP_USERDATA,
+        GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
+    SetActiveWindow(hwnd); // bring this chain to front
 }
 
 void ItemWindow::onChildDetached() {}

@@ -70,14 +70,13 @@ protected:
 private:
     virtual const wchar_t * className() = 0;
 
+    HWND createChainOwner();
+
     void windowRectChanged();
     void bringGroupToFront();
     // for DWM custom frame:
     void extendWindowFrame();
     LRESULT hitTestNCA(POINT cursor);
-
-    void hideInTaskbar();
-    void showInTaskbar();
 
     void openParent();
     void clearParent();
