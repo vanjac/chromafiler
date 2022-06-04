@@ -504,7 +504,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             }
 
             int iconSize = GetSystemMetrics(SM_CXSMICON);
-            int buttonWidth = GetSystemMetrics(SM_CXSIZE);
+            int buttonWidth = GetSystemMetrics(SM_CXSIZE); // TODO use DWMWA_CAPTION_BUTTON_BOUNDS
             SIZE titleSize = {};
             GetTextExtentPoint32(hdcPaint, title, (int)lstrlen(title), &titleSize);
             // include padding on the right side of the text; makes it look more centered
@@ -570,6 +570,10 @@ void ItemWindow::openParent() {
     if (SUCCEEDED(item->GetParent(&parentItem))) {
         parent = createItemWindow(nullptr, parentItem);
         parent->child = this;
+        RECT windowRect;
+        GetWindowRect(hwnd, &windowRect);
+        parent->storedChildSize = rectSize(windowRect);
+
         SIZE size = parent->requestedSize();
         POINT pos = parentPos();
         parent->create({pos.x - size.cx, pos.y, pos.x, pos.y + size.cy}, SW_SHOWNORMAL);
