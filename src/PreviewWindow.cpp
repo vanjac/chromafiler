@@ -41,8 +41,7 @@ void PreviewWindow::onCreate() {
         previewRect.left, previewRect.top, containerClientRect.right, containerClientRect.bottom,
         hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
 
-    if (!initPreview())
-        close();
+    initPreview(); // ignore error
 }
 
 void PreviewWindow::onDestroy() {
@@ -81,11 +80,17 @@ bool PreviewWindow::initPreview() {
     }
     if (FAILED(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this))) {
         debugPrintf(L"Could not set preview handler site");
+        preview->Unload();
+        preview = nullptr;
         return false;
     }
 
-    if (!initPreviewWithItem())
+    if (!initPreviewWithItem()) {
+        IUnknown_SetSite(preview, nullptr);
+        preview->Unload();
+        preview = nullptr;
         return false;
+    }
 
     CComQIPtr<IPreviewHandlerVisuals> visuals(preview);
     if (visuals) {
@@ -146,9 +151,8 @@ void PreviewWindow::refresh() {
         IUnknown_SetSite(preview, nullptr);
         preview->Unload();
         preview = nullptr;
-        if (!initPreview())
-            close();
     }
+    initPreview(); // ignore error
 }
 
 /* IUnknown */

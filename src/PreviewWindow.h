@@ -34,7 +34,7 @@ private:
     bool initPreviewWithItem();
 
     CLSID previewID;
-    CComPtr<IPreviewHandler> preview;
+    CComPtr<IPreviewHandler> preview; // will be null if preview can't be loaded!
     HWND container;
 };
 

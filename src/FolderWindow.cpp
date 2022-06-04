@@ -55,7 +55,7 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
         /* user messages */
         case MSG_FORCE_SORT: {
             CComPtr<IFolderView2> view;
-            if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+            if (browser && SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
                 SORTCOLUMN column = {PKEY_ItemNameDisplay, SORT_ASCENDING};
                 view->SetSortColumns(&column, 1);
             }
@@ -82,15 +82,14 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
 void FolderWindow::onCreate() {
     ItemWindow::onCreate();
 
-    if (!initBrowser()) {
-        close();
+    if (!initBrowser())
         return;
-    }
     browser->SetPropertyBag(PROPERTY_BAG);
     if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
         debugPrintf(L"Unable to browse to folder %s\n", &*title);
-        close();
+        browser->Destroy();
+        browser = nullptr;
         return;
     }
 
@@ -103,10 +102,8 @@ void FolderWindow::onCreate() {
             view = nullptr;
             // destroy and recreate browser
             browser->Destroy();
-            if (!initBrowser()) {
-                close();
+            if (!initBrowser())
                 return;
-            }
             // don't set property bag! (breaks sorting)
             resultsFolderFallback();
             fallback = true;
@@ -153,9 +150,12 @@ bool FolderWindow::initBrowser() {
     FOLDERSETTINGS folderSettings = {};
     folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly
     folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
-    if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser)))
-            || FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings)))
+    if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return false;
+    if (FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
+        browser = nullptr;
+        return false;
+    }
     browser->SetOptions(EBO_NAVIGATEONCE); // no navigation
     return true;
 }
@@ -169,8 +169,10 @@ void FolderWindow::onDestroy() {
         }
     }
     ItemWindow::onDestroy();
-    IUnknown_SetSite(browser, nullptr);
-    browser->Destroy();
+    if (browser) {
+        IUnknown_SetSite(browser, nullptr);
+        browser->Destroy();
+    }
 }
 
 void FolderWindow::onActivate(WORD state, HWND prevWindow) {
@@ -194,9 +196,8 @@ void FolderWindow::onSize(int width, int height) {
         sizeChanged = true;
     lastSize = windowSize;
 
-    if (browser) {
+    if (browser)
         browser->SetRect(nullptr, windowBody());
-    }
 }
 
 void FolderWindow::selectionChanged() {
