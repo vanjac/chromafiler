@@ -32,15 +32,10 @@ bool previewHandlerCLSID(CComPtr<IShellItem> item, CLSID *previewID) {
     wchar_t *ext = PathFindExtension(path);
     if (!ext)
         return false;
-    CComPtr<IQueryAssociations> assoc;
-    if (FAILED(AssocCreate(CLSID_QueryAssociations, IID_PPV_ARGS(&assoc))))
-        return false;
-    if (FAILED(assoc->Init(ASSOCF_INIT_DEFAULTTOSTAR, ext, nullptr, nullptr)))
-        return false;
     wchar_t resultGUID[64];
     DWORD resultLen = 64;
-    if (FAILED(assoc->GetString(ASSOCF_NOTRUNCATE, ASSOCSTR_SHELLEXTENSION, IPreviewHandlerIID,
-            resultGUID, &resultLen)))
+    if (FAILED(AssocQueryString(ASSOCF_INIT_DEFAULTTOSTAR | ASSOCF_NOTRUNCATE,
+            ASSOCSTR_SHELLEXTENSION, ext, IPreviewHandlerIID, resultGUID, &resultLen)))
         return false;
     debugPrintf(L"Found preview handler for %s: %s\n", ext, resultGUID);
     return SUCCEEDED(CLSIDFromString(resultGUID, previewID));
