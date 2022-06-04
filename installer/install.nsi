@@ -32,7 +32,7 @@ Function .onInit
 	${EndIf}
 FunctionEnd
 
-Section "chromabrowse"
+Section "chromabrowse" SecBase
 	SectionIn RO
 	SetOutPath $INSTDIR
 	WriteUninstaller "$INSTDIR\uninstall.exe"
@@ -47,7 +47,7 @@ Section "chromabrowse"
 	File ..\build\chromabrowse.exe
 SectionEnd
 
-Section "Start Menu Shortcut"
+Section "Start Menu Shortcut" SecStart
 	CreateShortcut /NoWorkingDir "$SMPROGRAMS\chromabrowse.lnk" "$INSTDIR\chromabrowse.exe"
 	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\chromabrowse.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.browse"
 SectionEnd
@@ -99,10 +99,14 @@ Section "un.Uninstall"
 	Delete $SMPROGRAMS\chromabrowse.lnk
 SectionEnd
 
+LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
+LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the start menu to launch chromabrowse."
 LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromabrowse' command when right-clicking a folder."
 LangString DESC_SecDefault ${LANG_ENGLISH} "Replace File Explorer as the default program for opening folders. WARNING: Experimental, could cause instability."
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecBase} $(DESC_SecBase)
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecStart} $(DESC_SecStart)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecContext} $(DESC_SecContext)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecDefault} $(DESC_SecDefault)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
