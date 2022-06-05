@@ -380,6 +380,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                         NULL, NULL, SW_SHOWNORMAL);
                     return 0;
             }
+            break;
         }
     }
 
@@ -741,6 +742,8 @@ void ItemWindow::openProxyContextMenu(POINT point) {
         } else {
             CMINVOKECOMMANDINFOEX info = {};
             info.cbSize = sizeof(info);
+            // TODO must set a thread reference
+            // see https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-icontextmenu-invokecommand
             info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE
                 | CMIC_MASK_ASYNCOK | CMIC_MASK_FLAG_LOG_USAGE;
             if (GetKeyState(VK_CONTROL) < 0)
@@ -760,7 +763,6 @@ void ItemWindow::openProxyContextMenu(POINT point) {
 
 void ItemWindow::beginRename() {
     updateRenameBoxRect();
-    ShowWindow(renameBox, SW_SHOW);
     SendMessage(renameBox, WM_SETTEXT, 0, (LPARAM)&*title);
     wchar_t *ext = PathFindExtension(title);
     if (ext == title) { // files that start with a dot
@@ -768,6 +770,7 @@ void ItemWindow::beginRename() {
     } else {
         SendMessage(renameBox, EM_SETSEL, 0, ext - title);
     }
+    ShowWindow(renameBox, SW_SHOW);
 }
 
 void ItemWindow::completeRename() {
