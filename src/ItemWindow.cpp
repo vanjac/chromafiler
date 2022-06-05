@@ -349,7 +349,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             if ((HWND)lParam == renameBox && HIWORD(wParam) == EN_KILLFOCUS) {
                 // this is also received when cancelRename() is called elsewhere, causing it to be
                 // called twice. I don't think this causes any issues.
-                cancelRename();
+                completeRename();
                 return 0;
             }
             switch (LOWORD(wParam)) {
