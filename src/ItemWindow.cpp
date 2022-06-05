@@ -7,29 +7,30 @@
 #include <dwmapi.h>
 #include <vssym32.h>
 #include <shellapi.h>
+#include <strsafe.h>
 
 namespace chromabrowse {
 
 const wchar_t *CHAIN_OWNER_CLASS = L"Chain";
+const wchar_t *WINDOW_THEME = L"CompositedWindow::Window";
 
 // dimensions
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
 const int WINDOW_ICON_PADDING = 4;
 const int SNAP_DISTANCE = 32;
+const int RENAME_BOX_HEIGHT = 19;
+const int RENAME_BOX_OFFSET_X = -5; // align with window text
 const SIZE DEFAULT_SIZE = {450, 450};
 // colors
 // this is the color used in every high-contrast theme
 // regular light mode theme uses #999999
 const COLORREF INACTIVE_CAPTION_COLOR = 0x636363;
 
-static HFONT symbolFont;
+static HFONT captionFont = 0, symbolFont = 0;
 
 long numOpenWindows;
 CComPtr<ItemWindow> activeWindow;
-
-LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
-    WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
 int ItemWindow::CAPTION_HEIGHT = 0;
 HACCEL ItemWindow::accelTable;
@@ -45,6 +46,14 @@ void ItemWindow::init() {
     AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
     CAPTION_HEIGHT = -adjustedRect.top; // = 31
 
+    HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME);
+    if (theme) {
+        LOGFONT logFont;
+        if (SUCCEEDED(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont)))
+            captionFont = CreateFontIndirect(&logFont);
+        CloseThemeData(theme);
+    }
+
     // TODO only supported on windows 10!
     symbolFont = CreateFont(12, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET,
         OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
@@ -54,6 +63,8 @@ void ItemWindow::init() {
 }
 
 void ItemWindow::uninit() {
+    if (captionFont)
+        DeleteObject(captionFont);
     DeleteObject(symbolFont);
     DestroyAcceleratorTable(accelTable);
 }
@@ -295,6 +306,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return TRUE;
         case WM_MOVE:
             windowRectChanged();
+            updateRenameBoxRect();
             return 0;
         case WM_SIZING:
             if (parent) {
@@ -332,6 +344,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_COMMAND: {
             if ((HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
                 openParent();
+                return 0;
+            }
+            if ((HWND)lParam == renameBox && HIWORD(wParam) == EN_KILLFOCUS) {
+                // this is also received when cancelRename() is called elsewhere, causing it to be
+                // called twice. I don't think this causes any issues.
+                cancelRename();
                 return 0;
             }
             switch (LOWORD(wParam)) {
@@ -386,6 +404,15 @@ void ItemWindow::onCreate() {
         0, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT,
         hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
     SetWindowSubclass(parentButton, captionButtonProc, 0, 0);
+
+    // will be positioned in updateRenameBoxRect
+    renameBox = CreateWindow(L"EDIT", nullptr,
+        WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
+        0, 0, 32, RENAME_BOX_HEIGHT,
+        hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
+    SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
+    if (captionFont)
+        PostMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
 }
 
 void ItemWindow::onDestroy() {
@@ -437,6 +464,17 @@ void ItemWindow::windowRectChanged() {
     }
 }
 
+void ItemWindow::updateRenameBoxRect() {
+    int leftPadding = GetSystemMetrics(SM_CXSMICON) + WINDOW_ICON_PADDING + RENAME_BOX_OFFSET_X;
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    POINT renamePos = {proxyRect.left + leftPadding, (CAPTION_HEIGHT - RENAME_BOX_HEIGHT) / 2};
+    int renameWidth = clientRect.right - GetSystemMetrics(SM_CXSIZE) - renamePos.x;
+    ClientToScreen(hwnd, &renamePos);
+    SetWindowPos(renameBox, nullptr, renamePos.x, renamePos.y, renameWidth, RENAME_BOX_HEIGHT,
+        SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
 void ItemWindow::extendWindowFrame() {
     MARGINS margins;
     margins.cxLeftWidth = 0;
@@ -480,7 +518,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
 
     // the colors won't be right in many cases and it seems like there's no easy way to fix that
     // https://github.com/res2k/Windows10Colors
-    HTHEME theme = OpenThemeData(hwnd, L"CompositedWindow::Window");
+    HTHEME theme = OpenThemeData(hwnd, WINDOW_THEME);
     if (!theme)
         return;
 
@@ -515,12 +553,9 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             textOpts.dwFlags = DTT_COMPOSITED | DTT_TEXTCOLOR;
 
             // Select a font.
-            LOGFONT logFont;
-            HFONT font = nullptr, oldFont = nullptr;
-            if (SUCCEEDED(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont))) {
-                font = CreateFontIndirect(&logFont);
-                oldFont = (HFONT)SelectObject(hdcPaint, font);
-            }
+            HFONT oldFont = nullptr;
+            if (captionFont)
+                oldFont = (HFONT)SelectObject(hdcPaint, captionFont);
 
             int iconSize = GetSystemMetrics(SM_CXSMICON);
             int buttonWidth = GetSystemMetrics(SM_CXSIZE); // TODO use DWMWA_CAPTION_BUTTON_BOUNDS
@@ -529,8 +564,10 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             // include padding on the right side of the text; makes it look more centered
             int headerWidth = iconSize + WINDOW_ICON_PADDING * 2 + titleSize.cx;
             int headerLeft = (width - headerWidth) / 2;
-            if (headerLeft < buttonWidth + WINDOW_ICON_PADDING)
+            if (headerLeft < buttonWidth + WINDOW_ICON_PADDING) {
                 headerLeft = buttonWidth + WINDOW_ICON_PADDING;
+                headerWidth = width - buttonWidth - WINDOW_ICON_PADDING - headerLeft;
+            }
             // store for hit testing proxy icon/text
             proxyRect = {headerLeft, 0, headerLeft + headerWidth, CAPTION_HEIGHT};
 
@@ -552,13 +589,13 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             SelectObject(hdcPaint, oldBitmap);
             if (oldFont)
                 SelectObject(hdcPaint, oldFont);
-            if (font)
-                DeleteObject(font);
             DeleteObject(bitmap);
         }
         DeleteDC(hdcPaint);
     }
     CloseThemeData(theme);
+
+    updateRenameBoxRect(); // since we calculated text size/position here
 }
 
 void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
@@ -676,7 +713,7 @@ void ItemWindow::openProxyContextMenu(POINT point) {
     HMENU popupMenu = CreatePopupMenu();
     if (!popupMenu)
         return;
-    UINT contextFlags = CMF_ITEMMENU; // TODO: add CMF_CANRENAME and support renaming
+    UINT contextFlags = CMF_ITEMMENU | CMF_CANRENAME;
     if (GetKeyState(VK_SHIFT) < 0)
         contextFlags |= CMF_EXTENDEDVERBS;
     if (FAILED(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, contextFlags))) {
@@ -689,22 +726,70 @@ void ItemWindow::openProxyContextMenu(POINT point) {
     contextMenu2 = nullptr;
     contextMenu3 = nullptr;
     if (cmd > 0) {
-        CMINVOKECOMMANDINFOEX info = {};
-        info.cbSize = sizeof(info);
-        info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE
-            | CMIC_MASK_ASYNCOK | CMIC_MASK_FLAG_LOG_USAGE;
-        if (GetKeyState(VK_CONTROL) < 0)
-            info.fMask |= CMIC_MASK_CONTROL_DOWN;
-        if (GetKeyState(VK_SHIFT) < 0)
-            info.fMask |= CMIC_MASK_SHIFT_DOWN;
-        info.hwnd = hwnd;
-        info.lpVerb = MAKEINTRESOURCEA(cmd - 1);
-        info.lpVerbW = MAKEINTRESOURCEW(cmd - 1);
-        info.nShow = SW_SHOWNORMAL;
-        info.ptInvoke = point;
-        contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info);
+        cmd -= 1; // idCmdFirst
+
+        // https://groups.google.com/g/microsoft.public.win32.programmer.ui/c/PhXQcfhYPHQ
+        wchar_t verb[64];
+        verb[0] = 0; // some handlers may return S_OK without touching the buffer
+        if (SUCCEEDED(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr, (char*)verb, 64))
+                && lstrcmpi(verb, L"rename") == 0) {
+            beginRename();
+        } else {
+            CMINVOKECOMMANDINFOEX info = {};
+            info.cbSize = sizeof(info);
+            info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE
+                | CMIC_MASK_ASYNCOK | CMIC_MASK_FLAG_LOG_USAGE;
+            if (GetKeyState(VK_CONTROL) < 0)
+                info.fMask |= CMIC_MASK_CONTROL_DOWN;
+            if (GetKeyState(VK_SHIFT) < 0)
+                info.fMask |= CMIC_MASK_SHIFT_DOWN;
+            info.hwnd = hwnd;
+            info.lpVerb = MAKEINTRESOURCEA(cmd);
+            info.lpVerbW = MAKEINTRESOURCEW(cmd);
+            info.nShow = SW_SHOWNORMAL;
+            info.ptInvoke = point;
+            contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info);
+        }
     }
     DestroyMenu(popupMenu);
+}
+
+void ItemWindow::beginRename() {
+    updateRenameBoxRect();
+    ShowWindow(renameBox, SW_SHOW);
+    SendMessage(renameBox, WM_SETTEXT, 0, (LPARAM)&*title);
+    wchar_t *ext = PathFindExtension(title);
+    if (ext == title) { // files that start with a dot
+        SendMessage(renameBox, EM_SETSEL, 0, -1);
+    } else {
+        SendMessage(renameBox, EM_SETSEL, 0, ext - title);
+    }
+}
+
+void ItemWindow::completeRename() {
+    wchar_t newName[MAX_PATH];
+    SendMessage(renameBox, WM_GETTEXT, MAX_PATH, (LPARAM)newName);
+    cancelRename();
+
+    CComHeapPtr<wchar_t> path;
+    if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
+        wchar_t *pathExt = PathFindExtension(path);
+        wchar_t *titleExt = PathFindExtension(title);
+        if (lstrcmpi(pathExt, titleExt) != 0) // if extensions are hidden in File Explorer Options
+            StringCchCat(newName, MAX_PATH, pathExt);
+    }
+
+    CComPtr<IFileOperation> operation;
+    if (FAILED(operation.CoCreateInstance(__uuidof(FileOperation))))
+        return;
+    operation->SetOperationFlags(FOFX_ADDUNDORECORD);
+    if (FAILED(operation->RenameItem(item, newName, nullptr)))
+        return;
+    operation->PerformOperations();
+}
+
+void ItemWindow::cancelRename() {
+    ShowWindow(renameBox, SW_HIDE);
 }
 
 /* IUnknown */
@@ -730,7 +815,7 @@ STDMETHODIMP_(ULONG) ItemWindow::Release() {
 }
 
 
-LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
+LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
     if (message == WM_PAINT) {
         // TODO is there a better way to do this?
@@ -777,6 +862,18 @@ LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
         return 0;
     }
 
+    return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
+LRESULT CALLBACK ItemWindow::renameBoxProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
+    if (message == WM_CHAR && wParam == VK_RETURN) {
+        ((ItemWindow *)refData)->completeRename();
+        return 0;
+    } else if (message == WM_CHAR && wParam == VK_ESCAPE) {
+        ((ItemWindow *)refData)->cancelRename();
+        return 0;
+    }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 

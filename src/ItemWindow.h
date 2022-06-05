@@ -73,6 +73,7 @@ private:
     HWND createChainOwner();
 
     void windowRectChanged();
+    void updateRenameBoxRect();
     void bringGroupToFront();
     // for DWM custom frame:
     void extendWindowFrame();
@@ -86,10 +87,20 @@ private:
     CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem);
 
     void openProxyContextMenu(POINT point);
+    void beginRename();
+    void completeRename();
+    void cancelRename();
+
+    // window subclasses
+    static LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
+    static LRESULT CALLBACK renameBoxProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     HICON iconLarge = nullptr, iconSmall = nullptr;
 
     HWND parentButton;
+    HWND renameBox;
     RECT proxyRect;
     // for handling delayed context menu messages while open (eg. for Open With menu)
     CComQIPtr<IContextMenu2> contextMenu2;
