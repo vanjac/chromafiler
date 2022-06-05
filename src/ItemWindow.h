@@ -85,9 +85,15 @@ private:
     POINT parentPos(); // top right corner of parent
     CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem);
 
+    void openProxyContextMenu(POINT point);
+
     HICON iconLarge = nullptr, iconSmall = nullptr;
 
     HWND parentButton;
+    RECT proxyRect;
+    // for handling delayed context menu messages while open (eg. for Open With menu)
+    CComQIPtr<IContextMenu2> contextMenu2;
+    CComQIPtr<IContextMenu3> contextMenu3;
 
     SIZE storedChildSize;
     POINT moveAccum;

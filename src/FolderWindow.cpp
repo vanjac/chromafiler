@@ -180,7 +180,7 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
     if (state != WA_INACTIVE) {
         if (shellView) {
             // override behavior causing sort columns to be focused when shift is held
-            activateOnShiftRelease = GetKeyState(VK_SHIFT) & 0x8000;
+            activateOnShiftRelease = GetKeyState(VK_SHIFT) < 0;
             shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
         }
     }

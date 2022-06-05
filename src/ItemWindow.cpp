@@ -215,6 +215,15 @@ RECT ItemWindow::windowBody() {
 }
 
 LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (contextMenu3) {
+        LRESULT result;
+        if (SUCCEEDED(contextMenu3->HandleMenuMsg2(message, wParam, lParam, &result)))
+            return result;
+    } else if (contextMenu2) {
+        if (SUCCEEDED(contextMenu2->HandleMenuMsg(message, wParam, lParam)))
+            return 0;
+    }
+
     switch (message) {
         case WM_CREATE:
             onCreate();
@@ -309,6 +318,16 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_SIZE: {
             onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             return 0;
+        }
+        case WM_NCRBUTTONUP: { // WM_CONTEXTMENU doesn't seem to work in the caption
+            POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            POINT clientCursor = cursor;
+            ScreenToClient(hwnd, &clientCursor);
+            if (wParam == HTCAPTION && PtInRect(&proxyRect, clientCursor)) {
+                openProxyContextMenu(cursor);
+                return 0;
+            }
+            break; // pass to DefWindowProc
         }
         case WM_COMMAND: {
             if ((HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
@@ -512,6 +531,8 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             int headerLeft = (width - headerWidth) / 2;
             if (headerLeft < buttonWidth + WINDOW_ICON_PADDING)
                 headerLeft = buttonWidth + WINDOW_ICON_PADDING;
+            // store for hit testing proxy icon/text
+            proxyRect = {headerLeft, 0, headerLeft + headerWidth, CAPTION_HEIGHT};
 
             DrawIconEx(hdcPaint, clientRect.left + headerLeft, clientRect.top + CAPTION_PADDING,
                 iconSmall, iconSize, iconSize, 0, nullptr, DI_NORMAL);
@@ -647,6 +668,45 @@ CComPtr<IShellItem> ItemWindow::resolveLink(CComPtr<IShellItem> linkItem) {
 
 void ItemWindow::refresh() {}
 
+void ItemWindow::openProxyContextMenu(POINT point) {
+    // https://devblogs.microsoft.com/oldnewthing/20040920-00/?p=37823 and onward
+    CComPtr<IContextMenu> contextMenu;
+    if (FAILED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&contextMenu))))
+        return;
+    HMENU popupMenu = CreatePopupMenu();
+    if (!popupMenu)
+        return;
+    UINT contextFlags = CMF_ITEMMENU; // TODO: add CMF_CANRENAME and support renaming
+    if (GetKeyState(VK_SHIFT) < 0)
+        contextFlags |= CMF_EXTENDEDVERBS;
+    if (FAILED(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, contextFlags))) {
+        DestroyMenu(popupMenu);
+        return;
+    }
+    contextMenu2 = contextMenu;
+    contextMenu3 = contextMenu;
+    int cmd = TrackPopupMenuEx(popupMenu, TPM_RETURNCMD, point.x, point.y, hwnd, nullptr);
+    contextMenu2 = nullptr;
+    contextMenu3 = nullptr;
+    if (cmd > 0) {
+        CMINVOKECOMMANDINFOEX info = {};
+        info.cbSize = sizeof(info);
+        info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE
+            | CMIC_MASK_ASYNCOK | CMIC_MASK_FLAG_LOG_USAGE;
+        if (GetKeyState(VK_CONTROL) < 0)
+            info.fMask |= CMIC_MASK_CONTROL_DOWN;
+        if (GetKeyState(VK_SHIFT) < 0)
+            info.fMask |= CMIC_MASK_SHIFT_DOWN;
+        info.hwnd = hwnd;
+        info.lpVerb = MAKEINTRESOURCEA(cmd - 1);
+        info.lpVerbW = MAKEINTRESOURCEW(cmd - 1);
+        info.nShow = SW_SHOWNORMAL;
+        info.ptInvoke = point;
+        contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info);
+    }
+    DestroyMenu(popupMenu);
+}
+
 /* IUnknown */
 
 STDMETHODIMP ItemWindow::QueryInterface(REFIID id, void **obj) {
@@ -664,7 +724,7 @@ STDMETHODIMP_(ULONG) ItemWindow::Release() {
     long r = InterlockedDecrement(&refCount);
     if (r == 0) {
         debugPrintf(L"Delete %s\n", &*title);
-        delete this; // TODO ???
+        delete this;
     }
     return r;
 }
