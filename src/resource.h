@@ -9,3 +9,4 @@
 #define ID_CLOSE_WINDOW 1003
 #define ID_REFRESH      1004
 #define ID_HELP         1005
+#define ID_PROXY_MENU   1006

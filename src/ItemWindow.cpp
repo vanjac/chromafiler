@@ -369,6 +369,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 case ID_REFRESH:
                     refresh();
                     return 0;
+                case ID_PROXY_MENU: {
+                    POINT menuPos = {proxyRect.right, proxyRect.top};
+                    ClientToScreen(hwnd, &menuPos);
+                    openProxyContextMenu(menuPos);
+                    return 0;
+                }
                 case ID_HELP:
                     ShellExecute(NULL, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
                         NULL, NULL, SW_SHOWNORMAL);

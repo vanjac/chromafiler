@@ -15,4 +15,5 @@ IDR_ITEM_ACCEL  ACCELERATORS {
     "R",        ID_REFRESH,         VIRTKEY, CONTROL
     VK_F1,      ID_HELP,            VIRTKEY
     "N",        ID_IGNORE,          VIRTKEY, CONTROL // suppress browser shortcut
+    VK_F10,     ID_PROXY_MENU,      VIRTKEY
 }
