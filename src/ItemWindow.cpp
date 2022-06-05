@@ -345,8 +345,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             if ((HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
                 openParent();
                 return 0;
-            }
-            if ((HWND)lParam == renameBox && HIWORD(wParam) == EN_KILLFOCUS) {
+            } else if ((HWND)lParam == renameBox && HIWORD(wParam) == EN_KILLFOCUS) {
                 // this is also received when cancelRename() is called elsewhere, causing it to be
                 // called twice. I don't think this causes any issues.
                 completeRename();
