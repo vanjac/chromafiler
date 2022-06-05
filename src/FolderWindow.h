@@ -46,6 +46,8 @@ private:
     void selectionChanged();
     void resultsFolderFallback();
 
+    void newFolder();
+
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
     CComPtr<IShellView> shellView;
     CComPtr<IPropertyBag> propBag;
