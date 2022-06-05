@@ -594,8 +594,6 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         DeleteDC(hdcPaint);
     }
     CloseThemeData(theme);
-
-    updateRenameBoxRect(); // since we calculated text size/position here
 }
 
 void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
