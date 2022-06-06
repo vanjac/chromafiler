@@ -1,5 +1,6 @@
 #include "ThumbnailWindow.h"
 #include "RectUtil.h"
+#include <windowsx.h>
 
 namespace chromabrowse {
 
@@ -81,13 +82,13 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
     }
 
     HDC hdcMem = CreateCompatibleDC(paint.hdc);
-    HGDIOBJ oldBitmap = SelectObject(hdcMem, hBitmap);
+    HBITMAP oldBitmap = SelectBitmap(hdcMem, hBitmap);
     SetStretchBltMode(paint.hdc, HALFTONE);
     StretchBlt(paint.hdc, xDest, yDest, wDest, hDest,
         hdcMem, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
-    SelectObject(hdcMem, oldBitmap);
+    SelectBitmap(hdcMem, oldBitmap);
     DeleteDC(hdcMem);
-    DeleteObject(hBitmap);
+    DeleteBitmap(hBitmap);
 }
 
 } // namespace

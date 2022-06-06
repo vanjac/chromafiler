@@ -1,5 +1,6 @@
 #include "PreviewWindow.h"
 #include "RectUtil.h"
+#include <windowsx.h>
 #include <shlobj.h>
 
 // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-2-interop/
@@ -39,7 +40,7 @@ void PreviewWindow::onCreate() {
     // so wrap the preview handler in a container window
     container = CreateWindow(PREVIEW_CONTAINER_CLASS, nullptr, WS_VISIBLE | WS_CHILD,
         previewRect.left, previewRect.top, containerClientRect.right, containerClientRect.bottom,
-        hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
+        hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
 
     initPreview(); // ignore error
 }

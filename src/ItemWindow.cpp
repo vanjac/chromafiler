@@ -64,8 +64,8 @@ void ItemWindow::init() {
 
 void ItemWindow::uninit() {
     if (captionFont)
-        DeleteObject(captionFont);
-    DeleteObject(symbolFont);
+        DeleteFont(captionFont);
+    DeleteFont(symbolFont);
     DestroyAcceleratorTable(accelTable);
 }
 
@@ -160,9 +160,9 @@ bool ItemWindow::create(RECT rect, int showCommand) {
 
     HWND owner;
     if (parent)
-        owner = GetWindow(parent->hwnd, GW_OWNER);
+        owner = GetWindowOwner(parent->hwnd);
     else if (child)
-        owner = GetWindow(child->hwnd, GW_OWNER);
+        owner = GetWindowOwner(child->hwnd);
     else
         owner = createChainOwner();
 
@@ -407,14 +407,14 @@ void ItemWindow::onCreate() {
     parentButton = CreateWindow(L"BUTTON", L"\uE96F", // ChevronLeftSmall
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
         0, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT,
-        hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
+        hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
     SetWindowSubclass(parentButton, captionButtonProc, 0, 0);
 
     // will be positioned in updateRenameBoxRect
     renameBox = CreateWindow(L"EDIT", nullptr,
         WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
         0, 0, 32, RENAME_BOX_HEIGHT,
-        hwnd, nullptr, (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE), nullptr);
+        hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
     SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
     if (captionFont)
         PostMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
@@ -430,7 +430,7 @@ void ItemWindow::onDestroy() {
     clearParent();
     if (activeWindow == this)
         activeWindow = nullptr;
-    HWND owner = GetWindow(hwnd, GW_OWNER);
+    HWND owner = GetWindowOwner(hwnd);
     if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
         PostMessage(owner, WM_CLOSE, 0, 0); // last window in group
 }
@@ -447,7 +447,7 @@ void ItemWindow::onActivate(WORD state, HWND) {
 
     if (state != WA_INACTIVE) {
         activeWindow = this;
-        HWND owner = GetWindow(hwnd, GW_OWNER);
+        HWND owner = GetWindowOwner(hwnd);
         SetWindowText(owner, title); // update taskbar / alt-tab
         PostMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
         PostMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
@@ -547,7 +547,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         HBITMAP bitmap = CreateDIBSection(paint.hdc, &bitmapInfo, DIB_RGB_COLORS,
                                           nullptr, nullptr, 0);
         if (bitmap) {
-            HBITMAP oldBitmap = (HBITMAP)SelectObject(hdcPaint, bitmap);
+            HBITMAP oldBitmap = SelectBitmap(hdcPaint, bitmap);
 
             // Setup the theme drawing options.
             DTTOPTS textOpts = {sizeof(DTTOPTS)};
@@ -560,7 +560,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             // Select a font.
             HFONT oldFont = nullptr;
             if (captionFont)
-                oldFont = (HFONT)SelectObject(hdcPaint, captionFont);
+                oldFont = SelectFont(hdcPaint, captionFont);
 
             int iconSize = GetSystemMetrics(SM_CXSMICON);
             int buttonWidth = GetSystemMetrics(SM_CXSIZE); // TODO use DWMWA_CAPTION_BUTTON_BOUNDS
@@ -591,10 +591,10 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             // Blit text to the frame.
             BitBlt(paint.hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY);
 
-            SelectObject(hdcPaint, oldBitmap);
+            SelectBitmap(hdcPaint, oldBitmap);
             if (oldFont)
-                SelectObject(hdcPaint, oldFont);
-            DeleteObject(bitmap);
+                SelectFont(hdcPaint, oldFont);
+            DeleteBitmap(bitmap);
         }
         DeleteDC(hdcPaint);
     }
@@ -654,7 +654,7 @@ void ItemWindow::detachFromParent() {
     SetActiveWindow(parent->hwnd); // focus parent in chain
     clearParent();
     ShowWindow(parentButton, SW_SHOW);
-    HWND prevOwner = GetWindow(hwnd, GW_OWNER);
+    HWND prevOwner = GetWindowOwner(hwnd);
     HWND owner = createChainOwner();
     int numChildren = 0;
     for (ItemWindow *next = this; next != nullptr; next = next->child) {
@@ -853,11 +853,11 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
                     themeState, &buttonRect, &contentRect))) {
                 wchar_t buttonText[32];
                 GetWindowText(hwnd, buttonText, 32);
-                HFONT oldFont = (HFONT) SelectObject(hdc, symbolFont);
+                HFONT oldFont = SelectFont(hdc, symbolFont);
                 SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
                 SetBkMode(hdc, TRANSPARENT);
                 DrawText(hdc, buttonText, -1, &contentRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                SelectObject(hdc, oldFont);
+                SelectFont(hdc, oldFont);
             }
 
             CloseThemeData(theme);
