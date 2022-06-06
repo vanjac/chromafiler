@@ -65,8 +65,8 @@ void ItemWindow::init() {
 void ItemWindow::uninit() {
     if (captionFont)
         DeleteFont(captionFont);
-    DeleteFont(symbolFont);
-    DestroyAcceleratorTable(accelTable);
+    if (symbolFont)
+        DeleteFont(symbolFont);
 }
 
 WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
