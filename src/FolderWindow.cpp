@@ -1,5 +1,6 @@
 #include "FolderWindow.h"
 #include "RectUtil.h"
+#include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <propkey.h>
@@ -52,6 +53,13 @@ SIZE FolderWindow::requestedSize() {
 
 LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
+        case WM_COMMAND:
+            switch (LOWORD(wParam)) {
+                case ID_NEW_FOLDER:
+                    newFolder();
+                    return 0;
+            }
+            break;
         /* user messages */
         case MSG_FORCE_SORT: {
             CComPtr<IFolderView2> view;
@@ -257,6 +265,32 @@ void FolderWindow::refresh() {
         shellView->Refresh();
         ignoreNextSelection = true; // fix crash
     }
+}
+
+void FolderWindow::newFolder() {
+    if (!shellView)
+        return;
+    CComPtr<IContextMenu> contextMenu;
+    if (FAILED(shellView->GetItemObject(SVGIO_BACKGROUND, IID_PPV_ARGS(&contextMenu))))
+        return;
+    HMENU popupMenu = CreatePopupMenu();
+    if (!popupMenu)
+        return;
+    if (SUCCEEDED(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_OPTIMIZEFORINVOKE))) {
+        CMINVOKECOMMANDINFO info = {};
+        info.cbSize = sizeof(info);
+        info.hwnd = hwnd;
+        info.lpVerb = CMDSTR_NEWFOLDERA;
+        CComPtr<IFolderView2> folderView;
+        if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
+            // https://stackoverflow.com/q/40497455
+            // allow command to select new folder for renaming. not documented of course :/
+            IUnknown_SetSite(contextMenu, folderView);
+        }
+        contextMenu->InvokeCommand(&info);
+        IUnknown_SetSite(contextMenu, nullptr);
+    }
+    DestroyMenu(popupMenu);
 }
 
 /* IUnknown */
