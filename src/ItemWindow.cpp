@@ -776,6 +776,9 @@ void ItemWindow::completeRename() {
     SendMessage(renameBox, WM_GETTEXT, MAX_PATH, (LPARAM)newName);
     cancelRename();
 
+    if (lstrcmp(newName, title) == 0)
+        return; // names are identical, which would cause an unnecessary error message
+
     CComHeapPtr<wchar_t> path;
     if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
         wchar_t *pathExt = PathFindExtension(path);
