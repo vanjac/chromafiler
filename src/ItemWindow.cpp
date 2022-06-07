@@ -781,10 +781,13 @@ void ItemWindow::completeRename() {
 
     CComHeapPtr<wchar_t> path;
     if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
-        wchar_t *pathExt = PathFindExtension(path);
-        wchar_t *titleExt = PathFindExtension(title);
-        if (lstrcmpi(pathExt, titleExt) != 0) // if extensions are hidden in File Explorer Options
-            StringCchCat(newName, MAX_PATH, pathExt);
+        wchar_t *fileName = PathFindFileName(path);
+        int fileNameLen = lstrlen(fileName);
+        int titleLen = lstrlen(title);
+        if (fileNameLen > titleLen) { // if extensions are hidden in File Explorer Options
+            debugPrintf(L"Appending extension %s\n", fileName + titleLen);
+            StringCchCat(newName, MAX_PATH, fileName + titleLen);
+        }
     }
 
     CComPtr<IFileOperation> operation;
