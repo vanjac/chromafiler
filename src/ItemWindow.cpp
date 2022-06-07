@@ -725,7 +725,8 @@ void ItemWindow::openProxyContextMenu(POINT point) {
     }
     contextMenu2 = contextMenu;
     contextMenu3 = contextMenu;
-    int cmd = TrackPopupMenuEx(popupMenu, TPM_RETURNCMD, point.x, point.y, hwnd, nullptr);
+    int cmd = TrackPopupMenuEx(popupMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON,
+        point.x, point.y, hwnd, nullptr);
     contextMenu2 = nullptr;
     contextMenu3 = nullptr;
     if (cmd > 0) {
