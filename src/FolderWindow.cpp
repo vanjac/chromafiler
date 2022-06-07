@@ -281,7 +281,14 @@ void FolderWindow::newFolder() {
         info.cbSize = sizeof(info);
         info.hwnd = hwnd;
         info.lpVerb = CMDSTR_NEWFOLDERA;
+        CComPtr<IFolderView2> folderView;
+        if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
+            // https://stackoverflow.com/q/40497455
+            // allow command to select new folder for renaming. not documented of course :/
+            IUnknown_SetSite(contextMenu, folderView);
+        }
         contextMenu->InvokeCommand(&info);
+        IUnknown_SetSite(contextMenu, nullptr);
     }
     DestroyMenu(popupMenu);
 }
