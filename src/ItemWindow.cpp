@@ -800,6 +800,22 @@ STDMETHODIMP_(ULONG) ItemWindow::Release() {
     return r;
 }
 
+void MakeBitmapOpaque(HDC hdc, const RECT &rect) {
+    // https://devblogs.microsoft.com/oldnewthing/20210915-00/?p=105687
+    // thank you Raymond Chen :)
+    BITMAPINFO bi = {};
+    bi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth       = 1;
+    bi.bmiHeader.biHeight      = 1;
+    bi.bmiHeader.biPlanes      = 1;
+    bi.bmiHeader.biBitCount    = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+
+    RGBQUAD bitmapBits = { 0x00, 0x00, 0x00, 0xFF };
+    StretchDIBits(hdc, rect.left, rect.top, rectWidth(rect), rectHeight(rect),
+                  0, 0, 1, 1, &bitmapBits, &bi,
+                  DIB_RGB_COLORS, SRCPAINT);
+}
 
 LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
@@ -824,10 +840,12 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
             buttonRect = {buttonRect.left - 1, buttonRect.top,
                           buttonRect.right + 1, buttonRect.bottom + 1};
             if (themeState == PBS_NORMAL) {
-                // hacky way to hide button while still rendering text properly
-                InflateRect(&buttonRect, 8, 8);
+                FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_BTNFACE));
+                MakeBitmapOpaque(hdc, ps.rcPaint);
+            } else {
+                DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect,
+                                    &ps.rcPaint);
             }
-            DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect, &ps.rcPaint);
 
             RECT contentRect;
             if (SUCCEEDED(GetThemeBackgroundContentRect(theme, hdc, BP_PUSHBUTTON, 
@@ -839,6 +857,7 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
                 SetBkMode(hdc, TRANSPARENT);
                 DrawText(hdc, buttonText, -1, &contentRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 SelectFont(hdc, oldFont);
+                MakeBitmapOpaque(hdc, ps.rcPaint);
             }
 
             CloseThemeData(theme);
