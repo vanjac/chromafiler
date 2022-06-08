@@ -509,88 +509,84 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
 
 void ItemWindow::onPaint(PAINTSTRUCT paint) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-b-painting-the-caption-title
-    // TODO clean this up
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
 
-    // the colors won't be right in many cases and it seems like there's no easy way to fix that
-    // https://github.com/res2k/Windows10Colors
-    HTHEME theme = OpenThemeData(hwnd, WINDOW_THEME);
-    if (!theme)
+    HDC hdcPaint = CreateCompatibleDC(paint.hdc);
+    if (!hdcPaint)
         return;
 
-    HDC hdcPaint = CreateCompatibleDC(paint.hdc);
-    if (hdcPaint) {
-        int width = rectWidth(clientRect);
-        int height = CAPTION_HEIGHT;
+    int width = rectWidth(clientRect);
+    int height = CAPTION_HEIGHT;
 
-        // Define the BITMAPINFO structure used to draw text.
-        // Note that biHeight is negative. This is done because
-        // DrawThemeTextEx() needs the bitmap to be in top-to-bottom
-        // order.
-        BITMAPINFO bitmapInfo = {};
-        bitmapInfo.bmiHeader.biSize            = sizeof(BITMAPINFOHEADER);
-        bitmapInfo.bmiHeader.biWidth           = width;
-        bitmapInfo.bmiHeader.biHeight          = -height;
-        bitmapInfo.bmiHeader.biPlanes          = 1;
-        bitmapInfo.bmiHeader.biBitCount        = 32;
-        bitmapInfo.bmiHeader.biCompression     = BI_RGB;
-
-        HBITMAP bitmap = CreateDIBSection(paint.hdc, &bitmapInfo, DIB_RGB_COLORS,
-                                          nullptr, nullptr, 0);
-        if (bitmap) {
-            HBITMAP oldBitmap = SelectBitmap(hdcPaint, bitmap);
-
-            // Setup the theme drawing options.
-            DTTOPTS textOpts = {sizeof(DTTOPTS)};
-            // COLOR_INACTIVECAPTIONTEXT doesn't work in Windows 10
-            // the documentation says COLOR_CAPTIONTEXT isn't supported either but it seems to work
-            textOpts.crText = GetActiveWindow() == hwnd ? GetSysColor(COLOR_CAPTIONTEXT)
-                : INACTIVE_CAPTION_COLOR;
-            textOpts.dwFlags = DTT_COMPOSITED | DTT_TEXTCOLOR;
-
-            // Select a font.
-            HFONT oldFont = nullptr;
-            if (captionFont)
-                oldFont = SelectFont(hdcPaint, captionFont);
-
-            int iconSize = GetSystemMetrics(SM_CXSMICON);
-            int buttonWidth = GetSystemMetrics(SM_CXSIZE); // TODO use DWMWA_CAPTION_BUTTON_BOUNDS
-            SIZE titleSize = {};
-            GetTextExtentPoint32(hdcPaint, title, (int)lstrlen(title), &titleSize);
-            // include padding on the right side of the text; makes it look more centered
-            int headerWidth = iconSize + WINDOW_ICON_PADDING * 2 + titleSize.cx;
-            int headerLeft = (width - headerWidth) / 2;
-            if (headerLeft < buttonWidth + WINDOW_ICON_PADDING) {
-                headerLeft = buttonWidth + WINDOW_ICON_PADDING;
-                headerWidth = width - buttonWidth - WINDOW_ICON_PADDING - headerLeft;
-            }
-            // store for hit testing proxy icon/text
-            proxyRect = {headerLeft, 0, headerLeft + headerWidth, CAPTION_HEIGHT};
-
-            DrawIconEx(hdcPaint, clientRect.left + headerLeft, clientRect.top + CAPTION_PADDING,
-                iconSmall, iconSize, iconSize, 0, nullptr, DI_NORMAL);
-
-            // Draw the title.
-            RECT paintRect = clientRect;
-            paintRect.top += CAPTION_PADDING;
-            paintRect.right -= buttonWidth; // close button width
-            paintRect.left += headerLeft + iconSize + WINDOW_ICON_PADDING;
-            paintRect.bottom = CAPTION_HEIGHT;
-            DrawThemeTextEx(theme, hdcPaint, 0, 0, title, -1,
-                            DT_LEFT | DT_WORD_ELLIPSIS, &paintRect, &textOpts);
-
-            // Blit text to the frame.
-            BitBlt(paint.hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY);
-
-            SelectBitmap(hdcPaint, oldBitmap);
-            if (oldFont)
-                SelectFont(hdcPaint, oldFont);
-            DeleteBitmap(bitmap);
-        }
+    // bitmap buffer for drawing caption
+    BITMAPINFO bitmapInfo = {};
+    bitmapInfo.bmiHeader.biSize         = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biWidth        = width;
+    bitmapInfo.bmiHeader.biHeight       = -height; // top-to-bottom order for DrawThemeTextEx()
+    bitmapInfo.bmiHeader.biPlanes       = 1;
+    bitmapInfo.bmiHeader.biBitCount     = 32;
+    bitmapInfo.bmiHeader.biCompression  = BI_RGB;
+    HBITMAP bitmap = CreateDIBSection(paint.hdc, &bitmapInfo, DIB_RGB_COLORS,
+                                      nullptr, nullptr, 0);
+    if (!bitmap) {
         DeleteDC(hdcPaint);
+        return;
     }
-    CloseThemeData(theme);
+    HBITMAP oldBitmap = SelectBitmap(hdcPaint, bitmap);
+
+    int iconSize = GetSystemMetrics(SM_CXSMICON);
+    int buttonWidth = GetSystemMetrics(SM_CXSIZE); // TODO use DWMWA_CAPTION_BUTTON_BOUNDS
+
+    SIZE titleSize = {};
+    GetTextExtentPoint32(hdcPaint, title, (int)lstrlen(title), &titleSize);
+    // include padding on the right side of the text; makes it look more centered
+    int headerWidth = iconSize + WINDOW_ICON_PADDING * 2 + titleSize.cx;
+    int headerLeft = (width - headerWidth) / 2;
+    if (headerLeft < buttonWidth + WINDOW_ICON_PADDING) {
+        headerLeft = buttonWidth + WINDOW_ICON_PADDING;
+        headerWidth = width - buttonWidth - WINDOW_ICON_PADDING - headerLeft;
+    }
+    // store for hit testing proxy icon/text
+    proxyRect = {headerLeft, 0, headerLeft + headerWidth, CAPTION_HEIGHT};
+
+    DrawIconEx(hdcPaint, headerLeft, CAPTION_PADDING, iconSmall,
+               iconSize, iconSize, 0, nullptr, DI_NORMAL);
+
+    // the colors won't be right in many cases and it seems like there's no easy way to fix that
+    // https://github.com/res2k/Windows10Colors
+    HTHEME windowTheme = OpenThemeData(hwnd, WINDOW_THEME);
+    if (windowTheme) {
+        // Select a font.
+        HFONT oldFont = nullptr;
+        if (captionFont)
+            oldFont = SelectFont(hdcPaint, captionFont);
+
+        DTTOPTS textOpts = {sizeof(DTTOPTS)};
+        // COLOR_INACTIVECAPTIONTEXT doesn't work in Windows 10
+        // the documentation says COLOR_CAPTIONTEXT isn't supported either but it seems to work
+        textOpts.crText = GetActiveWindow() == hwnd ? GetSysColor(COLOR_CAPTIONTEXT)
+            : INACTIVE_CAPTION_COLOR;
+        textOpts.dwFlags = DTT_COMPOSITED | DTT_TEXTCOLOR;
+
+        RECT paintRect = clientRect;
+        paintRect.top += CAPTION_PADDING;
+        paintRect.right -= buttonWidth; // close button width
+        paintRect.left += headerLeft + iconSize + WINDOW_ICON_PADDING;
+        paintRect.bottom = CAPTION_HEIGHT;
+        DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
+                        DT_LEFT | DT_WORD_ELLIPSIS, &paintRect, &textOpts);
+
+        if (oldFont)
+            SelectFont(hdcPaint, oldFont);
+        CloseThemeData(windowTheme);
+    }
+
+    BitBlt(paint.hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY);
+
+    SelectBitmap(hdcPaint, oldBitmap);
+    DeleteBitmap(bitmap);
+    DeleteDC(hdcPaint);
 }
 
 void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
