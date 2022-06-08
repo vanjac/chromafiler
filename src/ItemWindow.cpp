@@ -8,6 +8,7 @@
 #include <vssym32.h>
 #include <shellapi.h>
 #include <strsafe.h>
+#include <VersionHelpers.h>
 
 namespace chromabrowse {
 
@@ -25,7 +26,7 @@ const SIZE DEFAULT_SIZE = {450, 450};
 // colors
 // this is the color used in every high-contrast theme
 // regular light mode theme uses #999999
-const COLORREF INACTIVE_CAPTION_COLOR = 0x636363;
+const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
 
 static HFONT captionFont = 0, symbolFont = 0;
 
@@ -563,10 +564,15 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
             oldFont = SelectFont(hdcPaint, captionFont);
 
         DTTOPTS textOpts = {sizeof(DTTOPTS)};
-        // COLOR_INACTIVECAPTIONTEXT doesn't work in Windows 10
-        // the documentation says COLOR_CAPTIONTEXT isn't supported either but it seems to work
-        textOpts.crText = GetActiveWindow() == hwnd ? GetSysColor(COLOR_CAPTIONTEXT)
-            : INACTIVE_CAPTION_COLOR;
+        bool isActive = GetActiveWindow() == hwnd;
+        if (IsWindows10OrGreater()) {
+            // COLOR_INACTIVECAPTIONTEXT doesn't work in Windows 10
+            // the documentation says COLOR_CAPTIONTEXT isn't supported either but it seems to work
+            textOpts.crText = isActive ? GetSysColor(COLOR_CAPTIONTEXT)
+                : WIN10_INACTIVE_CAPTION_COLOR;
+        } else {
+            textOpts.crText = GetSysColor(COLOR_CAPTIONTEXT);
+        }
         textOpts.dwFlags = DTT_COMPOSITED | DTT_TEXTCOLOR;
 
         RECT paintRect = clientRect;
