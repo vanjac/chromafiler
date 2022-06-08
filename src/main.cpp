@@ -8,6 +8,7 @@
 #include <propkey.h>
 #include <Propvarutil.h>
 #include <strsafe.h>
+#include <VersionHelpers.h>
 
 #pragma comment(lib, "Dwmapi.lib")
 #pragma comment(lib, "Gdi32.lib")
@@ -125,15 +126,24 @@ bool updateJumpList() {
     wchar_t exePath[MAX_PATH];
     GetModuleFileName(GetModuleHandle(NULL), exePath, MAX_PATH);
 
-    CComPtr<IShellItem> quickAccessItem;
-    SHCreateItemFromParsingName(L"shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}",
-        nullptr, IID_PPV_ARGS(&quickAccessItem));
+    CComPtr<IShellItem> favoritesFolder;
+    if (IsWindows10OrGreater()) {
+        // Quick Access
+        SHCreateItemFromParsingName(L"shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}",
+            nullptr, IID_PPV_ARGS(&favoritesFolder));
+    } else {
+        SHGetKnownFolderItem(FOLDERID_Links, KF_FLAG_DEFAULT, nullptr,
+            IID_PPV_ARGS(&favoritesFolder));
+    }
     CComPtr<IEnumShellItems> enumItems;
-    if (quickAccessItem && SUCCEEDED(quickAccessItem->BindToHandler(
+    if (favoritesFolder && SUCCEEDED(favoritesFolder->BindToHandler(
             nullptr, BHID_EnumItems, IID_PPV_ARGS(&enumItems)))) {
         CComPtr<IShellItem> childItem;
-        for (int i = 0; i < 20; i++)
-            enumItems->Next(1, &childItem, nullptr); // TODO: hack!! the first 20 items are recents
+        if (IsWindows10OrGreater()) {
+            // TODO: hack!! the first 20 items in Quick Access are recents
+            for (int i = 0; i < 20; i++)
+                enumItems->Next(1, &childItem, nullptr);
+        }
         while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
             CComHeapPtr<wchar_t> displayName, parsingName;
             childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName);
