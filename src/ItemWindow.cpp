@@ -28,6 +28,7 @@ const SIZE DEFAULT_SIZE = {450, 450};
 // regular light mode theme uses #999999
 const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
 
+static HANDLE symbolFontHandle = 0;
 static HFONT captionFont = 0, symbolFont = 0;
 
 long numOpenWindows;
@@ -37,10 +38,12 @@ int ItemWindow::CAPTION_HEIGHT = 0;
 HACCEL ItemWindow::accelTable;
 
 void ItemWindow::init() {
+    HINSTANCE hInstance = GetModuleHandle(nullptr);
+
     WNDCLASS chainClass = {};
     chainClass.lpszClassName = CHAIN_OWNER_CLASS;
     chainClass.lpfnWndProc = DefWindowProc;
-    chainClass.hInstance = GetModuleHandle(NULL);
+    chainClass.hInstance = hInstance;
     RegisterClass(&chainClass);
 
     RECT adjustedRect = {};
@@ -55,12 +58,16 @@ void ItemWindow::init() {
         CloseThemeData(theme);
     }
 
-    // TODO only supported on windows 10!
+    HRSRC symbolFontResource = FindResource(hInstance, MAKEINTRESOURCE(IDR_ICON_FONT), RT_FONT);
+    HGLOBAL symbolFontAddr = LoadResource(hInstance, symbolFontResource);
+    DWORD count = 1;
+    symbolFontHandle = (HFONT)AddFontMemResourceEx(symbolFontAddr,
+        SizeofResource(hInstance, symbolFontResource), 0, &count);
     symbolFont = CreateFont(12, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET,
         OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
 
-    accelTable = LoadAccelerators(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_ITEM_ACCEL));
+    accelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ITEM_ACCEL));
 }
 
 void ItemWindow::uninit() {
@@ -68,6 +75,8 @@ void ItemWindow::uninit() {
         DeleteFont(captionFont);
     if (symbolFont)
         DeleteFont(symbolFont);
+    if (symbolFontHandle)
+        RemoveFontMemResourceEx(symbolFontHandle);
 }
 
 WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {

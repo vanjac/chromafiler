@@ -5,6 +5,8 @@ IDR_RT_MANIFEST1 RT_MANIFEST "res\chromabrowse.exe.manifest"
 
 IDR_APP_ICON    ICON    "res\folder.ico"
 
+IDR_ICON_FONT   FONT    "res\SegMDL2-subset.ttf"
+
 IDR_ITEM_ACCEL  ACCELERATORS {
     VK_TAB,     ID_NEXT_WINDOW,     VIRTKEY
     VK_DOWN,    ID_NEXT_WINDOW,     VIRTKEY, ALT
