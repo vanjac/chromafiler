@@ -6,7 +6,7 @@ An experimental file manager for Windows, designed to combine aspects of [Spatia
 
 ![Screenshot](https://user-images.githubusercontent.com/8228102/169676491-aa43b0b1-1a0a-48ae-aa62-f28ccf35fe23.png)
 
-chromabrowse works on Windows 10 and 11. Windows 7 support will be added eventually.
+chromabrowse works on Windows 8 through 11. Windows 7 support will be added eventually.
 
 ## Download
 
