@@ -84,7 +84,6 @@ private:
     void detachFromParent(); // updates UI state
     POINT childPos(); // top left corner of child
     POINT parentPos(); // top right corner of parent
-    CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem);
 
     void openProxyContextMenu(POINT point);
     void beginRename();

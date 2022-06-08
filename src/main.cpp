@@ -61,6 +61,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
                 debugPrintf(L"Unable to locate item at path %s\n", argv[1]);
                 return 0;
             }
+            startItem = chromabrowse::resolveLink(nullptr, startItem);
         } else {
             if (FAILED(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
                     IID_PPV_ARGS(&startItem)))) {

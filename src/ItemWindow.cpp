@@ -596,7 +596,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
 }
 
 void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
-    childItem = resolveLink(childItem);
+    childItem = resolveLink(hwnd, childItem);
     if (child) {
         int compare;
         if (SUCCEEDED(child->item->Compare(childItem, SICHINT_CANONICAL, &compare))
@@ -678,26 +678,6 @@ POINT ItemWindow::parentPos() {
     POINT shadow = {windowRect.left, windowRect.top};
     ScreenToClient(hwnd, &shadow); // determine size of drop shadow
     return {windowRect.left - shadow.x * 2, windowRect.top};
-}
-
-CComPtr<IShellItem> ItemWindow::resolveLink(CComPtr<IShellItem> linkItem) {
-    // https://stackoverflow.com/a/46064112
-    CComPtr<IShellLink> link;
-    if (SUCCEEDED(linkItem->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&link)))) {
-        if (SUCCEEDED(link->Resolve(hwnd, SLR_UPDATE))) {
-            CComHeapPtr<ITEMIDLIST> targetPIDL;
-            if (SUCCEEDED(link->GetIDList(&targetPIDL))) {
-                CComPtr<IShellItem> targetItem;
-                if (SUCCEEDED(SHCreateShellItem(nullptr, nullptr, targetPIDL, &targetItem))) {
-                    // don't need to recurse, shortcuts to shortcuts are not allowed
-                    return targetItem;
-                }
-            }
-        } else {
-            debugPrintf(L"Could not resolve link\n");
-        }
-    }
-    return linkItem;
 }
 
 void ItemWindow::refresh() {}

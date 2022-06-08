@@ -3,6 +3,7 @@
 #include "ThumbnailWindow.h"
 #include "PreviewWindow.h"
 #include <Shlguid.h>
+#include <shlobj.h>
 
 namespace chromabrowse {
 
@@ -39,6 +40,29 @@ bool previewHandlerCLSID(CComPtr<IShellItem> item, CLSID *previewID) {
         return false;
     debugPrintf(L"Found preview handler for %s: %s\n", ext, resultGUID);
     return SUCCEEDED(CLSIDFromString(resultGUID, previewID));
+}
+
+CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem) {
+    // https://stackoverflow.com/a/46064112
+    CComPtr<IShellLink> link;
+    if (SUCCEEDED(linkItem->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&link)))) {
+        DWORD resolveFlags = SLR_UPDATE;
+        if (hwnd == nullptr)
+            resolveFlags |= SLR_NO_UI;
+        if (SUCCEEDED(link->Resolve(hwnd, resolveFlags))) {
+            CComHeapPtr<ITEMIDLIST> targetPIDL;
+            if (SUCCEEDED(link->GetIDList(&targetPIDL))) {
+                CComPtr<IShellItem> targetItem;
+                if (SUCCEEDED(SHCreateShellItem(nullptr, nullptr, targetPIDL, &targetItem))) {
+                    // don't need to recurse, shortcuts to shortcuts are not allowed
+                    return targetItem;
+                }
+            }
+        } else {
+            debugPrintf(L"Could not resolve link\n");
+        }
+    }
+    return linkItem;
 }
 
 } // namespace
