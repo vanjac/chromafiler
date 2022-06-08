@@ -167,19 +167,11 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         owner = createChainOwner();
 
     HWND createHwnd = CreateWindow(
-        className(),
-        title,
-        // style
+        className(), title,
         // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
         (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX) | WS_CLIPCHILDREN,
-
-        // position/size
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
-
-        owner,                  // parent window
-        nullptr,                // menu
-        GetModuleHandle(NULL),  // instance handle
-        this);                  // application data
+        owner, nullptr, GetModuleHandle(NULL), this);
     if (!createHwnd) {
         debugPrintf(L"Couldn't create window\n");
         return false;
