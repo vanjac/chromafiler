@@ -436,6 +436,8 @@ void ItemWindow::onCreate() {
         hwnd, nullptr, instance, nullptr);
     SetWindowPos(tooltip, HWND_TOPMOST, 0, 0, 0, 0, 
                  SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    if (captionFont)
+        SendMessage(tooltip, WM_SETFONT, (WPARAM)captionFont, FALSE);
     TOOLINFO toolInfo = {};
     toolInfo.cbSize = sizeof(toolInfo);
     toolInfo.uFlags = TTF_SUBCLASS | TTF_TRANSPARENT;
@@ -459,7 +461,7 @@ void ItemWindow::onCreate() {
         hwnd, nullptr, instance, nullptr);
     SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
     if (captionFont)
-        PostMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
+        SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
 }
 
 void ItemWindow::onDestroy() {
