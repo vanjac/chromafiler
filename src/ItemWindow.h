@@ -85,6 +85,7 @@ private:
     POINT childPos(); // top left corner of child
     POINT parentPos(); // top right corner of parent
 
+    void invokeProxyDefaultVerb(POINT point);
     void openProxyContextMenu(POINT point);
     void beginRename();
     void completeRename();

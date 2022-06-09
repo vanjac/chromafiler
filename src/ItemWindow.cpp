@@ -333,6 +333,16 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             return 0;
         }
+        case WM_NCLBUTTONDBLCLK: {
+            POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            POINT clientCursor = cursor;
+            ScreenToClient(hwnd, &clientCursor);
+            if (wParam == HTCAPTION && PtInRect(&proxyRect, clientCursor)) {
+                invokeProxyDefaultVerb(cursor);
+                return 0;
+            }
+            break;
+        }
         case WM_NCRBUTTONUP: { // WM_CONTEXTMENU doesn't seem to work in the caption
             POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             POINT clientCursor = cursor;
@@ -689,6 +699,32 @@ POINT ItemWindow::parentPos() {
 }
 
 void ItemWindow::refresh() {}
+
+void ItemWindow::invokeProxyDefaultVerb(POINT point) {
+    // https://devblogs.microsoft.com/oldnewthing/20040930-00/?p=37693
+    CComPtr<IContextMenu> contextMenu;
+    if (FAILED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&contextMenu))))
+        return;
+    HMENU popupMenu = CreatePopupMenu();
+    if (!popupMenu)
+        return;
+    if (SUCCEEDED(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_DEFAULTONLY))) {
+        UINT id = GetMenuDefaultItem(popupMenu, FALSE, 0);
+        if (id != (UINT)-1) {
+            CMINVOKECOMMANDINFOEX info = {};
+            info.cbSize = sizeof(info);
+            info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE
+                | CMIC_MASK_ASYNCOK | CMIC_MASK_FLAG_LOG_USAGE;
+            info.hwnd = hwnd;
+            info.lpVerb = MAKEINTRESOURCEA(id - 1);
+            info.lpVerbW = MAKEINTRESOURCEW(id - 1);
+            info.nShow = SW_SHOWNORMAL;
+            info.ptInvoke = point;
+            contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info);
+        }
+    }
+    DestroyMenu(popupMenu);
+}
 
 void ItemWindow::openProxyContextMenu(POINT point) {
     // https://devblogs.microsoft.com/oldnewthing/20040920-00/?p=37823 and onward

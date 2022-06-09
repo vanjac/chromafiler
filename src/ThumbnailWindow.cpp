@@ -65,6 +65,7 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
 
     if (hasAlpha) {
         // use alpha channel to composite onto a white background
+        // TODO change color for high contrast themes
         uint8_t *bitmapBytes = (uint8_t*)bitmap.bmBits;
         int rowIndex = 0;
         for (int y = 0; y < bitmap.bmHeight; y++, rowIndex += bitmap.bmWidthBytes) {
