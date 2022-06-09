@@ -122,7 +122,8 @@ bool updateJumpList() {
     jumpList->BeginList(&minSlots, IID_PPV_ARGS(&removedDestinations));
 
     CComPtr<IObjectCollection> tasks;
-    tasks.CoCreateInstance(__uuidof(EnumerableObjectCollection));
+    if (FAILED(tasks.CoCreateInstance(__uuidof(EnumerableObjectCollection))))
+        return false;
 
     wchar_t exePath[MAX_PATH];
     GetModuleFileName(GetModuleHandle(NULL), exePath, MAX_PATH);
@@ -136,45 +137,49 @@ bool updateJumpList() {
         SHGetKnownFolderItem(FOLDERID_Links, KF_FLAG_DEFAULT, nullptr,
             IID_PPV_ARGS(&favoritesFolder));
     }
+    if (!favoritesFolder) {
+        debugPrintf(L"Unable to locate favorites folder\n");
+        return false;
+    }
     CComPtr<IEnumShellItems> enumItems;
-    if (favoritesFolder && SUCCEEDED(favoritesFolder->BindToHandler(
-            nullptr, BHID_EnumItems, IID_PPV_ARGS(&enumItems)))) {
-        CComPtr<IShellItem> childItem;
-        if (IsWindows10OrGreater()) {
-            // TODO: hack!! the first 20 items in Quick Access are recents
-            for (int i = 0; i < 20; i++)
-                enumItems->Next(1, &childItem, nullptr);
-        }
-        while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
-            CComHeapPtr<wchar_t> displayName, parsingName;
-            childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName);
-            childItem->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &parsingName);
-            wchar_t args[MAX_PATH];
-            args[0] = L'"';
-            StringCchCopy(args + 1, MAX_PATH - 2, parsingName);
-            StringCchCat(args, MAX_PATH, L"\"");
+    if (FAILED(favoritesFolder->BindToHandler(nullptr, BHID_EnumItems, IID_PPV_ARGS(&enumItems))))
+        return false;
 
-            CComPtr<IShellLink> link;
-            link.CoCreateInstance(__uuidof(ShellLink));
-            link->SetPath(exePath);
-            link->SetArguments(args);
-            link->SetIconLocation(exePath, IDR_APP_ICON);
-            CComQIPtr<IPropertyStore> linkProps(link);
-            PROPVARIANT propVar;
-            InitPropVariantFromString(displayName, &propVar);
-            linkProps->SetValue(PKEY_Title, propVar);
-            tasks->AddObject(link);
+    CComPtr<IShellItem> childItem;
+    if (IsWindows10OrGreater()) {
+        // TODO: hack!! the first 20 items in Quick Access are recents
+        for (int i = 0; i < 20; i++)
+            enumItems->Next(1, &childItem, nullptr);
+    }
+    while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
+        CComHeapPtr<wchar_t> displayName, parsingName;
+        childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName);
+        childItem->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &parsingName);
+        wchar_t args[MAX_PATH];
+        args[0] = L'"';
+        StringCchCopy(args + 1, MAX_PATH - 2, parsingName);
+        StringCchCat(args, MAX_PATH, L"\"");
 
-            CComPtr<IExtractIcon> extractIcon;
-            if (SUCCEEDED(childItem->BindToHandler(nullptr, BHID_SFUIObject,
-                    IID_PPV_ARGS(&extractIcon)))) {
-                wchar_t iconFile[MAX_PATH];
-                int index;
-                UINT flags;
-                if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
-                    if (!(flags & GIL_NOTFILENAME))
-                        link->SetIconLocation(iconFile, index);
-                }
+        CComPtr<IShellLink> link;
+        link.CoCreateInstance(__uuidof(ShellLink));
+        link->SetPath(exePath);
+        link->SetArguments(args);
+        link->SetIconLocation(exePath, IDR_APP_ICON);
+        CComQIPtr<IPropertyStore> linkProps(link);
+        PROPVARIANT propVar;
+        InitPropVariantFromString(displayName, &propVar);
+        linkProps->SetValue(PKEY_Title, propVar);
+        tasks->AddObject(link);
+
+        CComPtr<IExtractIcon> extractIcon;
+        if (SUCCEEDED(childItem->BindToHandler(nullptr, BHID_SFUIObject,
+                IID_PPV_ARGS(&extractIcon)))) {
+            wchar_t iconFile[MAX_PATH];
+            int index;
+            UINT flags;
+            if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
+                if (!(flags & GIL_NOTFILENAME))
+                    link->SetIconLocation(iconFile, index);
             }
         }
     }
@@ -183,7 +188,8 @@ bool updateJumpList() {
         debugPrintf(L"Failed to add user tasks\n");
         return false;
     }
-    jumpList->CommitList();
+    if (FAILED(jumpList->CommitList()))
+        return false;
 
     debugPrintf(L"Successfully updated jump list\n");
     return true;
