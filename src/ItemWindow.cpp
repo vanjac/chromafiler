@@ -338,7 +338,10 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             POINT clientCursor = cursor;
             ScreenToClient(hwnd, &clientCursor);
             if (wParam == HTCAPTION && PtInRect(&proxyRect, clientCursor)) {
-                invokeProxyDefaultVerb(cursor);
+                if (GetKeyState(VK_MENU) < 0)
+                    openProxyProperties();
+                else
+                    invokeProxyDefaultVerb(cursor);
                 return 0;
             }
             break;
@@ -724,6 +727,19 @@ void ItemWindow::invokeProxyDefaultVerb(POINT point) {
         }
     }
     DestroyMenu(popupMenu);
+}
+
+void ItemWindow::openProxyProperties() {
+    CComHeapPtr<ITEMIDLIST> idList;
+    if (SUCCEEDED(SHGetIDListFromObject(item, &idList))) {
+        SHELLEXECUTEINFO info = {};
+        info.cbSize = sizeof(info);
+        info.fMask = SEE_MASK_INVOKEIDLIST;
+        info.lpVerb = L"properties";
+        info.lpIDList = idList;
+        info.hwnd = hwnd;
+        ShellExecuteEx(&info);
+    }
 }
 
 void ItemWindow::openProxyContextMenu(POINT point) {
