@@ -548,6 +548,10 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     int iconSize = GetSystemMetrics(SM_CXSMICON);
     int buttonWidth = GetSystemMetrics(SM_CXSIZE); // TODO use DWMWA_CAPTION_BUTTON_BOUNDS
 
+    HFONT oldFont = nullptr;
+    if (captionFont)
+        oldFont = SelectFont(hdcPaint, captionFont); // must be set here for GetTextExtentPoint32
+
     SIZE titleSize = {};
     GetTextExtentPoint32(hdcPaint, title, (int)lstrlen(title), &titleSize);
     // include padding on the right side of the text; makes it look more centered
@@ -567,11 +571,6 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     // https://github.com/res2k/Windows10Colors
     HTHEME windowTheme = OpenThemeData(hwnd, WINDOW_THEME);
     if (windowTheme) {
-        // Select a font.
-        HFONT oldFont = nullptr;
-        if (captionFont)
-            oldFont = SelectFont(hdcPaint, captionFont);
-
         DTTOPTS textOpts = {sizeof(DTTOPTS)};
         bool isActive = GetActiveWindow() == hwnd;
         if (IsWindows10OrGreater()) {
@@ -592,13 +591,13 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
                         DT_LEFT | DT_WORD_ELLIPSIS, &paintRect, &textOpts);
 
-        if (oldFont)
-            SelectFont(hdcPaint, oldFont);
         CloseThemeData(windowTheme);
     }
 
     BitBlt(paint.hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY);
 
+    if (oldFont)
+        SelectFont(hdcPaint, oldFont);
     SelectBitmap(hdcPaint, oldBitmap);
     DeleteBitmap(bitmap);
     DeleteDC(hdcPaint);
