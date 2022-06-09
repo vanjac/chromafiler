@@ -36,7 +36,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     INITCOMMONCONTROLSEX controls = {};
     controls.dwSize = sizeof(controls);
-    controls.dwICC = ICC_STANDARD_CLASSES;
+    controls.dwICC = ICC_STANDARD_CLASSES | ICC_BAR_CLASSES;
     InitCommonControlsEx(&controls);
 
     chromabrowse::ItemWindow::init();
