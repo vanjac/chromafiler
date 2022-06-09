@@ -17,10 +17,9 @@ const wchar_t *WINDOW_THEME = L"CompositedWindow::Window";
 
 // dimensions
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
-const int CAPTION_PADDING = 8;
 const int WINDOW_ICON_PADDING = 4;
-const int SNAP_DISTANCE = 32;
 const int RENAME_BOX_PADDING = 2; // with border
+const int SNAP_DISTANCE = 32;
 const SIZE DEFAULT_SIZE = {450, 450};
 // colors
 // this is the color used in every high-contrast theme
@@ -607,7 +606,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         SendMessage(tooltip, TTM_ACTIVATE, FALSE, 0);
     }
 
-    DrawIconEx(hdcPaint, headerLeft, CAPTION_PADDING, iconSmall,
+    DrawIconEx(hdcPaint, headerLeft, (CAPTION_HEIGHT - iconSize) / 2, iconSmall,
                iconSize, iconSize, 0, nullptr, DI_NORMAL);
 
     // the colors won't be right in many cases and it seems like there's no easy way to fix that
