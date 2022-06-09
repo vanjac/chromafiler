@@ -938,8 +938,7 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
         if (theme) {
             RECT buttonRect;
             GetClientRect(hwnd, &buttonRect);
-            buttonRect = {buttonRect.left - 1, buttonRect.top,
-                          buttonRect.right + 1, buttonRect.bottom + 1};
+            InflateRect(&buttonRect, 1, 1);
             if (themeState == PBS_NORMAL) {
                 FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_BTNFACE));
                 MakeBitmapOpaque(hdc, ps.rcPaint);
