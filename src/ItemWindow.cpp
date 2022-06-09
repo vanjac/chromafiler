@@ -356,6 +356,19 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break; // pass to DefWindowProc
         }
+        case WM_NOTIFY: {
+            NMHDR *notif = (NMHDR *)lParam;
+            if (notif->hwndFrom == tooltip && notif->code == TTN_SHOW) {
+                // position tooltip on top of title
+                RECT tooltipRect = titleRect;
+                MapWindowRect(hwnd, nullptr, &tooltipRect);
+                SendMessage(tooltip, TTM_ADJUSTRECT, TRUE, (LPARAM)&tooltipRect);
+                SetWindowPos(tooltip, nullptr, tooltipRect.left, tooltipRect.top, 0, 0,
+                    SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+                return TRUE;
+            }
+            break;
+        }
         case WM_COMMAND: {
             if ((HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
                 openParent();
@@ -417,19 +430,35 @@ void ItemWindow::onCreate() {
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
+    HMODULE instance = GetWindowInstance(hwnd);
+
+    tooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
+        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        hwnd, nullptr, instance, nullptr);
+    SetWindowPos(tooltip, HWND_TOPMOST, 0, 0, 0, 0, 
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    TOOLINFO toolInfo = {};
+    toolInfo.cbSize = sizeof(toolInfo);
+    toolInfo.uFlags = TTF_SUBCLASS | TTF_TRANSPARENT;
+    toolInfo.hwnd = hwnd;
+    toolInfo.hinst = instance;
+    toolInfo.lpszText = title;
+    SendMessage(tooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+
     CComPtr<IShellItem> parentItem;
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
     parentButton = CreateWindow(L"BUTTON", L"\uE96F", // ChevronLeftSmall
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
         0, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT,
-        hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
+        hwnd, nullptr, instance, nullptr);
     SetWindowSubclass(parentButton, captionButtonProc, 0, 0);
 
     // will be positioned in updateRenameBoxRect
     renameBox = CreateWindow(L"EDIT", nullptr,
         WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
         0, 0, 32, RENAME_BOX_HEIGHT,
-        hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
+        hwnd, nullptr, instance, nullptr);
     SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
     if (captionFont)
         PostMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
@@ -570,12 +599,24 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     // include padding on the right side of the text; makes it look more centered
     int headerWidth = iconSize + WINDOW_ICON_PADDING * 2 + titleSize.cx;
     int headerLeft = (width - headerWidth) / 2;
-    if (headerLeft < buttonWidth + WINDOW_ICON_PADDING) {
+    bool truncateTitle = headerLeft < buttonWidth + WINDOW_ICON_PADDING;
+    if (truncateTitle) {
         headerLeft = buttonWidth + WINDOW_ICON_PADDING;
         headerWidth = width - buttonWidth - WINDOW_ICON_PADDING - headerLeft;
     }
     // store for hit testing proxy icon/text
     proxyRect = {headerLeft, 0, headerLeft + headerWidth, CAPTION_HEIGHT};
+
+    if (truncateTitle) {
+        TOOLINFO toolInfo = {};
+        toolInfo.cbSize = sizeof(toolInfo);
+        toolInfo.hwnd = hwnd;
+        toolInfo.rect = proxyRect;
+        SendMessage(tooltip, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo); // rect to trigger tooltip
+        SendMessage(tooltip, TTM_ACTIVATE, TRUE, 0);
+    } else {
+        SendMessage(tooltip, TTM_ACTIVATE, FALSE, 0);
+    }
 
     DrawIconEx(hdcPaint, headerLeft, CAPTION_PADDING, iconSmall,
                iconSize, iconSize, 0, nullptr, DI_NORMAL);
@@ -596,13 +637,13 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         }
         textOpts.dwFlags = DTT_COMPOSITED | DTT_TEXTCOLOR;
 
-        RECT paintRect = clientRect;
-        paintRect.top += CAPTION_PADDING;
-        paintRect.right -= buttonWidth; // close button width
-        paintRect.left += headerLeft + iconSize + WINDOW_ICON_PADDING;
-        paintRect.bottom = CAPTION_HEIGHT;
+        titleRect = clientRect;
+        titleRect.top += CAPTION_PADDING;
+        titleRect.right -= buttonWidth; // close button width
+        titleRect.left += headerLeft + iconSize + WINDOW_ICON_PADDING;
+        titleRect.bottom = CAPTION_HEIGHT;
         DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
-                        DT_LEFT | DT_WORD_ELLIPSIS, &paintRect, &textOpts);
+                        DT_LEFT | DT_WORD_ELLIPSIS, &titleRect, &textOpts);
 
         CloseThemeData(windowTheme);
     }
