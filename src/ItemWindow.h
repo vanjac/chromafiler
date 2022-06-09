@@ -73,7 +73,6 @@ private:
     HWND createChainOwner();
 
     void windowRectChanged();
-    void updateRenameBoxRect();
     void bringGroupToFront();
     // for DWM custom frame:
     void extendWindowFrame();
@@ -100,9 +99,7 @@ private:
 
     HICON iconLarge = nullptr, iconSmall = nullptr;
 
-    HWND tooltip;
-    HWND parentButton;
-    HWND renameBox;
+    HWND tooltip, parentButton, renameBox;
     RECT proxyRect, titleRect;
     // for handling delayed context menu messages while open (eg. for Open With menu)
     CComQIPtr<IContextMenu2> contextMenu2;

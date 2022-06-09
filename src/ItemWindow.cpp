@@ -20,8 +20,7 @@ const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int CAPTION_PADDING = 8;
 const int WINDOW_ICON_PADDING = 4;
 const int SNAP_DISTANCE = 32;
-const int RENAME_BOX_HEIGHT = 19;
-const int RENAME_BOX_OFFSET_X = -5; // align with window text
+const int RENAME_BOX_PADDING = 2; // with border
 const SIZE DEFAULT_SIZE = {450, 450};
 // colors
 // this is the color used in every high-contrast theme
@@ -308,7 +307,6 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return TRUE;
         case WM_MOVE:
             windowRectChanged();
-            updateRenameBoxRect();
             return 0;
         case WM_SIZING:
             if (parent) {
@@ -454,10 +452,10 @@ void ItemWindow::onCreate() {
         hwnd, nullptr, instance, nullptr);
     SetWindowSubclass(parentButton, captionButtonProc, 0, 0);
 
-    // will be positioned in updateRenameBoxRect
+    // will be positioned in beginRename
     renameBox = CreateWindow(L"EDIT", nullptr,
         WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
-        0, 0, 32, RENAME_BOX_HEIGHT,
+        0, 0, 0, 0,
         hwnd, nullptr, instance, nullptr);
     SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
     if (captionFont)
@@ -511,17 +509,6 @@ void ItemWindow::windowRectChanged() {
     if (child) {
         child->setPos(childPos());
     }
-}
-
-void ItemWindow::updateRenameBoxRect() {
-    int leftPadding = GetSystemMetrics(SM_CXSMICON) + WINDOW_ICON_PADDING + RENAME_BOX_OFFSET_X;
-    RECT clientRect;
-    GetClientRect(hwnd, &clientRect);
-    POINT renamePos = {proxyRect.left + leftPadding, (CAPTION_HEIGHT - RENAME_BOX_HEIGHT) / 2};
-    int renameWidth = clientRect.right - GetSystemMetrics(SM_CXSIZE) - renamePos.x;
-    ClientToScreen(hwnd, &renamePos);
-    SetWindowPos(renameBox, nullptr, renamePos.x, renamePos.y, renameWidth, RENAME_BOX_HEIGHT,
-        SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 void ItemWindow::extendWindowFrame() {
@@ -638,10 +625,10 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         textOpts.dwFlags = DTT_COMPOSITED | DTT_TEXTCOLOR;
 
         titleRect = clientRect;
-        titleRect.top += CAPTION_PADDING;
+        titleRect.top = (CAPTION_HEIGHT - titleSize.cy) / 2;
         titleRect.right -= buttonWidth; // close button width
-        titleRect.left += headerLeft + iconSize + WINDOW_ICON_PADDING;
-        titleRect.bottom = CAPTION_HEIGHT;
+        titleRect.left = headerLeft + iconSize + WINDOW_ICON_PADDING;
+        titleRect.bottom = titleRect.top + titleSize.cy;
         DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
                         DT_LEFT | DT_WORD_ELLIPSIS, &titleRect, &textOpts);
 
@@ -836,7 +823,18 @@ void ItemWindow::openProxyContextMenu(POINT point) {
 }
 
 void ItemWindow::beginRename() {
-    updateRenameBoxRect();
+    // update rename box rect
+    int leftMargin = LOWORD(SendMessage(renameBox, EM_GETMARGINS, 0, 0));
+    int renameHeight = rectHeight(titleRect) + RENAME_BOX_PADDING * 2;
+    POINT renamePos = {titleRect.left - leftMargin - RENAME_BOX_PADDING,
+                       (CAPTION_HEIGHT - renameHeight) / 2};
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    int renameWidth = clientRect.right - GetSystemMetrics(SM_CXSIZE) - renamePos.x;
+    ClientToScreen(hwnd, &renamePos);
+    SetWindowPos(renameBox, nullptr, renamePos.x, renamePos.y, renameWidth, renameHeight,
+        SWP_NOZORDER | SWP_NOACTIVATE);
+
     SendMessage(renameBox, WM_SETTEXT, 0, (LPARAM)&*title);
     wchar_t *ext = PathFindExtension(title);
     if (ext == title) { // files that start with a dot
