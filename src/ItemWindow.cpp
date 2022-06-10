@@ -80,7 +80,7 @@ void ItemWindow::uninit() {
 WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
     WNDCLASS wndClass = {};
     wndClass.lpfnWndProc = ItemWindow::windowProc;
-    wndClass.hInstance = GetModuleHandle(NULL);
+    wndClass.hInstance = GetModuleHandle(nullptr);
     wndClass.lpszClassName = name;
     wndClass.style = CS_HREDRAW; // ensure caption gets redrawn if width changes
     return wndClass;
@@ -179,7 +179,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
         (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX) | WS_CLIPCHILDREN,
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
-        owner, nullptr, GetModuleHandle(NULL), this);
+        owner, nullptr, GetModuleHandle(nullptr), this);
     if (!createHwnd) {
         debugPrintf(L"Couldn't create window\n");
         return false;
@@ -195,7 +195,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
 
 HWND ItemWindow::createChainOwner() {
     HWND window = CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
-        nullptr, nullptr, GetModuleHandle(NULL), 0); // user data stores num owned windows
+        nullptr, nullptr, GetModuleHandle(nullptr), 0); // user data stores num owned windows
     ShowWindow(window, SW_SHOWNORMAL); // show in taskbar
     return window;
 }
@@ -399,8 +399,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     return 0;
                 }
                 case ID_HELP:
-                    ShellExecute(NULL, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
-                        NULL, NULL, SW_SHOWNORMAL);
+                    ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
+                        nullptr, nullptr, SW_SHOWNORMAL);
                     return 0;
             }
             break;

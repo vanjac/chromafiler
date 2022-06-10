@@ -17,7 +17,7 @@ void PreviewWindow::init() {
     WNDCLASS containerClass = {};
     containerClass.lpszClassName = PREVIEW_CONTAINER_CLASS;
     containerClass.lpfnWndProc = DefWindowProc;
-    containerClass.hInstance = GetModuleHandle(NULL);
+    containerClass.hInstance = GetModuleHandle(nullptr);
     RegisterClass(&containerClass);
 }
 

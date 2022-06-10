@@ -126,7 +126,7 @@ bool updateJumpList() {
         return false;
 
     wchar_t exePath[MAX_PATH];
-    GetModuleFileName(GetModuleHandle(NULL), exePath, MAX_PATH);
+    GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH);
 
     CComPtr<IShellItem> favoritesFolder;
     if (IsWindows10OrGreater()) {
