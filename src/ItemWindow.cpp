@@ -977,6 +977,9 @@ LRESULT CALLBACK ItemWindow::renameBoxProc(HWND hwnd, UINT message,
     } else if (message == WM_CHAR && wParam == VK_ESCAPE) {
         ((ItemWindow *)refData)->cancelRename();
         return 0;
+    } else if (message == WM_CLOSE) {
+        // prevent user closing rename box (it will still be destroyed when owner is closed)
+        return 0;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
