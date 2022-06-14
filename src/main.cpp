@@ -47,8 +47,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     SetCurrentProcessExplicitAppUserModelID(APP_ID);
 
-    DWORD threadId;
-    CreateThread(nullptr, 0, updateJumpListThread, nullptr, 0, &threadId);
+    CreateThread(nullptr, 0, updateJumpListThread, nullptr, 0, nullptr);
 
     {
         CComPtr<IShellItem> startItem;
