@@ -1,6 +1,7 @@
 #pragma once
 #include <common.h>
 
+#include "COMUtil.h"
 #include <windows.h>
 #include <shobjidl.h>
 #include <atlbase.h>
@@ -12,7 +13,7 @@ class ItemWindow;
 extern long numOpenWindows;
 extern CComPtr<ItemWindow> activeWindow;
 
-class ItemWindow : public IUnknown {
+class ItemWindow : public IUnknownImpl {
 protected:
     // calculated in init()
     static int CAPTION_HEIGHT;
@@ -36,11 +37,6 @@ public:
     void move(int x, int y);
 
     virtual bool handleTopLevelMessage(MSG *msg);
-
-    // IUnknown
-    STDMETHODIMP QueryInterface(REFIID id, void **obj) override;
-    STDMETHODIMP_(ULONG) AddRef() override;
-    STDMETHODIMP_(ULONG) Release() override;
 
     CComPtr<IShellItem> item;
 
@@ -107,9 +103,6 @@ private:
 
     SIZE storedChildSize;
     POINT moveAccum;
-
-    // IUnknown
-    long refCount = 1;
 };
 
 } // namespace

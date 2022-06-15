@@ -117,6 +117,7 @@ ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
 {}
 
 ItemWindow::~ItemWindow() {
+    debugPrintf(L"Delete %s\n", &*title);
     if (iconLarge)
         DestroyIcon(iconLarge);
     if (iconSmall)
@@ -876,28 +877,6 @@ void ItemWindow::completeRename() {
 
 void ItemWindow::cancelRename() {
     ShowWindow(renameBox, SW_HIDE);
-}
-
-/* IUnknown */
-
-STDMETHODIMP ItemWindow::QueryInterface(REFIID id, void **obj) {
-    static const QITAB interfaces[] = {
-        {},
-    };
-    return QISearch(this, interfaces, id, obj);
-}
-
-STDMETHODIMP_(ULONG) ItemWindow::AddRef() {
-    return InterlockedIncrement(&refCount);
-}
-
-STDMETHODIMP_(ULONG) ItemWindow::Release() {
-    long r = InterlockedDecrement(&refCount);
-    if (r == 0) {
-        debugPrintf(L"Delete %s\n", &*title);
-        delete this;
-    }
-    return r;
 }
 
 void MakeBitmapOpaque(HDC hdc, const RECT &rect) {
