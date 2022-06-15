@@ -47,7 +47,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     SetCurrentProcessExplicitAppUserModelID(APP_ID);
 
-    CreateThread(nullptr, 0, updateJumpListThread, nullptr, 0, nullptr);
+    HANDLE jumpListThread = CreateThread(nullptr, 0, updateJumpListThread, nullptr, 0, nullptr);
 
     {
         CComPtr<IShellItem> startItem;
@@ -94,6 +94,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         DispatchMessage(&msg);
     }
 
+    WaitForSingleObject(jumpListThread, INFINITE);
+    CloseHandle(jumpListThread);
     updateJumpList();
 
     chromabrowse::ItemWindow::uninit();
