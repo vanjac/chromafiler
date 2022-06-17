@@ -23,8 +23,7 @@ int main(int, char**) {
 }
 #endif
 
-DWORD WINAPI updateJumpListThread(void *);
-bool updateJumpList();
+DWORD WINAPI updateJumpList(void *);
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     debugPrintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
@@ -47,7 +46,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     SetCurrentProcessExplicitAppUserModelID(APP_ID);
 
-    HANDLE jumpListThread = CreateThread(nullptr, 0, updateJumpListThread, nullptr, 0, nullptr);
+    HANDLE jumpListThread = nullptr;
+    SHCreateThreadWithHandle(updateJumpList, nullptr, CTF_COINIT_STA, nullptr, &jumpListThread);
 
     {
         CComPtr<IShellItem> startItem;
@@ -96,24 +96,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     WaitForSingleObject(jumpListThread, INFINITE);
     CloseHandle(jumpListThread);
-    updateJumpList();
+    updateJumpList(nullptr);
 
     chromabrowse::ItemWindow::uninit();
     OleUninitialize();
     return 0;
 }
 
-DWORD WINAPI updateJumpListThread(void *) {
-    if (FAILED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
-        return 0;
-    if (!updateJumpList()) {
-        debugPrintf(L"Failed to update jump list\n");
-    }
-    CoUninitialize();
-    return 0;
-}
-
-bool updateJumpList() {
+DWORD WINAPI updateJumpList(void *) {
     CComPtr<ICustomDestinationList> jumpList;
     if (FAILED(jumpList.CoCreateInstance(__uuidof(DestinationList))))
         return false;
