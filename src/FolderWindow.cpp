@@ -110,6 +110,7 @@ void FolderWindow::onCreate() {
             view = nullptr;
             // destroy and recreate browser
             browser->Destroy();
+            browser = nullptr;
             if (!initBrowser())
                 return;
             // don't set property bag! (breaks sorting)
@@ -242,6 +243,7 @@ void FolderWindow::resultsFolderFallback() {
                     CComPtr<IShellItem> childItem;
                     while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
                         results->AddItem(childItem);
+                        childItem = nullptr;
                     }
                     // for some reason changing the sort columns immediately after adding items
                     // breaks the folder view, so delay it until the browser has had a chance to

@@ -100,6 +100,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     updateJumpList(nullptr);
 
     chromabrowse::ItemWindow::uninit();
+    chromabrowse::PreviewWindow::uninit();
     OleUninitialize();
     return 0;
 }
@@ -137,12 +138,14 @@ DWORD WINAPI updateJumpList(void *) {
     if (FAILED(favoritesFolder->BindToHandler(nullptr, BHID_EnumItems, IID_PPV_ARGS(&enumItems))))
         return false;
 
-    CComPtr<IShellItem> childItem;
     if (IsWindows10OrGreater()) {
         // TODO: hack!! the first 20 items in Quick Access are recents
-        for (int i = 0; i < 20; i++)
-            enumItems->Next(1, &childItem, nullptr);
+        for (int i = 0; i < 20; i++) {
+            CComPtr<IShellItem> tempItem;
+            enumItems->Next(1, &tempItem, nullptr);
+        }
     }
+    CComPtr<IShellItem> childItem;
     while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
         CComHeapPtr<wchar_t> displayName, parsingName;
         childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName);
@@ -174,6 +177,7 @@ DWORD WINAPI updateJumpList(void *) {
                     link->SetIconLocation(iconFile, index);
             }
         }
+        childItem = nullptr; // CComPtr isn't very smart
     }
 
     if (FAILED(jumpList->AddUserTasks(tasks))) {

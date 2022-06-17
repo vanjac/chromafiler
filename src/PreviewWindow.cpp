@@ -32,6 +32,10 @@ void PreviewWindow::init() {
     RegisterClass(&containerClass);
 }
 
+void PreviewWindow::uninit() {
+    previewFactoryCache.clear();
+}
+
 PreviewWindow::PreviewWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, CLSID previewID)
     : ItemWindow(parent, item)
     , previewID(previewID)

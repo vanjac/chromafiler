@@ -8,6 +8,7 @@ namespace chromabrowse {
 class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
 public:
     static void init();
+    static void uninit();
 
     PreviewWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, CLSID previewID);
 
