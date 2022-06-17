@@ -4,6 +4,7 @@
 #include <shlobj.h>
 #include <unordered_map>
 
+// TODO: is this enough? what about checking equality?
 template<>
 struct std::hash<CLSID> {
     std::size_t operator() (const CLSID &key) const {
@@ -19,6 +20,13 @@ namespace chromabrowse {
 const wchar_t *PREVIEW_WINDOW_CLASS = L"Preview Window";
 const wchar_t *PREVIEW_CONTAINER_CLASS = L"Preview Container";
 
+/* worker thread user messages */
+const UINT MSG_INIT_PREVIEW_REQUEST = WM_USER;
+/* PreviewWindow user messages */
+const UINT MSG_INIT_PREVIEW_COMPLETE = WM_USER;
+
+HANDLE PreviewWindow::initPreviewThread = nullptr;
+// used by worker thread:
 static std::unordered_map<CLSID, CComPtr<IClassFactory>> previewFactoryCache;
 
 void PreviewWindow::init() {
@@ -33,6 +41,9 @@ void PreviewWindow::init() {
 }
 
 void PreviewWindow::uninit() {
+    PostThreadMessage(GetThreadId(initPreviewThread), WM_QUIT, 0, 0);
+    WaitForSingleObject(initPreviewThread, INFINITE);
+    CloseHandle(initPreviewThread);
     previewFactoryCache.clear();
 }
 
@@ -57,7 +68,14 @@ void PreviewWindow::onCreate() {
         previewRect.left, previewRect.top, containerClientRect.right, containerClientRect.bottom,
         hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
 
-    initPreview(); // ignore error
+    if (!initPreviewThread) {
+        SHCreateThreadWithHandle(initPreviewThreadProc, nullptr, CTF_COINIT_STA, nullptr,
+            &initPreviewThread);
+    }
+    // don't use Attach() for an additional AddRef() -- keep request alive until received by thread
+    initRequest = new InitPreviewRequest(item, previewID, hwnd);
+    PostThreadMessage(GetThreadId(initPreviewThread),
+        MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest);
 }
 
 void PreviewWindow::onDestroy() {
@@ -66,6 +84,7 @@ void PreviewWindow::onDestroy() {
         checkHR(IUnknown_SetSite(preview, nullptr));
         checkHR(preview->Unload());
     }
+    initRequest->cancel();
 }
 
 void PreviewWindow::onActivate(WORD state, HWND prevWindow) {
@@ -91,49 +110,159 @@ void PreviewWindow::onSize(int width, int height) {
     }
 }
 
-bool PreviewWindow::initPreview() {
+LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == MSG_INIT_PREVIEW_COMPLETE) {
+        if (!checkHR(CoGetInterfaceAndReleaseStream((IStream*)lParam, IID_PPV_ARGS(&preview))))
+            return 0;
+
+        checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this));
+
+        CComQIPtr<IPreviewHandlerVisuals> visuals(preview);
+        if (visuals) {
+            // either of these may not be implemented
+            visuals->SetBackgroundColor(GetSysColor(COLOR_WINDOW));
+            visuals->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
+        }
+
+        RECT containerClientRect;
+        GetClientRect(container, &containerClientRect);
+        checkHR(preview->SetWindow(container, &containerClientRect));
+        checkHR(preview->DoPreview());
+        return 0;
+    }
+    return ItemWindow::handleMessage(message, wParam, lParam);
+}
+
+void PreviewWindow::refresh() {
+    if (preview) {
+        checkHR(IUnknown_SetSite(preview, nullptr));
+        checkHR(preview->Unload());
+        preview = nullptr;
+    }
+    initRequest->cancel();
+    initRequest = new InitPreviewRequest(item, previewID, hwnd);
+    PostThreadMessage(GetThreadId(initPreviewThread),
+        MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest);
+}
+
+/* IUnknown */
+
+STDMETHODIMP PreviewWindow::QueryInterface(REFIID id, void **obj) {
+    static const QITAB interfaces[] = {
+        QITABENT(PreviewWindow, IPreviewHandlerFrame),
+        {},
+    };
+    HRESULT hr = QISearch(this, interfaces, id, obj);
+    if (SUCCEEDED(hr))
+        return hr;
+    return ItemWindow::QueryInterface(id, obj);
+}
+
+STDMETHODIMP_(ULONG) PreviewWindow::AddRef() {
+    return ItemWindow::AddRef();
+}
+
+STDMETHODIMP_(ULONG) PreviewWindow::Release() {
+    return ItemWindow::Release();
+}
+
+/* IPreviewHandlerFrame */
+
+STDMETHODIMP PreviewWindow::GetWindowContext(PREVIEWHANDLERFRAMEINFO *info) {
+    // fixes shortcuts in eg. Excel handler
+    info->cAccelEntries = CopyAcceleratorTable(accelTable, nullptr, 0);
+    info->haccel = accelTable;
+    return S_OK;
+}
+
+STDMETHODIMP PreviewWindow::TranslateAccelerator(MSG *msg) {
+    // fixes shortcuts in eg. windows Mime handler (.mht)
+    return handleTopLevelMessage(msg) ? S_OK : S_FALSE;
+}
+
+
+PreviewWindow::InitPreviewRequest::InitPreviewRequest(
+        CComPtr<IShellItem> item, CLSID previewID, HWND callbackWindow)
+        : previewID(previewID)
+        , callbackWindow(callbackWindow) {
+    checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IShellItem), item, &itemStream));
+    cancelEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    InitializeCriticalSectionAndSpinCount(&cancelSection, 4000);
+}
+
+PreviewWindow::InitPreviewRequest::~InitPreviewRequest() {
+    debugPrintf(L"Deleting InitPreviewRequest\n");
+    CloseHandle(cancelEvent);
+    DeleteCriticalSection(&cancelSection);
+}
+
+void PreviewWindow::InitPreviewRequest::cancel() {
+    EnterCriticalSection(&cancelSection);
+    SetEvent(cancelEvent);
+    LeaveCriticalSection(&cancelSection);
+}
+
+DWORD WINAPI PreviewWindow::initPreviewThreadProc(void *) {
+    MSG msg;
+    while (GetMessage(&msg, nullptr, 0, 0)) {
+        if (msg.hwnd == nullptr && msg.message == MSG_INIT_PREVIEW_REQUEST) {
+            CComPtr<InitPreviewRequest> request;
+            request.Attach((InitPreviewRequest *)msg.lParam);
+            initPreview(request);
+        } else {
+            // regular message loop is required by some preview handlers (eg. Windows Mime handler)
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }
+    return 0;
+}
+
+void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
+    CComPtr<IShellItem> item;
+    if (!checkHR(CoGetInterfaceAndReleaseStream(request->itemStream, IID_PPV_ARGS(&item))))
+        return;
+    request->itemStream.Detach();
+
     CComPtr<IClassFactory> factory;
-    auto it = previewFactoryCache.find(previewID);
+    auto it = previewFactoryCache.find(request->previewID);
     if (it != previewFactoryCache.end()) {
         debugPrintf(L"Reusing already-loaded factory\n");
         factory = it->second;
     } else {
-        if (!checkHR(CoGetClassObject(previewID, CLSCTX_LOCAL_SERVER, nullptr,
+        if (!checkHR(CoGetClassObject(request->previewID, CLSCTX_LOCAL_SERVER, nullptr,
                 IID_PPV_ARGS(&factory)))) {
-            return nullptr;
+            return;
         }
-        previewFactoryCache[previewID] = factory;
+        previewFactoryCache[request->previewID] = factory;
     }
+
+    CComPtr<IPreviewHandler> preview;
     if (!checkHR(factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview))))
-        return false;
-    if (!checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this))) {
+        return;
+
+    if (WaitForSingleObject(request->cancelEvent, 0) == WAIT_OBJECT_0)
+        return; // early exit
+    if (!initPreviewWithItem(preview, item))
+        return; // not initialized yet, no need to call Unload()
+
+    // ensure the window is not closed before the message is posted
+    EnterCriticalSection(&request->cancelSection);
+    if (WaitForSingleObject(request->cancelEvent, 0) == WAIT_OBJECT_0) {
+        LeaveCriticalSection(&request->cancelSection);
         checkHR(preview->Unload());
-        preview = nullptr;
-        return false;
+        return; // early exit
     }
-
-    if (!initPreviewWithItem()) {
-        checkHR(IUnknown_SetSite(preview, nullptr));
-        checkHR(preview->Unload());
-        preview = nullptr;
-        return false;
-    }
-
-    CComQIPtr<IPreviewHandlerVisuals> visuals(preview);
-    if (visuals) {
-        // either of these may not be implemented
-        visuals->SetBackgroundColor(GetSysColor(COLOR_WINDOW));
-        visuals->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
-    }
-
-    RECT containerClientRect;
-    GetClientRect(container, &containerClientRect);
-    checkHR(preview->SetWindow(container, &containerClientRect));
-    checkHR(preview->DoPreview());
-    return true;
+    IStream *previewHandlerStream; // no CComPtr
+    CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
+        &previewHandlerStream);
+    PostMessage(request->callbackWindow,
+        MSG_INIT_PREVIEW_COMPLETE, 0, (LPARAM)previewHandlerStream);
+    LeaveCriticalSection(&request->cancelSection);
 }
 
-bool PreviewWindow::initPreviewWithItem() {
+bool PreviewWindow::initPreviewWithItem(CComPtr<IPreviewHandler> preview,
+        CComPtr<IShellItem> item) {
     CComPtr<IBindCtx> context;
     if (checkHR(CreateBindCtx(0, &context))) {
         BIND_OPTS options = {sizeof(BIND_OPTS), 0, STGM_READ | STGM_SHARE_DENY_NONE, 0};
@@ -170,50 +299,6 @@ bool PreviewWindow::initPreviewWithItem() {
         }
     }
     return false;
-}
-
-void PreviewWindow::refresh() {
-    if (preview) {
-        checkHR(IUnknown_SetSite(preview, nullptr));
-        checkHR(preview->Unload());
-        preview = nullptr;
-    }
-    initPreview(); // ignore error
-}
-
-/* IUnknown */
-
-STDMETHODIMP PreviewWindow::QueryInterface(REFIID id, void **obj) {
-    static const QITAB interfaces[] = {
-        QITABENT(PreviewWindow, IPreviewHandlerFrame),
-        {},
-    };
-    HRESULT hr = QISearch(this, interfaces, id, obj);
-    if (SUCCEEDED(hr))
-        return hr;
-    return ItemWindow::QueryInterface(id, obj);
-}
-
-STDMETHODIMP_(ULONG) PreviewWindow::AddRef() {
-    return ItemWindow::AddRef();
-}
-
-STDMETHODIMP_(ULONG) PreviewWindow::Release() {
-    return ItemWindow::Release();
-}
-
-/* IPreviewHandlerFrame */
-
-STDMETHODIMP PreviewWindow::GetWindowContext(PREVIEWHANDLERFRAMEINFO *info) {
-    // fixes shortcuts in eg. Excel handler
-    info->cAccelEntries = CopyAcceleratorTable(accelTable, nullptr, 0);
-    info->haccel = accelTable;
-    return S_OK;
-}
-
-STDMETHODIMP PreviewWindow::TranslateAccelerator(MSG *msg) {
-    // fixes shortcuts in eg. windows Mime handler (.mht)
-    return handleTopLevelMessage(msg) ? S_OK : S_FALSE;
 }
 
 } // namespace

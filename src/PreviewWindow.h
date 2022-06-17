@@ -6,6 +6,19 @@
 namespace chromabrowse {
 
 class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
+
+    struct InitPreviewRequest : public IUnknownImpl {
+        InitPreviewRequest(CComPtr<IShellItem> item, CLSID previewID, HWND callbackWindow);
+        ~InitPreviewRequest();
+        void cancel(); // ok to call this multiple times
+
+        CComPtr<IStream> itemStream;
+        const CLSID previewID;
+        const HWND callbackWindow;
+        HANDLE cancelEvent;
+        CRITICAL_SECTION cancelSection;
+    };
+
 public:
     static void init();
     static void uninit();
@@ -21,6 +34,8 @@ public:
     STDMETHODIMP TranslateAccelerator(MSG *msg);
 
 protected:
+    LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
+
     void onCreate() override;
     void onDestroy() override;
     void onActivate(WORD state, HWND prevWindow) override;
@@ -31,12 +46,16 @@ protected:
 private:
     const wchar_t * className() override;
 
-    bool initPreview();
-    bool initPreviewWithItem();
-
     CLSID previewID;
+    CComPtr<InitPreviewRequest> initRequest;
     CComPtr<IPreviewHandler> preview; // will be null if preview can't be loaded!
     HWND container;
+
+    // worker thread
+    static HANDLE initPreviewThread;
+    static DWORD WINAPI initPreviewThreadProc(void *);
+    static void initPreview(CComPtr<InitPreviewRequest> request);
+    static bool initPreviewWithItem(CComPtr<IPreviewHandler> preview, CComPtr<IShellItem> item);
 };
 
 } // namespace
