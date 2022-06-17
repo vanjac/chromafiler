@@ -107,7 +107,6 @@ void FolderWindow::onCreate() {
         int itemCount;
         // will fail for eg. control panel
         if (FAILED(view->ItemCount(SVGIO_ALLVIEW, &itemCount))) {
-            view = nullptr;
             // destroy and recreate browser
             browser->Destroy();
             browser = nullptr;
@@ -117,6 +116,7 @@ void FolderWindow::onCreate() {
             resultsFolderFallback();
             fallback = true;
         }
+        view = nullptr;
     }
 
     bool visited = false; // folder has been visited by chromabrowse before
