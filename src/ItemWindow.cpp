@@ -874,7 +874,7 @@ void ItemWindow::cancelRename() {
     ShowWindow(renameBox, SW_HIDE);
 }
 
-void MakeBitmapOpaque(HDC hdc, const RECT &rect) {
+void makeBitmapOpaque(HDC hdc, const RECT &rect) {
     // https://devblogs.microsoft.com/oldnewthing/20210915-00/?p=105687
     // thank you Raymond Chen :)
     BITMAPINFO bi = {};
@@ -914,7 +914,7 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
             InflateRect(&buttonRect, 1, 1);
             if (themeState == PBS_NORMAL) {
                 FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_BTNFACE));
-                MakeBitmapOpaque(hdc, ps.rcPaint);
+                makeBitmapOpaque(hdc, ps.rcPaint);
             } else {
                 checkHR(DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect,
                                             &ps.rcPaint));
@@ -930,7 +930,7 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
                 SetBkMode(hdc, TRANSPARENT);
                 DrawText(hdc, buttonText, -1, &contentRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 SelectFont(hdc, oldFont);
-                MakeBitmapOpaque(hdc, ps.rcPaint);
+                makeBitmapOpaque(hdc, ps.rcPaint);
             }
 
             checkHR(CloseThemeData(theme));
