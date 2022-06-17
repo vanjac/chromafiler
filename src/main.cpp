@@ -20,7 +20,7 @@ const wchar_t *APP_ID = L"chroma.browse";
 
 #ifdef CHROMABROWSE_DEBUG
 int main(int, char**) {
-    wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
+    return wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
 }
 
 bool logHRESULT(long hr, const char *file, int line, const char *expr) {
@@ -110,7 +110,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     chromabrowse::ItemWindow::uninit();
     chromabrowse::PreviewWindow::uninit();
     OleUninitialize();
-    return 0;
+    return (int)msg.wParam;
 }
 
 DWORD WINAPI updateJumpList(void *) {
