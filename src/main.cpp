@@ -117,10 +117,10 @@ DWORD WINAPI updateJumpList(void *) {
     CComPtr<ICustomDestinationList> jumpList;
     if (!checkHR(jumpList.CoCreateInstance(__uuidof(DestinationList))))
         return false;
-    jumpList->SetAppID(APP_ID);
+    checkHR(jumpList->SetAppID(APP_ID));
     UINT minSlots;
     CComPtr<IObjectArray> removedDestinations;
-    jumpList->BeginList(&minSlots, IID_PPV_ARGS(&removedDestinations));
+    checkHR(jumpList->BeginList(&minSlots, IID_PPV_ARGS(&removedDestinations)));
 
     CComPtr<IObjectCollection> tasks;
     if (!checkHR(tasks.CoCreateInstance(__uuidof(EnumerableObjectCollection))))
@@ -148,28 +148,30 @@ DWORD WINAPI updateJumpList(void *) {
         // TODO: hack!! the first 20 items in Quick Access are recents
         for (int i = 0; i < 20; i++) {
             CComPtr<IShellItem> tempItem;
-            enumItems->Next(1, &tempItem, nullptr);
+            checkHR(enumItems->Next(1, &tempItem, nullptr));
         }
     }
     CComPtr<IShellItem> childItem;
     while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
         CComHeapPtr<wchar_t> displayName, parsingName;
-        childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName);
-        childItem->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &parsingName);
+        if (!checkHR(childItem->GetDisplayName(SIGDN_NORMALDISPLAY, &displayName))
+                || !checkHR(childItem->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &parsingName)))
+            continue;
         wchar_t args[MAX_PATH];
         args[0] = L'"';
         StringCchCopy(args + 1, MAX_PATH - 2, parsingName);
         StringCchCat(args, MAX_PATH, L"\"");
 
         CComPtr<IShellLink> link;
-        link.CoCreateInstance(__uuidof(ShellLink));
-        link->SetPath(exePath);
-        link->SetArguments(args);
-        link->SetIconLocation(exePath, IDR_APP_ICON);
+        if (!checkHR(link.CoCreateInstance(__uuidof(ShellLink))))
+            continue;
+        checkHR(link->SetPath(exePath));
+        checkHR(link->SetArguments(args));
+        checkHR(link->SetIconLocation(exePath, IDR_APP_ICON));
         CComQIPtr<IPropertyStore> linkProps(link);
         PROPVARIANT propVar;
-        InitPropVariantFromString(displayName, &propVar);
-        linkProps->SetValue(PKEY_Title, propVar);
+        if (checkHR(InitPropVariantFromString(displayName, &propVar)))
+            linkProps->SetValue(PKEY_Title, propVar);
         tasks->AddObject(link);
 
         CComPtr<IExtractIcon> extractIcon;
@@ -180,7 +182,7 @@ DWORD WINAPI updateJumpList(void *) {
             UINT flags;
             if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
                 if (!(flags & GIL_NOTFILENAME))
-                    link->SetIconLocation(iconFile, index);
+                    checkHR(link->SetIconLocation(iconFile, index));
             }
         }
         childItem = nullptr; // CComPtr isn't very smart
