@@ -2,6 +2,15 @@
 #include "RectUtil.h"
 #include <windowsx.h>
 #include <shlobj.h>
+#include <unordered_map>
+
+template<>
+struct std::hash<CLSID> {
+    std::size_t operator() (const CLSID &key) const {
+        RPC_STATUS status;
+        return std::hash<unsigned short>()(UuidHash((UUID *)&key, &status));
+    }
+};
 
 // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-2-interop/
 
@@ -9,6 +18,8 @@ namespace chromabrowse {
 
 const wchar_t *PREVIEW_WINDOW_CLASS = L"Preview Window";
 const wchar_t *PREVIEW_CONTAINER_CLASS = L"Preview Container";
+
+static std::unordered_map<CLSID, CComPtr<IClassFactory>> previewFactoryCache;
 
 void PreviewWindow::init() {
     WNDCLASS wndClass = createWindowClass(PREVIEW_WINDOW_CLASS);
@@ -75,7 +86,21 @@ void PreviewWindow::onSize(int width, int height) {
 }
 
 bool PreviewWindow::initPreview() {
-    if (FAILED(preview.CoCreateInstance(previewID, nullptr, CLSCTX_LOCAL_SERVER))) {
+    CComPtr<IClassFactory> factory;
+    auto it = previewFactoryCache.find(previewID);
+    if (it != previewFactoryCache.end()) {
+        debugPrintf(L"Reusing already-loaded factory\n");
+        factory = it->second;
+    } else {
+        if (FAILED(CoGetClassObject(previewID, CLSCTX_LOCAL_SERVER, nullptr,
+                IID_PPV_ARGS(&factory)))) {
+            debugPrintf(L"Could not get preview handler factory\n");
+            return nullptr;
+        }
+        previewFactoryCache[previewID] = factory;
+    }
+
+    if (FAILED(factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview)))) {
         debugPrintf(L"Could not create preview handler");
         return false;
     }
