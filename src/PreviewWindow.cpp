@@ -71,8 +71,10 @@ void PreviewWindow::onDestroy() {
 void PreviewWindow::onActivate(WORD state, HWND prevWindow) {
     ItemWindow::onActivate(state, prevWindow);
     if (state != WA_INACTIVE) {
+        // when clicking in the preview window this produces an RPC_E_CANTCALLOUT_ININPUTSYNCCALL
+        // error, but it seems harmless
         if (preview)
-            checkHR(preview->SetFocus());
+            preview->SetFocus();
     }
 }
 
