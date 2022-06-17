@@ -27,8 +27,8 @@ FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : ItemWindow(parent, item) {
     CComHeapPtr<ITEMIDLIST> idList;
     if (checkHR(SHGetIDListFromObject(item, &idList))) {
-        SHGetViewStatePropertyBag(idList, PROPERTY_BAG, SHGVSPB_FOLDERNODEFAULTS,
-            IID_PPV_ARGS(&propBag));
+        checkHR(SHGetViewStatePropertyBag(idList, PROPERTY_BAG, SHGVSPB_FOLDERNODEFAULTS,
+            IID_PPV_ARGS(&propBag)));
     }
 }
 
@@ -65,7 +65,7 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
             CComPtr<IFolderView2> view;
             if (browser && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
                 SORTCOLUMN column = {PKEY_ItemNameDisplay, SORT_ASCENDING};
-                view->SetSortColumns(&column, 1);
+                checkHR(view->SetSortColumns(&column, 1));
             }
             return 0;
         }
@@ -78,7 +78,7 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
         return true;
     if (activateOnShiftRelease && msg->message == WM_KEYUP && msg->wParam == VK_SHIFT) {
         if (shellView)
-            shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
+            checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
         activateOnShiftRelease = false;
         // don't return true
     }
@@ -92,10 +92,10 @@ void FolderWindow::onCreate() {
 
     if (!initBrowser())
         return;
-    browser->SetPropertyBag(PROPERTY_BAG);
+    checkHR(browser->SetPropertyBag(PROPERTY_BAG));
     if (!checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
-        browser->Destroy();
+        checkHR(browser->Destroy());
         browser = nullptr;
         return;
     }
@@ -107,7 +107,7 @@ void FolderWindow::onCreate() {
         // will fail for eg. control panel
         if (FAILED(view->ItemCount(SVGIO_ALLVIEW, &itemCount))) {
             // destroy and recreate browser
-            browser->Destroy();
+            checkHR(browser->Destroy());
             browser = nullptr;
             if (!initBrowser())
                 return;
@@ -125,7 +125,7 @@ void FolderWindow::onCreate() {
             visited = true;
         } else {
             if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
-                propBag->Write(PROP_VISITED, &var);
+                checkHR(propBag->Write(PROP_VISITED, &var));
             }
         }
     }
@@ -134,7 +134,7 @@ void FolderWindow::onCreate() {
         // FVM_SMALLICON only seems to work if it's also specified with an icon size
         // TODO should this be the shell small icon size?
         // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
-        view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)); // = 16
+        checkHR(view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON))); // = 16
     }
 
     if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&shellView)))) {
@@ -142,13 +142,14 @@ void FolderWindow::onCreate() {
             // window was created by clicking the parent button
             ignoreNextSelection = true; // TODO jank
             CComHeapPtr<ITEMID_CHILD> childID;
-            CComQIPtr<IParentAndItem>(child->item)->GetParentAndItem(nullptr, nullptr, &childID);
-            shellView->SelectItem(childID,
-                SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS);
+            checkHR(CComQIPtr<IParentAndItem>(child->item)
+                ->GetParentAndItem(nullptr, nullptr, &childID));
+            checkHR(shellView->SelectItem(childID,
+                SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
         }
     }
 
-    IUnknown_SetSite(browser, (IServiceProvider *)this);
+    checkHR(IUnknown_SetSite(browser, (IServiceProvider *)this));
 }
 
 bool FolderWindow::initBrowser() {
@@ -164,7 +165,7 @@ bool FolderWindow::initBrowser() {
         browser = nullptr;
         return false;
     }
-    browser->SetOptions(EBO_NAVIGATEONCE); // no navigation
+    checkHR(browser->SetOptions(EBO_NAVIGATEONCE)); // no navigation
     return true;
 }
 
@@ -173,13 +174,13 @@ void FolderWindow::onDestroy() {
         VARIANT var = {};
         if (checkHR(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var))) {
             debugPrintf(L"Write window size\n");
-            propBag->Write(PROP_SIZE, &var);
+            checkHR(propBag->Write(PROP_SIZE, &var));
         }
     }
     ItemWindow::onDestroy();
     if (browser) {
-        IUnknown_SetSite(browser, nullptr);
-        browser->Destroy();
+        checkHR(IUnknown_SetSite(browser, nullptr));
+        checkHR(browser->Destroy());
     }
 }
 
@@ -189,7 +190,7 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
         if (shellView) {
             // override behavior causing sort columns to be focused when shift is held
             activateOnShiftRelease = GetKeyState(VK_SHIFT) < 0;
-            shellView->UIActivate(SVUIA_ACTIVATE_FOCUS);
+            checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
         }
     }
 }
@@ -205,7 +206,7 @@ void FolderWindow::onSize(int width, int height) {
     lastSize = windowSize;
 
     if (browser)
-        browser->SetRect(nullptr, windowBody());
+        checkHR(browser->SetRect(nullptr, windowBody()));
 }
 
 void FolderWindow::selectionChanged() {
@@ -241,7 +242,7 @@ void FolderWindow::resultsFolderFallback() {
                 if (checkHR(view->GetFolder(IID_PPV_ARGS(&results)))) {
                     CComPtr<IShellItem> childItem;
                     while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
-                        results->AddItem(childItem);
+                        checkHR(results->AddItem(childItem));
                         childItem = nullptr;
                     }
                     // for some reason changing the sort columns immediately after adding items
@@ -257,13 +258,13 @@ void FolderWindow::resultsFolderFallback() {
 void FolderWindow::onChildDetached() {
     if (shellView) {
         // clear selection
-        shellView->SelectItem(nullptr, SVSI_DESELECTOTHERS);
+        checkHR(shellView->SelectItem(nullptr, SVSI_DESELECTOTHERS));
     }
 }
 
 void FolderWindow::refresh() {
     if (shellView) {
-        shellView->Refresh();
+        checkHR(shellView->Refresh());
         ignoreNextSelection = true; // fix crash
     }
 }
@@ -286,10 +287,10 @@ void FolderWindow::newFolder() {
         if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
             // https://stackoverflow.com/q/40497455
             // allow command to select new folder for renaming. not documented of course :/
-            IUnknown_SetSite(contextMenu, folderView);
+            checkHR(IUnknown_SetSite(contextMenu, folderView));
         }
-        contextMenu->InvokeCommand(&info);
-        IUnknown_SetSite(contextMenu, nullptr);
+        checkHR(contextMenu->InvokeCommand(&info));
+        checkHR(IUnknown_SetSite(contextMenu, nullptr));
     }
     DestroyMenu(popupMenu);
 }

@@ -54,7 +54,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     chromabrowse::PreviewWindow::init();
 
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
-    SetCurrentProcessExplicitAppUserModelID(APP_ID);
+    checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));
 
     HANDLE jumpListThread = nullptr;
     SHCreateThreadWithHandle(updateJumpList, nullptr, CTF_COINIT_STA, nullptr, &jumpListThread);
@@ -159,8 +159,8 @@ DWORD WINAPI updateJumpList(void *) {
             continue;
         wchar_t args[MAX_PATH];
         args[0] = L'"';
-        StringCchCopy(args + 1, MAX_PATH - 2, parsingName);
-        StringCchCat(args, MAX_PATH, L"\"");
+        checkHR(StringCchCopy(args + 1, MAX_PATH - 2, parsingName));
+        checkHR(StringCchCat(args, MAX_PATH, L"\""));
 
         CComPtr<IShellLink> link;
         if (!checkHR(link.CoCreateInstance(__uuidof(ShellLink))))

@@ -53,7 +53,7 @@ void ItemWindow::init() {
         LOGFONT logFont;
         if (checkHR(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont)))
             captionFont = CreateFontIndirect(&logFont);
-        CloseThemeData(theme);
+        checkHR(CloseThemeData(theme));
     }
 
     HRSRC symbolFontResource = FindResource(hInstance, MAKEINTRESOURCE(IDR_ICON_FONT), RT_FONT);
@@ -147,7 +147,8 @@ bool ItemWindow::create(RECT rect, int showCommand) {
             if (extractIcon->Extract(iconFile, index, &iconLarge, &iconSmall, iconSizes) != S_OK) {
                 debugPrintf(L"IExtractIcon failed\n");
                 // https://devblogs.microsoft.com/oldnewthing/20140501-00/?p=1103
-                SHDefExtractIcon(iconFile, index, flags, &iconLarge, &iconSmall, iconSizes);
+                checkHR(SHDefExtractIcon(iconFile, index, flags,
+                    &iconLarge, &iconSmall, iconSizes));
             }
         }
     }
@@ -417,8 +418,8 @@ bool ItemWindow::handleTopLevelMessage(MSG *msg) {
 
 void ItemWindow::onCreate() {
     BOOL disableAnimations = true;
-    DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-        &disableAnimations, sizeof(disableAnimations));
+    checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+        &disableAnimations, sizeof(disableAnimations)));
     extendWindowFrame();
 
     if (iconLarge)
@@ -627,10 +628,10 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         titleRect.right -= buttonWidth; // close button width
         titleRect.left = headerLeft + iconSize + WINDOW_ICON_PADDING;
         titleRect.bottom = titleRect.top + titleSize.cy;
-        DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
-                        DT_LEFT | DT_WORD_ELLIPSIS, &titleRect, &textOpts);
+        checkHR(DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
+                                DT_LEFT | DT_WORD_ELLIPSIS, &titleRect, &textOpts));
 
-        CloseThemeData(windowTheme);
+        checkHR(CloseThemeData(windowTheme));
     }
 
     BitBlt(paint.hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY);
@@ -747,7 +748,7 @@ void ItemWindow::invokeProxyDefaultVerb(POINT point) {
             info.lpVerbW = MAKEINTRESOURCEW(id - 1);
             info.nShow = SW_SHOWNORMAL;
             info.ptInvoke = point;
-            contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info);
+            checkHR(contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info));
         }
     }
     DestroyMenu(popupMenu);
@@ -812,7 +813,7 @@ void ItemWindow::openProxyContextMenu(POINT point) {
             info.lpVerbW = MAKEINTRESOURCEW(cmd);
             info.nShow = SW_SHOWNORMAL;
             info.ptInvoke = point;
-            contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info);
+            checkHR(contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info));
         }
     }
     DestroyMenu(popupMenu);
@@ -856,17 +857,17 @@ void ItemWindow::completeRename() {
         int titleLen = lstrlen(title);
         if (fileNameLen > titleLen) { // if extensions are hidden in File Explorer Options
             debugPrintf(L"Appending extension %s\n", fileName + titleLen);
-            StringCchCat(newName, MAX_PATH, fileName + titleLen);
+            checkHR(StringCchCat(newName, MAX_PATH, fileName + titleLen));
         }
     }
 
     CComPtr<IFileOperation> operation;
     if (!checkHR(operation.CoCreateInstance(__uuidof(FileOperation))))
         return;
-    operation->SetOperationFlags(FOFX_ADDUNDORECORD);
+    checkHR(operation->SetOperationFlags(FOFX_ADDUNDORECORD));
     if (!checkHR(operation->RenameItem(item, newName, nullptr)))
         return;
-    operation->PerformOperations();
+    checkHR(operation->PerformOperations());
 }
 
 void ItemWindow::cancelRename() {
@@ -915,8 +916,8 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
                 FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_BTNFACE));
                 MakeBitmapOpaque(hdc, ps.rcPaint);
             } else {
-                DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect,
-                                    &ps.rcPaint);
+                checkHR(DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect,
+                                            &ps.rcPaint));
             }
 
             RECT contentRect;
@@ -932,7 +933,7 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
                 MakeBitmapOpaque(hdc, ps.rcPaint);
             }
 
-            CloseThemeData(theme);
+            checkHR(CloseThemeData(theme));
         }
 
         EndPaint(hwnd, &ps);

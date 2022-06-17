@@ -63,8 +63,8 @@ void PreviewWindow::onCreate() {
 void PreviewWindow::onDestroy() {
     ItemWindow::onDestroy();
     if (preview) {
-        IUnknown_SetSite(preview, nullptr);
-        preview->Unload();
+        checkHR(IUnknown_SetSite(preview, nullptr));
+        checkHR(preview->Unload());
     }
 }
 
@@ -72,7 +72,7 @@ void PreviewWindow::onActivate(WORD state, HWND prevWindow) {
     ItemWindow::onActivate(state, prevWindow);
     if (state != WA_INACTIVE) {
         if (preview)
-            preview->SetFocus();
+            checkHR(preview->SetFocus());
     }
 }
 
@@ -85,7 +85,7 @@ void PreviewWindow::onSize(int width, int height) {
             previewRect.left, previewRect.top,
             containerClientRect.right, containerClientRect.bottom,
             SWP_NOZORDER | SWP_NOACTIVATE);
-        preview->SetRect(&containerClientRect);
+        checkHR(preview->SetRect(&containerClientRect));
     }
 }
 
@@ -105,28 +105,29 @@ bool PreviewWindow::initPreview() {
     if (!checkHR(factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview))))
         return false;
     if (!checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this))) {
-        preview->Unload();
+        checkHR(preview->Unload());
         preview = nullptr;
         return false;
     }
 
     if (!initPreviewWithItem()) {
-        IUnknown_SetSite(preview, nullptr);
-        preview->Unload();
+        checkHR(IUnknown_SetSite(preview, nullptr));
+        checkHR(preview->Unload());
         preview = nullptr;
         return false;
     }
 
     CComQIPtr<IPreviewHandlerVisuals> visuals(preview);
     if (visuals) {
+        // either of these may not be implemented
         visuals->SetBackgroundColor(GetSysColor(COLOR_WINDOW));
         visuals->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
     }
 
     RECT containerClientRect;
     GetClientRect(container, &containerClientRect);
-    preview->SetWindow(container, &containerClientRect);
-    preview->DoPreview();
+    checkHR(preview->SetWindow(container, &containerClientRect));
+    checkHR(preview->DoPreview());
     return true;
 }
 
@@ -134,7 +135,7 @@ bool PreviewWindow::initPreviewWithItem() {
     CComPtr<IBindCtx> context;
     if (checkHR(CreateBindCtx(0, &context))) {
         BIND_OPTS options = {sizeof(BIND_OPTS), 0, STGM_READ | STGM_SHARE_DENY_NONE, 0};
-        context->SetBindOptions(&options);
+        checkHR(context->SetBindOptions(&options));
     }
     // try using stream first, it will be more secure by limiting file operations
     CComPtr<IStream> stream;
@@ -171,8 +172,8 @@ bool PreviewWindow::initPreviewWithItem() {
 
 void PreviewWindow::refresh() {
     if (preview) {
-        IUnknown_SetSite(preview, nullptr);
-        preview->Unload();
+        checkHR(IUnknown_SetSite(preview, nullptr));
+        checkHR(preview->Unload());
         preview = nullptr;
     }
     initPreview(); // ignore error
