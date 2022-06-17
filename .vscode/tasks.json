@@ -21,7 +21,7 @@
 			"args": [
 				"/Zi",      // debug only
 				"/EHsc",    // debug only
-				"/MTd",		// debug only
+				"/MTd",     // debug only
 				"/D", "CHROMABROWSE_DEBUG", // debug only
 				"/nologo",
 				"/W4",

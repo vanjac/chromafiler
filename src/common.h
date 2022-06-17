@@ -21,3 +21,8 @@ bool logHRESULT(long hr, const char *file, int line, const char *expr);
 #define debugPrintf(...)
 #define checkHR SUCCEEDED
 #endif
+
+#ifdef CHROMABROWSE_MEMLEAKS
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
