@@ -96,20 +96,15 @@ bool PreviewWindow::initPreview() {
         debugPrintf(L"Reusing already-loaded factory\n");
         factory = it->second;
     } else {
-        if (FAILED(CoGetClassObject(previewID, CLSCTX_LOCAL_SERVER, nullptr,
+        if (!checkHR(CoGetClassObject(previewID, CLSCTX_LOCAL_SERVER, nullptr,
                 IID_PPV_ARGS(&factory)))) {
-            debugPrintf(L"Could not get preview handler factory\n");
             return nullptr;
         }
         previewFactoryCache[previewID] = factory;
     }
-
-    if (FAILED(factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview)))) {
-        debugPrintf(L"Could not create preview handler");
+    if (!checkHR(factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview))))
         return false;
-    }
-    if (FAILED(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this))) {
-        debugPrintf(L"Could not set preview handler site");
+    if (!checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this))) {
         preview->Unload();
         preview = nullptr;
         return false;
@@ -137,13 +132,13 @@ bool PreviewWindow::initPreview() {
 
 bool PreviewWindow::initPreviewWithItem() {
     CComPtr<IBindCtx> context;
-    if (SUCCEEDED(CreateBindCtx(0, &context))) {
+    if (checkHR(CreateBindCtx(0, &context))) {
         BIND_OPTS options = {sizeof(BIND_OPTS), 0, STGM_READ | STGM_SHARE_DENY_NONE, 0};
         context->SetBindOptions(&options);
     }
     // try using stream first, it will be more secure by limiting file operations
     CComPtr<IStream> stream;
-    if (SUCCEEDED(item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream)))) {
+    if (checkHR(item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream)))) {
         CComQIPtr<IInitializeWithStream> streamInit(preview);
         if (streamInit) {
             if (SUCCEEDED(streamInit->Initialize(stream, STGM_READ))) {
@@ -162,17 +157,15 @@ bool PreviewWindow::initPreviewWithItem() {
     }
 
     CComHeapPtr<wchar_t> path;
-    if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
+    if (checkHR(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
         CComQIPtr<IInitializeWithFile> fileInit(preview);
         if (fileInit) {
-            if (SUCCEEDED(fileInit->Initialize(path, STGM_READ))) {
+            if (checkHR(fileInit->Initialize(path, STGM_READ))) {
                 debugPrintf(L"Init with path\n");
                 return true;
             }
         }
     }
-
-    debugPrintf(L"Preview handler initialization failed!\n");
     return false;
 }
 

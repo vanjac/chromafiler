@@ -22,6 +22,15 @@ const wchar_t *APP_ID = L"chroma.browse";
 int main(int, char**) {
     wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
 }
+
+bool logHRESULT(long hr, const char *file, int line, const char *expr) {
+    if (SUCCEEDED(hr)) {
+        return true;
+    } else {
+        debugPrintf(L"Error 0x%X in %S (%S:%d)\n", hr, expr, file, line);
+        return false;
+    } 
+}
 #endif
 
 DWORD WINAPI updateJumpList(void *);
@@ -31,7 +40,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     int argc;
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
-    if (FAILED(OleInitialize(0))) // needed for drag/drop
+    if (!checkHR(OleInitialize(0))) // needed for drag/drop
         return 0;
 
     INITCOMMONCONTROLSEX controls = {};
@@ -63,9 +72,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             }
             startItem = chromabrowse::resolveLink(nullptr, startItem);
         } else {
-            if (FAILED(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
+            if (!checkHR(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
                     IID_PPV_ARGS(&startItem)))) {
-                debugPrintf(L"Couldn't get desktop!\n");
                 return 0;
             }
         }
@@ -107,7 +115,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
 DWORD WINAPI updateJumpList(void *) {
     CComPtr<ICustomDestinationList> jumpList;
-    if (FAILED(jumpList.CoCreateInstance(__uuidof(DestinationList))))
+    if (!checkHR(jumpList.CoCreateInstance(__uuidof(DestinationList))))
         return false;
     jumpList->SetAppID(APP_ID);
     UINT minSlots;
@@ -115,7 +123,7 @@ DWORD WINAPI updateJumpList(void *) {
     jumpList->BeginList(&minSlots, IID_PPV_ARGS(&removedDestinations));
 
     CComPtr<IObjectCollection> tasks;
-    if (FAILED(tasks.CoCreateInstance(__uuidof(EnumerableObjectCollection))))
+    if (!checkHR(tasks.CoCreateInstance(__uuidof(EnumerableObjectCollection))))
         return false;
 
     wchar_t exePath[MAX_PATH];
@@ -124,18 +132,16 @@ DWORD WINAPI updateJumpList(void *) {
     CComPtr<IShellItem> favoritesFolder;
     if (IsWindows10OrGreater()) {
         // Quick Access
-        SHCreateItemFromParsingName(L"shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}",
-            nullptr, IID_PPV_ARGS(&favoritesFolder));
+        checkHR(SHCreateItemFromParsingName(L"shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}",
+            nullptr, IID_PPV_ARGS(&favoritesFolder)));
     } else {
-        SHGetKnownFolderItem(FOLDERID_Links, KF_FLAG_DEFAULT, nullptr,
-            IID_PPV_ARGS(&favoritesFolder));
+        checkHR(SHGetKnownFolderItem(FOLDERID_Links, KF_FLAG_DEFAULT, nullptr,
+            IID_PPV_ARGS(&favoritesFolder)));
     }
-    if (!favoritesFolder) {
-        debugPrintf(L"Unable to locate favorites folder\n");
+    if (!favoritesFolder)
         return false;
-    }
     CComPtr<IEnumShellItems> enumItems;
-    if (FAILED(favoritesFolder->BindToHandler(nullptr, BHID_EnumItems, IID_PPV_ARGS(&enumItems))))
+    if (!checkHR(favoritesFolder->BindToHandler(nullptr, BHID_EnumItems, IID_PPV_ARGS(&enumItems))))
         return false;
 
     if (IsWindows10OrGreater()) {
@@ -167,7 +173,7 @@ DWORD WINAPI updateJumpList(void *) {
         tasks->AddObject(link);
 
         CComPtr<IExtractIcon> extractIcon;
-        if (SUCCEEDED(childItem->BindToHandler(nullptr, BHID_SFUIObject,
+        if (checkHR(childItem->BindToHandler(nullptr, BHID_SFUIObject,
                 IID_PPV_ARGS(&extractIcon)))) {
             wchar_t iconFile[MAX_PATH];
             int index;
@@ -180,11 +186,9 @@ DWORD WINAPI updateJumpList(void *) {
         childItem = nullptr; // CComPtr isn't very smart
     }
 
-    if (FAILED(jumpList->AddUserTasks(tasks))) {
-        debugPrintf(L"Failed to add user tasks\n");
+    if (!checkHR(jumpList->AddUserTasks(tasks)))
         return false;
-    }
-    if (FAILED(jumpList->CommitList()))
+    if (!checkHR(jumpList->CommitList()))
         return false;
 
     debugPrintf(L"Successfully updated jump list\n");

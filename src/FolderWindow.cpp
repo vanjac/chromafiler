@@ -26,7 +26,7 @@ void FolderWindow::init() {
 FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : ItemWindow(parent, item) {
     CComHeapPtr<ITEMIDLIST> idList;
-    if (SUCCEEDED(SHGetIDListFromObject(item, &idList))) {
+    if (checkHR(SHGetIDListFromObject(item, &idList))) {
         SHGetViewStatePropertyBag(idList, PROPERTY_BAG, SHGVSPB_FOLDERNODEFAULTS,
             IID_PPV_ARGS(&propBag));
     }
@@ -63,7 +63,7 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
         /* user messages */
         case MSG_FORCE_SORT: {
             CComPtr<IFolderView2> view;
-            if (browser && SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+            if (browser && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
                 SORTCOLUMN column = {PKEY_ItemNameDisplay, SORT_ASCENDING};
                 view->SetSortColumns(&column, 1);
             }
@@ -93,9 +93,8 @@ void FolderWindow::onCreate() {
     if (!initBrowser())
         return;
     browser->SetPropertyBag(PROPERTY_BAG);
-    if (FAILED(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
+    if (!checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
-        debugPrintf(L"Unable to browse to folder %s\n", &*title);
         browser->Destroy();
         browser = nullptr;
         return;
@@ -103,7 +102,7 @@ void FolderWindow::onCreate() {
 
     bool fallback = false;
     CComPtr<IFolderView2> view;
-    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         int itemCount;
         // will fail for eg. control panel
         if (FAILED(view->ItemCount(SVGIO_ALLVIEW, &itemCount))) {
@@ -125,20 +124,20 @@ void FolderWindow::onCreate() {
         if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr))) {
             visited = true;
         } else {
-            if (SUCCEEDED(InitVariantFromBoolean(TRUE, &var))) {
+            if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
                 propBag->Write(PROP_VISITED, &var);
             }
         }
     }
 
-    if (!visited && SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+    if (!visited && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         // FVM_SMALLICON only seems to work if it's also specified with an icon size
         // TODO should this be the shell small icon size?
         // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
         view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)); // = 16
     }
 
-    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&shellView)))) {
+    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&shellView)))) {
         if (child) {
             // window was created by clicking the parent button
             ignoreNextSelection = true; // TODO jank
@@ -159,9 +158,9 @@ bool FolderWindow::initBrowser() {
     FOLDERSETTINGS folderSettings = {};
     folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly
     folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
-    if (FAILED(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
+    if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return false;
-    if (FAILED(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
+    if (!checkHR(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
         browser = nullptr;
         return false;
     }
@@ -172,7 +171,7 @@ bool FolderWindow::initBrowser() {
 void FolderWindow::onDestroy() {
     if (sizeChanged && propBag) {
         VARIANT var = {};
-        if (SUCCEEDED(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var))) {
+        if (checkHR(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var))) {
             debugPrintf(L"Write window size\n");
             propBag->Write(PROP_SIZE, &var);
         }
@@ -211,14 +210,14 @@ void FolderWindow::onSize(int width, int height) {
 
 void FolderWindow::selectionChanged() {
     CComPtr<IFolderView2> view;
-    if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         int numSelected;
-        if (SUCCEEDED(view->ItemCount(SVGIO_SELECTION, &numSelected)) && numSelected == 1) {
+        if (checkHR(view->ItemCount(SVGIO_SELECTION, &numSelected)) && numSelected == 1) {
             int index;
             // GetSelectedItem seems to ignore the iStart parameter!
             if (view->GetSelectedItem(-1, &index) == S_OK) {
                 CComPtr<IShellItem> selected;
-                if (SUCCEEDED(view->GetItem(index, IID_PPV_ARGS(&selected)))) {
+                if (checkHR(view->GetItem(index, IID_PPV_ARGS(&selected)))) {
                     openChild(selected);
                 }
             }
@@ -232,14 +231,14 @@ void FolderWindow::selectionChanged() {
 void FolderWindow::resultsFolderFallback() {
     debugPrintf(L"Using results folder fallback\n");
     CComPtr<IEnumShellItems> enumItems;
-    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_EnumItems,
+    if (checkHR(item->BindToHandler(nullptr, BHID_EnumItems,
             IID_PPV_ARGS(&enumItems)))) {
         // create empty ResultsFolder
-        if (SUCCEEDED(browser->FillFromObject(nullptr, EBF_NODROPTARGET))) {
+        if (checkHR(browser->FillFromObject(nullptr, EBF_NODROPTARGET))) {
             CComPtr<IFolderView2> view;
-            if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+            if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
                 CComPtr<IResultsFolder> results;
-                if (SUCCEEDED(view->GetFolder(IID_PPV_ARGS(&results)))) {
+                if (checkHR(view->GetFolder(IID_PPV_ARGS(&results)))) {
                     CComPtr<IShellItem> childItem;
                     while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
                         results->AddItem(childItem);
@@ -273,18 +272,18 @@ void FolderWindow::newFolder() {
     if (!shellView)
         return;
     CComPtr<IContextMenu> contextMenu;
-    if (FAILED(shellView->GetItemObject(SVGIO_BACKGROUND, IID_PPV_ARGS(&contextMenu))))
+    if (!checkHR(shellView->GetItemObject(SVGIO_BACKGROUND, IID_PPV_ARGS(&contextMenu))))
         return;
     HMENU popupMenu = CreatePopupMenu();
     if (!popupMenu)
         return;
-    if (SUCCEEDED(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_OPTIMIZEFORINVOKE))) {
+    if (checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_OPTIMIZEFORINVOKE))) {
         CMINVOKECOMMANDINFO info = {};
         info.cbSize = sizeof(info);
         info.hwnd = hwnd;
         info.lpVerb = CMDSTR_NEWFOLDERA;
         CComPtr<IFolderView2> folderView;
-        if (SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
+        if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
             // https://stackoverflow.com/q/40497455
             // allow command to select new folder for renaming. not documented of course :/
             IUnknown_SetSite(contextMenu, folderView);

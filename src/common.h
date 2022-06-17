@@ -14,6 +14,10 @@
 
 #ifdef CHROMABROWSE_DEBUG
 #define debugPrintf wprintf
+// use checkHR instead of SUCCEEDED when you expect the call to succeed
+#define checkHR(hr) logHRESULT(hr, __FILE__, __LINE__, #hr)
+bool logHRESULT(long hr, const char *file, int line, const char *expr);
 #else
 #define debugPrintf(...)
+#define checkHR SUCCEEDED
 #endif

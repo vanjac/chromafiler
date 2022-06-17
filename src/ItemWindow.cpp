@@ -51,7 +51,7 @@ void ItemWindow::init() {
     HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME);
     if (theme) {
         LOGFONT logFont;
-        if (SUCCEEDED(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont)))
+        if (checkHR(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont)))
             captionFont = CreateFontIndirect(&logFont);
         CloseThemeData(theme);
     }
@@ -133,14 +133,12 @@ SIZE ItemWindow::requestedSize() {
 }
 
 bool ItemWindow::create(RECT rect, int showCommand) {
-    if (FAILED(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title))) {
-        debugPrintf(L"Unable to get item name\n");
+    if (!checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         return false;
-    }
     debugPrintf(L"Create %s\n", &*title);
 
     CComPtr<IExtractIcon> extractIcon;
-    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
+    if (checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
         wchar_t iconFile[MAX_PATH];
         int index;
         UINT flags;
@@ -519,9 +517,7 @@ void ItemWindow::extendWindowFrame() {
     margins.cxRightWidth = 0;
     margins.cyTopHeight = CAPTION_HEIGHT;
     margins.cyBottomHeight = 0;
-    if (FAILED(DwmExtendFrameIntoClientArea(hwnd, &margins))) {
-        debugPrintf(L"Unable to create custom frame!\n");
-    }
+    checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
 }
 
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {
@@ -650,10 +646,8 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     childItem = resolveLink(hwnd, childItem);
     if (child) {
         int compare;
-        if (SUCCEEDED(child->item->Compare(childItem, SICHINT_CANONICAL, &compare))
-                && compare == 0) {
+        if (checkHR(child->item->Compare(childItem, SICHINT_CANONICAL, &compare)) && compare == 0)
             return; // already open
-        }
         closeChild();
     }
     child = createItemWindow(this, childItem);
@@ -736,12 +730,12 @@ void ItemWindow::refresh() {}
 void ItemWindow::invokeProxyDefaultVerb(POINT point) {
     // https://devblogs.microsoft.com/oldnewthing/20040930-00/?p=37693
     CComPtr<IContextMenu> contextMenu;
-    if (FAILED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&contextMenu))))
+    if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&contextMenu))))
         return;
     HMENU popupMenu = CreatePopupMenu();
     if (!popupMenu)
         return;
-    if (SUCCEEDED(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_DEFAULTONLY))) {
+    if (checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_DEFAULTONLY))) {
         UINT id = GetMenuDefaultItem(popupMenu, FALSE, 0);
         if (id != (UINT)-1) {
             CMINVOKECOMMANDINFOEX info = {};
@@ -761,7 +755,7 @@ void ItemWindow::invokeProxyDefaultVerb(POINT point) {
 
 void ItemWindow::openProxyProperties() {
     CComHeapPtr<ITEMIDLIST> idList;
-    if (SUCCEEDED(SHGetIDListFromObject(item, &idList))) {
+    if (checkHR(SHGetIDListFromObject(item, &idList))) {
         SHELLEXECUTEINFO info = {};
         info.cbSize = sizeof(info);
         info.fMask = SEE_MASK_INVOKEIDLIST;
@@ -775,7 +769,7 @@ void ItemWindow::openProxyProperties() {
 void ItemWindow::openProxyContextMenu(POINT point) {
     // https://devblogs.microsoft.com/oldnewthing/20040920-00/?p=37823 and onward
     CComPtr<IContextMenu> contextMenu;
-    if (FAILED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&contextMenu))))
+    if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&contextMenu))))
         return;
     HMENU popupMenu = CreatePopupMenu();
     if (!popupMenu)
@@ -783,7 +777,7 @@ void ItemWindow::openProxyContextMenu(POINT point) {
     UINT contextFlags = CMF_ITEMMENU | CMF_CANRENAME;
     if (GetKeyState(VK_SHIFT) < 0)
         contextFlags |= CMF_EXTENDEDVERBS;
-    if (FAILED(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, contextFlags))) {
+    if (!checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, contextFlags))) {
         DestroyMenu(popupMenu);
         return;
     }
@@ -799,7 +793,7 @@ void ItemWindow::openProxyContextMenu(POINT point) {
         // https://groups.google.com/g/microsoft.public.win32.programmer.ui/c/PhXQcfhYPHQ
         wchar_t verb[64];
         verb[0] = 0; // some handlers may return S_OK without touching the buffer
-        if (SUCCEEDED(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr, (char*)verb, 64))
+        if (checkHR(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr, (char*)verb, 64))
                 && lstrcmpi(verb, L"rename") == 0) {
             beginRename();
         } else {
@@ -856,7 +850,7 @@ void ItemWindow::completeRename() {
         return; // names are identical, which would cause an unnecessary error message
 
     CComHeapPtr<wchar_t> path;
-    if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
+    if (checkHR(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
         wchar_t *fileName = PathFindFileName(path);
         int fileNameLen = lstrlen(fileName);
         int titleLen = lstrlen(title);
@@ -867,10 +861,10 @@ void ItemWindow::completeRename() {
     }
 
     CComPtr<IFileOperation> operation;
-    if (FAILED(operation.CoCreateInstance(__uuidof(FileOperation))))
+    if (!checkHR(operation.CoCreateInstance(__uuidof(FileOperation))))
         return;
     operation->SetOperationFlags(FOFX_ADDUNDORECORD);
-    if (FAILED(operation->RenameItem(item, newName, nullptr)))
+    if (!checkHR(operation->RenameItem(item, newName, nullptr)))
         return;
     operation->PerformOperations();
 }
@@ -926,7 +920,7 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
             }
 
             RECT contentRect;
-            if (SUCCEEDED(GetThemeBackgroundContentRect(theme, hdc, BP_PUSHBUTTON, 
+            if (checkHR(GetThemeBackgroundContentRect(theme, hdc, BP_PUSHBUTTON, 
                     themeState, &buttonRect, &contentRect))) {
                 wchar_t buttonText[32];
                 GetWindowText(hwnd, buttonText, 32);

@@ -40,7 +40,7 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
         int minDim = min(bodySize.cx, bodySize.cy);
         // SIIGBF_ICONBACKGROUND is much faster, but only works with a square rect
         // (requires Windows 8!)
-        if (FAILED(imageFactory->GetImage({minDim, minDim},
+        if (!checkHR(imageFactory->GetImage({minDim, minDim},
                 SIIGBF_BIGGERSIZEOK | SIIGBF_ICONONLY | SIIGBF_ICONBACKGROUND, &hBitmap)))
             return;
     }

@@ -15,7 +15,7 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
     CComPtr<ItemWindow> window;
     SFGAOF attr;
     CLSID previewID;
-    if (SUCCEEDED(item->GetAttributes(SFGAO_FOLDER, &attr)) && (attr & SFGAO_FOLDER)) {
+    if (checkHR(item->GetAttributes(SFGAO_FOLDER, &attr)) && (attr & SFGAO_FOLDER)) {
         window.Attach(new FolderWindow(parent, item));
     } else if (previewHandlerCLSID(item, &previewID)) {
         window.Attach(new PreviewWindow(parent, item, previewID));
@@ -28,7 +28,7 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
 bool previewHandlerCLSID(CComPtr<IShellItem> item, CLSID *previewID) {
     // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-1-ui-assoc/
     CComHeapPtr<wchar_t> path;
-    if (FAILED(item->GetDisplayName(SIGDN_FILESYSPATH, &path)))
+    if (!checkHR(item->GetDisplayName(SIGDN_FILESYSPATH, &path)))
         return false;
     wchar_t *ext = PathFindExtension(path);
     if (!ext)
@@ -39,7 +39,7 @@ bool previewHandlerCLSID(CComPtr<IShellItem> item, CLSID *previewID) {
             ASSOCSTR_SHELLEXTENSION, ext, IPreviewHandlerIID, resultGUID, &resultLen)))
         return false;
     debugPrintf(L"Found preview handler for %s: %s\n", ext, resultGUID);
-    return SUCCEEDED(CLSIDFromString(resultGUID, previewID));
+    return checkHR(CLSIDFromString(resultGUID, previewID));
 }
 
 CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem) {
@@ -49,17 +49,15 @@ CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem) {
         DWORD resolveFlags = SLR_UPDATE;
         if (hwnd == nullptr)
             resolveFlags |= SLR_NO_UI;
-        if (SUCCEEDED(link->Resolve(hwnd, resolveFlags))) {
+        if (checkHR(link->Resolve(hwnd, resolveFlags))) {
             CComHeapPtr<ITEMIDLIST> targetPIDL;
-            if (SUCCEEDED(link->GetIDList(&targetPIDL))) {
+            if (checkHR(link->GetIDList(&targetPIDL))) {
                 CComPtr<IShellItem> targetItem;
-                if (SUCCEEDED(SHCreateShellItem(nullptr, nullptr, targetPIDL, &targetItem))) {
+                if (checkHR(SHCreateShellItem(nullptr, nullptr, targetPIDL, &targetItem))) {
                     // don't need to recurse, shortcuts to shortcuts are not allowed
                     return targetItem;
                 }
             }
-        } else {
-            debugPrintf(L"Could not resolve link\n");
         }
     }
     return linkItem;
