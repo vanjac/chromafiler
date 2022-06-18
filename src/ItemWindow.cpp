@@ -133,7 +133,7 @@ SIZE ItemWindow::requestedSize() {
 bool ItemWindow::create(RECT rect, int showCommand) {
     if (!checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         return false;
-    debugPrintf(L"Create %s\n", &*title);
+    debugPrintf(L"Open %s\n", &*title);
 
     CComPtr<IExtractIcon> extractIcon;
     if (checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
@@ -462,7 +462,7 @@ void ItemWindow::onCreate() {
 }
 
 void ItemWindow::onDestroy() {
-    debugPrintf(L"Cleanup %s\n", &*title);
+    debugPrintf(L"Close %s\n", &*title);
     if (child) {
         child->parent = nullptr;
         child->close(); // recursive

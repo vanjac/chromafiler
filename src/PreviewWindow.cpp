@@ -313,7 +313,7 @@ bool PreviewWindow::initPreviewWithItem(CComPtr<IPreviewHandler> preview,
         CComQIPtr<IInitializeWithFile> fileInit(preview);
         if (fileInit) {
             if (checkHR(fileInit->Initialize(path, STGM_READ))) {
-                debugPrintf(L"Init with path\n");
+                debugPrintf(L"Init with path %s\n", &*path);
                 return true;
             }
         }

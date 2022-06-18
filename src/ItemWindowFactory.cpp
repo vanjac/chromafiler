@@ -27,10 +27,10 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
 
 bool previewHandlerCLSID(CComPtr<IShellItem> item, CLSID *previewID) {
     // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-1-ui-assoc/
-    CComHeapPtr<wchar_t> path;
-    if (!checkHR(item->GetDisplayName(SIGDN_FILESYSPATH, &path)))
+    CComHeapPtr<wchar_t> parsingName;
+    if (!checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEPARSING, &parsingName)))
         return false;
-    wchar_t *ext = PathFindExtension(path);
+    wchar_t *ext = PathFindExtension(parsingName);
     if (!ext)
         return false;
     wchar_t resultGUID[64];
