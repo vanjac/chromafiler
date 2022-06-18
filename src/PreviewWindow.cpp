@@ -220,9 +220,9 @@ DWORD WINAPI PreviewWindow::initPreviewThreadProc(void *) {
 
 void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
     CComPtr<IShellItem> item;
-    if (!checkHR(CoGetInterfaceAndReleaseStream(request->itemStream, IID_PPV_ARGS(&item))))
+    // don't call CoGetInterfaceAndReleaseStream since itemStream is a CComPtr
+    if (!checkHR(CoUnmarshalInterface(request->itemStream, IID_PPV_ARGS(&item))))
         return;
-    request->itemStream.Detach();
 
     CComPtr<IClassFactory> factory;
     auto it = previewFactoryCache.find(request->previewID);
@@ -254,8 +254,8 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
         return; // early exit
     }
     IStream *previewHandlerStream; // no CComPtr
-    CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
-        &previewHandlerStream);
+    checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
+        &previewHandlerStream));
     PostMessage(request->callbackWindow,
         MSG_INIT_PREVIEW_COMPLETE, 0, (LPARAM)previewHandlerStream);
     LeaveCriticalSection(&request->cancelSection);
