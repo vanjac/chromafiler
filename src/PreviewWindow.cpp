@@ -192,7 +192,6 @@ PreviewWindow::InitPreviewRequest::InitPreviewRequest(CComPtr<IShellItem> item, 
 }
 
 PreviewWindow::InitPreviewRequest::~InitPreviewRequest() {
-    debugPrintf(L"Deleting InitPreviewRequest\n");
     CloseHandle(cancelEvent);
     DeleteCriticalSection(&cancelSection);
 }

@@ -117,7 +117,6 @@ ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
 {}
 
 ItemWindow::~ItemWindow() {
-    debugPrintf(L"Delete %s\n", &*title);
     if (iconLarge)
         DestroyIcon(iconLarge);
     if (iconSmall)
