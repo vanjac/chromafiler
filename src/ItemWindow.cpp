@@ -396,6 +396,9 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     openProxyContextMenu(menuPos);
                     return 0;
                 }
+                case ID_RENAME_PROXY:
+                    beginRename();
+                    return 0;
                 case ID_HELP:
                     ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
                         nullptr, nullptr, SW_SHOWNORMAL);

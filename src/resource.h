@@ -11,5 +11,6 @@
 #define ID_HELP         1005
 #define ID_PROXY_MENU   1006
 #define ID_NEW_FOLDER   1007
+#define ID_RENAME_PROXY 1008
 
 #define IDR_ICON_FONT   103
