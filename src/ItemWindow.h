@@ -13,7 +13,7 @@ class ItemWindow;
 extern long numOpenWindows;
 extern CComPtr<ItemWindow> activeWindow;
 
-class ItemWindow : public IUnknownImpl {
+class ItemWindow : public IUnknownImpl, public IDropSource {
 protected:
     // calculated in init()
     static int CAPTION_HEIGHT;
@@ -37,6 +37,14 @@ public:
     void move(int x, int y);
 
     virtual bool handleTopLevelMessage(MSG *msg);
+
+    // IUnknown
+    STDMETHODIMP QueryInterface(REFIID id, void **obj) override;
+    STDMETHODIMP_(ULONG) AddRef() override;
+    STDMETHODIMP_(ULONG) Release() override;
+    // IDropSource
+    STDMETHODIMP QueryContinueDrag(BOOL escapePressed, DWORD keyState) override;
+    STDMETHODIMP GiveFeedback(DWORD effect) override;
 
     CComPtr<IShellItem> item;
 
@@ -83,6 +91,7 @@ private:
     void invokeProxyDefaultVerb(POINT point);
     void openProxyProperties();
     void openProxyContextMenu(POINT point);
+    void beginProxyDrag(POINT offset); // specify offset from icon origin
     void beginRename();
     void completeRename();
     void cancelRename();
@@ -96,7 +105,7 @@ private:
     HICON iconLarge = nullptr, iconSmall = nullptr;
 
     HWND tooltip, parentButton, renameBox;
-    RECT proxyRect, titleRect;
+    RECT proxyRect, titleRect, iconRect;
     // for handling delayed context menu messages while open (eg. for Open With menu)
     CComQIPtr<IContextMenu2> contextMenu2;
     CComQIPtr<IContextMenu3> contextMenu3;

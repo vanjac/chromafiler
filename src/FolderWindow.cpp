@@ -250,7 +250,7 @@ STDMETHODIMP FolderWindow::QueryInterface(REFIID id, void **obj) {
 }
 
 STDMETHODIMP_(ULONG) FolderWindow::AddRef() {
-    return ItemWindow::AddRef(); // fix diamond inheritance
+    return ItemWindow::AddRef();
 }
 
 STDMETHODIMP_(ULONG) FolderWindow::Release() {

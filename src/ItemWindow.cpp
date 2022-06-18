@@ -328,6 +328,16 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             return 0;
         }
+        case WM_NCLBUTTONDOWN: {
+            POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            POINT clientCursor = cursor;
+            ScreenToClient(hwnd, &clientCursor);
+            if (wParam == HTCAPTION && PtInRect(&iconRect, clientCursor)) {
+                beginProxyDrag({clientCursor.x - iconRect.left, clientCursor.y - iconRect.top});
+                return 0;
+            }
+            break;
+        }
         case WM_NCLBUTTONDBLCLK: {
             POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             POINT clientCursor = cursor;
@@ -605,7 +615,11 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         SendMessage(tooltip, TTM_ACTIVATE, FALSE, 0);
     }
 
-    DrawIconEx(hdcPaint, headerLeft, (CAPTION_HEIGHT - iconSize) / 2, iconSmall,
+    iconRect.left = headerLeft;
+    iconRect.top = (CAPTION_HEIGHT - iconSize) / 2;
+    iconRect.right = iconRect.left + iconSize;
+    iconRect.bottom = iconRect.top + iconSize;
+    DrawIconEx(hdcPaint, iconRect.left, iconRect.top, iconSmall,
                iconSize, iconSize, 0, nullptr, DI_NORMAL);
 
     // the colors won't be right in many cases and it seems like there's no easy way to fix that
@@ -624,10 +638,9 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         }
         textOpts.dwFlags = DTT_COMPOSITED | DTT_TEXTCOLOR;
 
-        titleRect = clientRect;
-        titleRect.top = (CAPTION_HEIGHT - titleSize.cy) / 2;
-        titleRect.right -= buttonWidth; // close button width
         titleRect.left = headerLeft + iconSize + WINDOW_ICON_PADDING;
+        titleRect.top = (CAPTION_HEIGHT - titleSize.cy) / 2;
+        titleRect.right = clientRect.right - buttonWidth; // close button width
         titleRect.bottom = titleRect.top + titleSize.cy;
         checkHR(DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
                                 DT_LEFT | DT_WORD_ELLIPSIS, &titleRect, &textOpts));
@@ -820,6 +833,37 @@ void ItemWindow::openProxyContextMenu(POINT point) {
     DestroyMenu(popupMenu);
 }
 
+void ItemWindow::beginProxyDrag(POINT offset) {
+    // https://devblogs.microsoft.com/oldnewthing/20041206-00/?p=37133 and onward
+    CComPtr<IDataObject> dataObject;
+    if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&dataObject))))
+        return;
+
+    if (iconSmall) {
+        CComPtr<IDragSourceHelper> dragHelper;
+        if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper))) {
+            ICONINFO iconInfo = {};
+            GetIconInfo(iconSmall, &iconInfo);
+            int iconSize = GetSystemMetrics(SM_CXSMICON);
+            SHDRAGIMAGE dragImage = {};
+            dragImage.sizeDragImage = {iconSize, iconSize};
+            dragImage.ptOffset = offset;
+            dragImage.hbmpDragImage = iconInfo.hbmColor;
+            dragHelper->InitializeFromBitmap(&dragImage, dataObject);
+            DeleteBitmap(iconInfo.hbmColor);
+            DeleteBitmap(iconInfo.hbmMask);
+        }
+    }
+
+    DWORD okEffects = DROPEFFECT_COPY | DROPEFFECT_LINK | DROPEFFECT_MOVE;
+    DWORD effect;
+    checkHR(DoDragDrop(dataObject, this, okEffects, &effect));
+    // effect is supposed to be set to DROPEFFECT_MOVE if the target was unable to delete the
+    // original, however the only time I could trigger this was moving a file into a ZIP folder,
+    // which does successfully delete the original, only with a delay. So handling this as intended
+    // would actually break dragging into ZIP folders and cause loss of data!
+}
+
 void ItemWindow::beginRename() {
     // update rename box rect
     int leftMargin = LOWORD(SendMessage(renameBox, EM_GETMARGINS, 0, 0));
@@ -875,6 +919,42 @@ void ItemWindow::completeRename() {
 void ItemWindow::cancelRename() {
     ShowWindow(renameBox, SW_HIDE);
 }
+
+/* IUnknown */
+
+STDMETHODIMP ItemWindow::QueryInterface(REFIID id, void **obj) {
+    static const QITAB interfaces[] = {
+        QITABENT(ItemWindow, IDropSource),
+        {},
+    };
+    HRESULT hr = QISearch(this, interfaces, id, obj);
+    if (SUCCEEDED(hr))
+        return hr;
+    return IUnknownImpl::QueryInterface(id, obj);
+}
+
+STDMETHODIMP_(ULONG) ItemWindow::AddRef() {
+    return IUnknownImpl::AddRef(); // fix diamond inheritance
+}
+
+STDMETHODIMP_(ULONG) ItemWindow::Release() {
+    return IUnknownImpl::Release();
+}
+
+/* IDropSource */
+
+STDMETHODIMP ItemWindow::QueryContinueDrag(BOOL escapePressed, DWORD keyState) {
+    if (escapePressed)
+        return DRAGDROP_S_CANCEL;
+    if (!(keyState & (MK_LBUTTON | MK_RBUTTON)))
+        return DRAGDROP_S_DROP;
+    return S_OK;
+}
+
+STDMETHODIMP ItemWindow::GiveFeedback(DWORD) {
+    return DRAGDROP_S_USEDEFAULTCURSORS;
+}
+
 
 void makeBitmapOpaque(HDC hdc, const RECT &rect) {
     // https://devblogs.microsoft.com/oldnewthing/20210915-00/?p=105687
