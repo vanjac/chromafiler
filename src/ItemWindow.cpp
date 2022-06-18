@@ -111,10 +111,9 @@ LRESULT CALLBACK ItemWindow::windowProc(
 }
 
 ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
-    : parent(parent)
-    , item(item)
-    , storedChildSize(DEFAULT_SIZE)
-{}
+    : parent(parent),
+      item(item),
+      storedChildSize(DEFAULT_SIZE) {}
 
 ItemWindow::~ItemWindow() {
     if (iconLarge)

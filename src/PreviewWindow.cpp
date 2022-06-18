@@ -52,9 +52,8 @@ void PreviewWindow::uninit() {
 }
 
 PreviewWindow::PreviewWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, CLSID previewID)
-    : ItemWindow(parent, item)
-    , previewID(previewID)
-{}
+    : ItemWindow(parent, item),
+      previewID(previewID) {}
 
 const wchar_t * PreviewWindow::className() {
     return PREVIEW_WINDOW_CLASS;
@@ -183,9 +182,9 @@ STDMETHODIMP PreviewWindow::TranslateAccelerator(MSG *msg) {
 
 PreviewWindow::InitPreviewRequest::InitPreviewRequest(CComPtr<IShellItem> item, CLSID previewID,
         HWND callbackWindow, HWND container)
-        : previewID(previewID)
-        , callbackWindow(callbackWindow)
-        , container(container) {
+        : previewID(previewID),
+          callbackWindow(callbackWindow),
+          container(container) {
     checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IShellItem), item, &itemStream));
     cancelEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
     InitializeCriticalSectionAndSpinCount(&cancelSection, 4000);

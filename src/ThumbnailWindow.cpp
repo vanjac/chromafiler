@@ -14,8 +14,7 @@ void ThumbnailWindow::init() {
 }
 
 ThumbnailWindow::ThumbnailWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
-    : ItemWindow(parent, item)
-{}
+    : ItemWindow(parent, item) {}
 
 const wchar_t * ThumbnailWindow::className() {
     return THUMBNAIL_WINDOW_CLASS;
