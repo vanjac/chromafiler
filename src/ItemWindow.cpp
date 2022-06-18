@@ -848,9 +848,10 @@ void ItemWindow::completeRename() {
     if (lstrcmp(newName, title) == 0)
         return; // names are identical, which would cause an unnecessary error message
 
-    CComHeapPtr<wchar_t> path;
-    if (checkHR(item->GetDisplayName(SIGDN_FILESYSPATH, &path))) {
-        wchar_t *fileName = PathFindFileName(path);
+    CComHeapPtr<wchar_t> fileName;
+    // SIGDN_PARENTRELATIVEFORADDRESSBAR will always have the extension even if hidden in options
+    // TODO: is this guaranteed?
+    if (checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEFORADDRESSBAR, &fileName))) {
         int fileNameLen = lstrlen(fileName);
         int titleLen = lstrlen(title);
         if (fileNameLen > titleLen) { // if extensions are hidden in File Explorer Options
