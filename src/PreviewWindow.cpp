@@ -4,7 +4,7 @@
 #include <shlobj.h>
 #include <unordered_map>
 
-// TODO: is this enough? what about checking equality?
+// operator== is implemented for GUIDs in guiddef.h
 template<>
 struct std::hash<CLSID> {
     std::size_t operator() (const CLSID &key) const {
