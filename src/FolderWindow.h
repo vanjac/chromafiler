@@ -42,10 +42,7 @@ protected:
 private:
     const wchar_t * className() override;
 
-    bool initBrowser();
     void selectionChanged();
-    void resultsFolderFallback();
-
     void newFolder();
 
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!

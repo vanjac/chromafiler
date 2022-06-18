@@ -3,7 +3,6 @@
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
-#include <propkey.h>
 #include <Propvarutil.h>
 
 // Example of how to host an IExplorerBrowser:
@@ -15,8 +14,6 @@ const wchar_t *FOLDER_WINDOW_CLASS = L"Folder Window";
 const wchar_t *PROPERTY_BAG = L"chromabrowse";
 const wchar_t *PROP_VISITED = L"chromabrowse.visited";
 const wchar_t *PROP_SIZE = L"chromabrowse.size";
-// user messages
-const UINT MSG_FORCE_SORT = WM_USER;
 
 void FolderWindow::init() {
     WNDCLASS wndClass = createWindowClass(FOLDER_WINDOW_CLASS);
@@ -60,15 +57,6 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
                     return 0;
             }
             break;
-        /* user messages */
-        case MSG_FORCE_SORT: {
-            CComPtr<IFolderView2> view;
-            if (browser && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-                SORTCOLUMN column = {PKEY_ItemNameDisplay, SORT_ASCENDING};
-                checkHR(view->SetSortColumns(&column, 1));
-            }
-            return 0;
-        }
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
 }
@@ -90,8 +78,20 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
 void FolderWindow::onCreate() {
     ItemWindow::onCreate();
 
-    if (!initBrowser())
+    RECT browserRect = windowBody();
+    browserRect.bottom += browserRect.top; // initial rect is wrong
+
+    FOLDERSETTINGS folderSettings = {};
+    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see below)
+    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
+    if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;
+    if (!checkHR(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
+        browser = nullptr;
+        return;
+    }
+    checkHR(browser->SetOptions(EBO_NAVIGATEONCE)); // no navigation
+
     checkHR(browser->SetPropertyBag(PROPERTY_BAG));
     if (!checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
@@ -100,26 +100,8 @@ void FolderWindow::onCreate() {
         return;
     }
 
-    bool fallback = false;
-    CComPtr<IFolderView2> view;
-    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-        int itemCount;
-        // will fail for eg. control panel
-        if (FAILED(view->ItemCount(SVGIO_ALLVIEW, &itemCount))) {
-            // destroy and recreate browser
-            checkHR(browser->Destroy());
-            browser = nullptr;
-            if (!initBrowser())
-                return;
-            // don't set property bag! (breaks sorting)
-            resultsFolderFallback();
-            fallback = true;
-        }
-        view = nullptr;
-    }
-
     bool visited = false; // folder has been visited by chromabrowse before
-    if (!fallback && propBag) {
+    if (propBag) {
         VARIANT var = {};
         if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr))) {
             visited = true;
@@ -130,6 +112,7 @@ void FolderWindow::onCreate() {
         }
     }
 
+    CComPtr<IFolderView2> view;
     if (!visited && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
         // FVM_SMALLICON only seems to work if it's also specified with an icon size
         // TODO should this be the shell small icon size?
@@ -150,23 +133,6 @@ void FolderWindow::onCreate() {
     }
 
     checkHR(IUnknown_SetSite(browser, (IServiceProvider *)this));
-}
-
-bool FolderWindow::initBrowser() {
-    RECT browserRect = windowBody();
-    browserRect.bottom += browserRect.top; // initial rect is wrong
-
-    FOLDERSETTINGS folderSettings = {};
-    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly
-    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
-    if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
-        return false;
-    if (!checkHR(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
-        browser = nullptr;
-        return false;
-    }
-    checkHR(browser->SetOptions(EBO_NAVIGATEONCE)); // no navigation
-    return true;
 }
 
 void FolderWindow::onDestroy() {
@@ -225,32 +191,6 @@ void FolderWindow::selectionChanged() {
         } else {
             // 0 or more than 1 item selected
             closeChild();
-        }
-    }
-}
-
-void FolderWindow::resultsFolderFallback() {
-    debugPrintf(L"Using results folder fallback\n");
-    CComPtr<IEnumShellItems> enumItems;
-    if (checkHR(item->BindToHandler(nullptr, BHID_EnumItems,
-            IID_PPV_ARGS(&enumItems)))) {
-        // create empty ResultsFolder
-        if (checkHR(browser->FillFromObject(nullptr, EBF_NODROPTARGET))) {
-            CComPtr<IFolderView2> view;
-            if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-                CComPtr<IResultsFolder> results;
-                if (checkHR(view->GetFolder(IID_PPV_ARGS(&results)))) {
-                    CComPtr<IShellItem> childItem;
-                    while (enumItems->Next(1, &childItem, nullptr) == S_OK) {
-                        checkHR(results->AddItem(childItem));
-                        childItem = nullptr;
-                    }
-                    // for some reason changing the sort columns immediately after adding items
-                    // breaks the folder view, so delay it until the browser has had a chance to
-                    // process some messages
-                    PostMessage(hwnd, MSG_FORCE_SORT, 0, 0);
-                }
-            }
         }
     }
 }
