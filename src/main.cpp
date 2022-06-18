@@ -180,8 +180,6 @@ DWORD WINAPI updateJumpList(void *) {
         PROPVARIANT propVar;
         if (checkHR(InitPropVariantFromString(displayName, &propVar)))
             linkProps->SetValue(PKEY_Title, propVar);
-        tasks->AddObject(link);
-
         CComPtr<IExtractIcon> extractIcon;
         if (checkHR(childItem->BindToHandler(nullptr, BHID_SFUIObject,
                 IID_PPV_ARGS(&extractIcon)))) {
@@ -193,6 +191,8 @@ DWORD WINAPI updateJumpList(void *) {
                     checkHR(link->SetIconLocation(iconFile, index));
             }
         }
+
+        checkHR(tasks->AddObject(link));
         childItem = nullptr; // CComPtr isn't very smart
     }
 
