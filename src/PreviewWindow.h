@@ -8,13 +8,14 @@ namespace chromabrowse {
 class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
 
     struct InitPreviewRequest : public IUnknownImpl {
-        InitPreviewRequest(CComPtr<IShellItem> item, CLSID previewID, HWND callbackWindow);
+        InitPreviewRequest(CComPtr<IShellItem> item, CLSID previewID,
+            HWND callbackWindow, HWND container);
         ~InitPreviewRequest();
         void cancel(); // ok to call this multiple times
 
         CComPtr<IStream> itemStream;
         const CLSID previewID;
-        const HWND callbackWindow;
+        const HWND callbackWindow, container;
         HANDLE cancelEvent;
         CRITICAL_SECTION cancelSection;
     };
@@ -45,6 +46,8 @@ protected:
 
 private:
     const wchar_t * className() override;
+
+    void destroyPreview();
 
     CLSID previewID;
     CComPtr<InitPreviewRequest> initRequest;
