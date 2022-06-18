@@ -38,6 +38,9 @@ void PreviewWindow::init() {
     containerClass.lpfnWndProc = DefWindowProc;
     containerClass.hInstance = GetModuleHandle(nullptr);
     RegisterClass(&containerClass);
+
+    SHCreateThreadWithHandle(initPreviewThreadProc, nullptr, CTF_COINIT_STA, nullptr,
+        &initPreviewThread);
 }
 
 void PreviewWindow::uninit() {
@@ -68,10 +71,6 @@ void PreviewWindow::onCreate() {
         previewRect.left, previewRect.top, containerClientRect.right, containerClientRect.bottom,
         hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
 
-    if (!initPreviewThread) {
-        SHCreateThreadWithHandle(initPreviewThreadProc, nullptr, CTF_COINIT_STA, nullptr,
-            &initPreviewThread);
-    }
     // don't use Attach() for an additional AddRef() -- keep request alive until received by thread
     initRequest = new InitPreviewRequest(item, previewID, hwnd);
     PostThreadMessage(GetThreadId(initPreviewThread),
