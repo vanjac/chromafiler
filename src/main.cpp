@@ -36,10 +36,12 @@ DWORD WINAPI updateJumpList(void *);
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     debugPrintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
+
 #ifdef CHROMABROWSE_MEMLEAKS
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     debugPrintf(L"Compiled with memory leak detection\n");
-    malloc(1234);
 #endif
+
     int argc;
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
@@ -114,9 +116,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     chromabrowse::PreviewWindow::uninit();
     OleUninitialize();
 
-#ifdef CHROMABROWSE_MEMLEAKS
-    _CrtDumpMemoryLeaks();
-#endif
     return (int)msg.wParam;
 }
 
