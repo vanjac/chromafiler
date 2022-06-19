@@ -13,7 +13,7 @@ class ItemWindow;
 extern long numOpenWindows;
 extern CComPtr<ItemWindow> activeWindow;
 
-class ItemWindow : public IUnknownImpl, public IDropSource {
+class ItemWindow : public IUnknownImpl, public IDropSource, public IDropTarget {
 protected:
     // calculated in init()
     static int CAPTION_HEIGHT;
@@ -45,6 +45,13 @@ public:
     // IDropSource
     STDMETHODIMP QueryContinueDrag(BOOL escapePressed, DWORD keyState) override;
     STDMETHODIMP GiveFeedback(DWORD effect) override;
+    // IDropTarget
+    STDMETHODIMP DragEnter(IDataObject *dataObject, DWORD keyState, POINTL point, DWORD *effect)
+        override;
+    STDMETHODIMP DragLeave() override;
+    STDMETHODIMP DragOver(DWORD keyState, POINTL point, DWORD *effect) override;
+    STDMETHODIMP Drop(IDataObject *dataObject, DWORD keyState, POINTL point, DWORD *effect)
+        override;
 
     CComPtr<IShellItem> item;
 
@@ -95,6 +102,7 @@ private:
     void beginRename();
     void completeRename();
     void cancelRename();
+    bool dropAllowed(POINTL point);
 
     // window subclasses
     static LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
@@ -106,6 +114,7 @@ private:
 
     HWND tooltip, parentButton, renameBox;
     RECT proxyRect, titleRect, iconRect;
+    CComPtr<IDropTarget> itemDropTarget;
     // for handling delayed context menu messages while open (eg. for Open With menu)
     CComQIPtr<IContextMenu2> contextMenu2;
     CComQIPtr<IContextMenu3> contextMenu3;

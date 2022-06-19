@@ -438,6 +438,10 @@ void ItemWindow::onCreate() {
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
+    // will succeed for folders and EXEs, and fail for regular files
+    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget))))
+        RegisterDragDrop(hwnd, this);
+
     HMODULE instance = GetWindowInstance(hwnd);
 
     tooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
@@ -487,6 +491,9 @@ void ItemWindow::onDestroy() {
     HWND owner = GetWindowOwner(hwnd);
     if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
         PostMessage(owner, WM_CLOSE, 0, 0); // last window in group
+
+    if (itemDropTarget)
+        RevokeDragDrop(hwnd);
 }
 
 void ItemWindow::onActivate(WORD state, HWND) {
@@ -920,11 +927,18 @@ void ItemWindow::cancelRename() {
     ShowWindow(renameBox, SW_HIDE);
 }
 
+bool ItemWindow::dropAllowed(POINTL point) {
+    POINT clientPoint = {point.x, point.y};
+    ScreenToClient(hwnd, &clientPoint);
+    return PtInRect(&proxyRect, clientPoint);
+}
+
 /* IUnknown */
 
 STDMETHODIMP ItemWindow::QueryInterface(REFIID id, void **obj) {
     static const QITAB interfaces[] = {
         QITABENT(ItemWindow, IDropSource),
+        QITABENT(ItemWindow, IDropTarget),
         {},
     };
     HRESULT hr = QISearch(this, interfaces, id, obj);
@@ -953,6 +967,45 @@ STDMETHODIMP ItemWindow::QueryContinueDrag(BOOL escapePressed, DWORD keyState) {
 
 STDMETHODIMP ItemWindow::GiveFeedback(DWORD) {
     return DRAGDROP_S_USEDEFAULTCURSORS;
+}
+
+/* IDropTarget */
+
+STDMETHODIMP ItemWindow::DragEnter(IDataObject *dataObject, DWORD keyState, POINTL point,
+        DWORD *effect) {
+    if (!itemDropTarget)
+        return E_FAIL;
+    HRESULT hr = itemDropTarget->DragEnter(dataObject, keyState, point, effect);
+    if (!dropAllowed(point))
+        *effect = DROPEFFECT_NONE;
+    return hr;
+}
+
+STDMETHODIMP ItemWindow::DragLeave() {
+    if (!itemDropTarget)
+        return E_FAIL;
+    return itemDropTarget->DragLeave();
+}
+
+STDMETHODIMP ItemWindow::DragOver(DWORD keyState, POINTL point, DWORD *effect) {
+    if (!itemDropTarget)
+        return E_FAIL;
+    HRESULT hr = itemDropTarget->DragOver(keyState, point, effect);
+    if (!dropAllowed(point))
+        *effect = DROPEFFECT_NONE;
+    return hr;
+}
+
+STDMETHODIMP ItemWindow::Drop(IDataObject *dataObject, DWORD keyState, POINTL point,
+        DWORD *effect) {
+    if (!itemDropTarget)
+        return E_FAIL;
+    if (!dropAllowed(point)) {
+        HRESULT hr = itemDropTarget->DragLeave();
+        *effect = DROPEFFECT_NONE;
+        return hr;
+    }
+    return itemDropTarget->Drop(dataObject, keyState, point, effect);
 }
 
 
