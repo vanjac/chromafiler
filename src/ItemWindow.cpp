@@ -328,6 +328,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             return 0;
         }
+        case WM_NCRBUTTONDOWN:
         case WM_NCLBUTTONDOWN: {
             POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             POINT clientCursor = cursor;
