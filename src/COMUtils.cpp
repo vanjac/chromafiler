@@ -1,4 +1,4 @@
-#include "COMUtil.h"
+#include "COMUtils.h"
 
 namespace chromabrowse {
 

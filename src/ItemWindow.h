@@ -1,7 +1,7 @@
 #pragma once
 #include <common.h>
 
-#include "COMUtil.h"
+#include "COMUtils.h"
 #include <windows.h>
 #include <shobjidl.h>
 #include <atlbase.h>

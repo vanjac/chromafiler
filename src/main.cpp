@@ -1,7 +1,7 @@
 #include "FolderWindow.h"
 #include "ThumbnailWindow.h"
 #include "PreviewWindow.h"
-#include "ItemWindowFactory.h"
+#include "CreateItemWindow.h"
 #include "resource.h"
 #include <shellapi.h>
 #include <shlobj.h>

@@ -1,6 +1,6 @@
 #include "ItemWindow.h"
-#include "ItemWindowFactory.h"
-#include "RectUtil.h"
+#include "CreateItemWindow.h"
+#include "RectUtils.h"
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>

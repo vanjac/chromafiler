@@ -1,5 +1,5 @@
 #include "FolderWindow.h"
-#include "RectUtil.h"
+#include "RectUtils.h"
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>

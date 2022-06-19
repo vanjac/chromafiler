@@ -1,5 +1,5 @@
 #include "ThumbnailWindow.h"
-#include "RectUtil.h"
+#include "RectUtils.h"
 #include <windowsx.h>
 
 namespace chromabrowse {
