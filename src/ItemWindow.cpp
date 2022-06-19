@@ -241,6 +241,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
             return 0;
+        case WM_CLOSE:
+            // if the chain is in the foreground make sure it stays in the foreground.
+            // once WM_DESTROY is called the active window will already be changed, so check here.
+            if (parent && GetActiveWindow() == hwnd)
+                parent->activate();
+            break; // pass to DefWindowProc
         case WM_DESTROY:
             onDestroy();
             return 0;
@@ -484,12 +490,10 @@ void ItemWindow::onCreate() {
 
 void ItemWindow::onDestroy() {
     debugPrintf(L"Close %s\n", &*title);
-    if (child) {
-        child->parent = nullptr;
-        child->close(); // recursive
-    }
-    child = nullptr;
     clearParent();
+    if (child)
+        child->close(); // recursive
+    child = nullptr; // onChildDetached will not be called
     if (activeWindow == this)
         activeWindow = nullptr;
     HWND owner = GetWindowOwner(hwnd);
@@ -505,6 +509,7 @@ void ItemWindow::onActivate(WORD state, HWND) {
     // make sure frame is correct if window is maximized
     extendWindowFrame();
 
+    // TODO handle this in WM_NCACTIVATE instead
     RECT captionRect;
     GetClientRect(hwnd, &captionRect);
     captionRect.bottom = CAPTION_HEIGHT;
@@ -685,9 +690,8 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
 
 void ItemWindow::closeChild() {
     if (child) {
-        child->parent = nullptr;
         child->close();
-        child = nullptr;
+        child = nullptr; // onChildDetached will not be called
     }
 }
 
@@ -716,7 +720,7 @@ void ItemWindow::clearParent() {
 }
 
 void ItemWindow::detachFromParent() {
-    SetActiveWindow(parent->hwnd); // focus parent in chain
+    parent->activate(); // focus parent in chain
     clearParent();
     ShowWindow(parentButton, SW_SHOW);
     HWND prevOwner = GetWindowOwner(hwnd);
@@ -729,7 +733,7 @@ void ItemWindow::detachFromParent() {
     SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
     SetWindowLongPtr(prevOwner, GWLP_USERDATA,
         GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
-    SetActiveWindow(hwnd); // bring this chain to front
+    activate(); // bring this chain to front
 }
 
 void ItemWindow::onChildDetached() {}
