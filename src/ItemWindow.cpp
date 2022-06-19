@@ -331,11 +331,13 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_NCRBUTTONDOWN:
         case WM_NCLBUTTONDOWN: {
             POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-            POINT clientCursor = cursor;
-            ScreenToClient(hwnd, &clientCursor);
-            if (wParam == HTCAPTION && PtInRect(&iconRect, clientCursor)) {
-                beginProxyDrag({clientCursor.x - iconRect.left, clientCursor.y - iconRect.top});
-                return 0;
+            if (DragDetect(hwnd, cursor)) {
+                POINT clientCursor = cursor;
+                ScreenToClient(hwnd, &clientCursor);
+                if (wParam == HTCAPTION && PtInRect(&iconRect, clientCursor)) {
+                    beginProxyDrag({clientCursor.x - iconRect.left, clientCursor.y - iconRect.top});
+                    return 0;
+                }
             }
             break;
         }
