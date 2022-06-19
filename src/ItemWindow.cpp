@@ -442,8 +442,10 @@ void ItemWindow::onCreate() {
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
     // will succeed for folders and EXEs, and fail for regular files
-    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget))))
+    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget)))) {
+        checkHR(dropTargetHelper.CoCreateInstance(CLSID_DragDropHelper));
         RegisterDragDrop(hwnd, this);
+    }
 
     HMODULE instance = GetWindowInstance(hwnd);
 
@@ -930,10 +932,9 @@ void ItemWindow::cancelRename() {
     ShowWindow(renameBox, SW_HIDE);
 }
 
-bool ItemWindow::dropAllowed(POINTL point) {
-    POINT clientPoint = {point.x, point.y};
-    ScreenToClient(hwnd, &clientPoint);
-    return PtInRect(&proxyRect, clientPoint);
+bool ItemWindow::dropAllowed(POINT point) {
+    ScreenToClient(hwnd, &point);
+    return PtInRect(&proxyRect, point);
 }
 
 /* IUnknown */
@@ -974,41 +975,66 @@ STDMETHODIMP ItemWindow::GiveFeedback(DWORD) {
 
 /* IDropTarget */
 
-STDMETHODIMP ItemWindow::DragEnter(IDataObject *dataObject, DWORD keyState, POINTL point,
+STDMETHODIMP ItemWindow::DragEnter(IDataObject *dataObject, DWORD keyState, POINTL pt,
         DWORD *effect) {
-    if (!itemDropTarget)
-        return E_FAIL;
-    HRESULT hr = itemDropTarget->DragEnter(dataObject, keyState, point, effect);
-    if (!dropAllowed(point))
-        *effect = DROPEFFECT_NONE;
-    return hr;
+    dropDataObject = dataObject;
+    return DragOver(keyState, pt, effect);
 }
 
 STDMETHODIMP ItemWindow::DragLeave() {
     if (!itemDropTarget)
         return E_FAIL;
-    return itemDropTarget->DragLeave();
-}
-
-STDMETHODIMP ItemWindow::DragOver(DWORD keyState, POINTL point, DWORD *effect) {
-    if (!itemDropTarget)
-        return E_FAIL;
-    HRESULT hr = itemDropTarget->DragOver(keyState, point, effect);
-    if (!dropAllowed(point))
-        *effect = DROPEFFECT_NONE;
-    return hr;
-}
-
-STDMETHODIMP ItemWindow::Drop(IDataObject *dataObject, DWORD keyState, POINTL point,
-        DWORD *effect) {
-    if (!itemDropTarget)
-        return E_FAIL;
-    if (!dropAllowed(point)) {
-        HRESULT hr = itemDropTarget->DragLeave();
-        *effect = DROPEFFECT_NONE;
-        return hr;
+    if (overDropTarget) {
+        if (!checkHR(itemDropTarget->DragLeave()))
+            return E_FAIL;
+        if (dropTargetHelper)
+            checkHR(dropTargetHelper->DragLeave());
+        overDropTarget = false;
     }
-    return itemDropTarget->Drop(dataObject, keyState, point, effect);
+    return S_OK;
+}
+
+STDMETHODIMP ItemWindow::DragOver(DWORD keyState, POINTL pt, DWORD *effect) {
+    if (!itemDropTarget)
+        return E_FAIL;
+    POINT point {pt.x, pt.y};
+    bool nowOverTarget = dropAllowed(point);
+    if (!nowOverTarget) {
+        if (FAILED(DragLeave()))
+            return E_FAIL;
+        *effect = DROPEFFECT_NONE;
+    } else if (!overDropTarget) {
+        if (!checkHR(itemDropTarget->DragEnter(dropDataObject, keyState, pt, effect)))
+            return E_FAIL;
+        if (dropTargetHelper)
+            checkHR(dropTargetHelper->DragEnter(hwnd, dropDataObject, &point, *effect));
+    } else {
+        if (!checkHR(itemDropTarget->DragOver(keyState, pt, effect)))
+            return E_FAIL;
+        if (dropTargetHelper)
+            checkHR(dropTargetHelper->DragOver(&point, *effect));
+    }
+    overDropTarget = nowOverTarget;
+    return S_OK;
+}
+
+STDMETHODIMP ItemWindow::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) {
+    if (!itemDropTarget)
+        return E_FAIL;
+    POINT point {pt.x, pt.y};
+    bool nowOverTarget = dropAllowed(point);
+    if (!nowOverTarget) {
+        if (FAILED(DragLeave()))
+            return E_FAIL;
+        *effect = DROPEFFECT_NONE;
+    } else {
+        if (!checkHR(itemDropTarget->Drop(dataObject, keyState, pt, effect)))
+            return E_FAIL;
+        if (dropTargetHelper)
+            checkHR(dropTargetHelper->Drop(dataObject, &point, *effect));
+    }
+    overDropTarget = false;
+    return S_OK;
 }
 
 

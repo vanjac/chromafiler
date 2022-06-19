@@ -46,12 +46,11 @@ public:
     STDMETHODIMP QueryContinueDrag(BOOL escapePressed, DWORD keyState) override;
     STDMETHODIMP GiveFeedback(DWORD effect) override;
     // IDropTarget
-    STDMETHODIMP DragEnter(IDataObject *dataObject, DWORD keyState, POINTL point, DWORD *effect)
+    STDMETHODIMP DragEnter(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect)
         override;
     STDMETHODIMP DragLeave() override;
-    STDMETHODIMP DragOver(DWORD keyState, POINTL point, DWORD *effect) override;
-    STDMETHODIMP Drop(IDataObject *dataObject, DWORD keyState, POINTL point, DWORD *effect)
-        override;
+    STDMETHODIMP DragOver(DWORD keyState, POINTL pt, DWORD *effect) override;
+    STDMETHODIMP Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) override;
 
     CComPtr<IShellItem> item;
 
@@ -102,7 +101,7 @@ private:
     void beginRename();
     void completeRename();
     void cancelRename();
-    bool dropAllowed(POINTL point);
+    bool dropAllowed(POINT point);
 
     // window subclasses
     static LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
@@ -115,12 +114,16 @@ private:
     HWND tooltip, parentButton, renameBox;
     RECT proxyRect, titleRect, iconRect;
     CComPtr<IDropTarget> itemDropTarget;
+    CComPtr<IDropTargetHelper> dropTargetHelper;
     // for handling delayed context menu messages while open (eg. for Open With menu)
     CComQIPtr<IContextMenu2> contextMenu2;
     CComQIPtr<IContextMenu3> contextMenu3;
 
     SIZE storedChildSize;
     POINT moveAccum;
+    // drop target state
+    IDataObject *dropDataObject;
+    bool overDropTarget = false;
 };
 
 } // namespace
