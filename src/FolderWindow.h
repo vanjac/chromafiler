@@ -54,6 +54,7 @@ private:
 
     // jank flags
     bool ignoreNextSelection = false;
+    bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;
 };
 

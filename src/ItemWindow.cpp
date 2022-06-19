@@ -170,7 +170,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     else if (child)
         owner = GetWindowOwner(child->hwnd);
     else
-        owner = createChainOwner();
+        owner = createChainOwner(showCommand);
 
     HWND createHwnd = CreateWindow(
         className(), title,
@@ -191,10 +191,10 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     return true;
 }
 
-HWND ItemWindow::createChainOwner() {
+HWND ItemWindow::createChainOwner(int showCommand) {
     HWND window = CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
         nullptr, nullptr, GetModuleHandle(nullptr), 0); // user data stores num owned windows
-    ShowWindow(window, SW_SHOWNORMAL); // show in taskbar
+    ShowWindow(window, showCommand); // show in taskbar
     return window;
 }
 
@@ -724,7 +724,7 @@ void ItemWindow::detachFromParent() {
     clearParent();
     ShowWindow(parentButton, SW_SHOW);
     HWND prevOwner = GetWindowOwner(hwnd);
-    HWND owner = createChainOwner();
+    HWND owner = createChainOwner(SW_SHOWNORMAL);
     int numChildren = 0;
     for (ItemWindow *next = this; next != nullptr; next = next->child) {
         SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);

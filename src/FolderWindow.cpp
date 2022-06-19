@@ -158,6 +158,10 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
             activateOnShiftRelease = GetKeyState(VK_SHIFT) < 0;
             checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
         }
+        if (updateSelectionOnActivate) {
+            selectionChanged();
+            updateSelectionOnActivate = false;
+        }
     }
 }
 
@@ -301,9 +305,13 @@ STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *) {
 STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
     if (change == CDBOSC_SELCHANGE) {
         if (!ignoreNextSelection) {
-            // TODO this can hang the browser and should really be done asynchronously with a message
-            // but that adds other complication
-            selectionChanged();
+            if (GetActiveWindow() != hwnd) {
+                // this could happen when dragging a file. don't try to create any windows yet
+                updateSelectionOnActivate = true;
+            } else {
+                selectionChanged();
+                updateSelectionOnActivate = false;
+            }
         }
         ignoreNextSelection = false;
     }

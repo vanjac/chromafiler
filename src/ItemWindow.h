@@ -80,7 +80,7 @@ protected:
 private:
     virtual const wchar_t * className() = 0;
 
-    HWND createChainOwner();
+    HWND createChainOwner(int showCommand);
 
     void windowRectChanged();
     void bringGroupToFront();
