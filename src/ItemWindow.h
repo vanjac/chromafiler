@@ -27,6 +27,8 @@ public:
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
     virtual ~ItemWindow();
 
+    void setTrayMode(bool isTray);
+
     virtual bool preserveSize(); // if true, requested size will be ignored by parent
     virtual SIZE requestedSize();
 
@@ -111,14 +113,15 @@ private:
 
     HICON iconLarge = nullptr, iconSmall = nullptr;
 
-    HWND tooltip, parentButton, renameBox;
-    RECT proxyRect, titleRect, iconRect;
+    HWND tooltip = nullptr, parentButton = nullptr, renameBox = nullptr;
+    RECT proxyRect{}, titleRect{}, iconRect{};
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;
     // for handling delayed context menu messages while open (eg. for Open With menu)
     CComQIPtr<IContextMenu2> contextMenu2;
     CComQIPtr<IContextMenu3> contextMenu3;
 
+    bool tray = false;
     SIZE storedChildSize;
     POINT moveAccum;
     // drop target state

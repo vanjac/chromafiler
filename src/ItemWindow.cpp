@@ -122,6 +122,10 @@ ItemWindow::~ItemWindow() {
         DestroyIcon(iconSmall);
 }
 
+void ItemWindow::setTrayMode(bool isTray) {
+    tray = isTray;
+}
+
 bool ItemWindow::preserveSize() {
     return true;
 }
@@ -192,8 +196,11 @@ bool ItemWindow::create(RECT rect, int showCommand) {
 }
 
 HWND ItemWindow::createChainOwner(int showCommand) {
+    HWND ownerOwner = nullptr;
+    if (tray)
+        ownerOwner = FindWindow(L"Shell_TrayWnd", NULL);
     HWND window = CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
-        nullptr, nullptr, GetModuleHandle(nullptr), 0); // user data stores num owned windows
+        ownerOwner, nullptr, GetModuleHandle(nullptr), 0); // user data stores num owned windows
     ShowWindow(window, showCommand); // show in taskbar
     return window;
 }
@@ -220,7 +227,7 @@ void ItemWindow::move(int x, int y) {
 RECT ItemWindow::windowBody() {
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    return {0, CAPTION_HEIGHT, clientRect.right, clientRect.bottom};
+    return tray ? clientRect : RECT {0, CAPTION_HEIGHT, clientRect.right, clientRect.bottom};
 }
 
 LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -399,7 +406,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 case ID_PREV_WINDOW:
                     if (parent)
                         parent->activate();
-                    else
+                    else if (!tray)
                         openParent();
                     return 0;
                 case ID_CLOSE_WINDOW:
@@ -408,14 +415,16 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 case ID_REFRESH:
                     refresh();
                     return 0;
-                case ID_PROXY_MENU: {
-                    POINT menuPos = {proxyRect.right, proxyRect.top};
-                    ClientToScreen(hwnd, &menuPos);
-                    openProxyContextMenu(menuPos);
-                    return 0;
-                }
+                case ID_PROXY_MENU:
+                    if (!tray) {
+                        POINT menuPos = {proxyRect.right, proxyRect.top};
+                        ClientToScreen(hwnd, &menuPos);
+                        openProxyContextMenu(menuPos);
+                        return 0;
+                    }
                 case ID_RENAME_PROXY:
-                    beginRename();
+                    if (!tray)
+                        beginRename();
                     return 0;
                 case ID_HELP:
                     ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
@@ -443,6 +452,10 @@ void ItemWindow::onCreate() {
         PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+
+    if (tray)
+        return; // !!
+    /* everything below relates to caption */
 
     // will succeed for folders and EXEs, and fail for regular files
     if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget)))) {
@@ -507,11 +520,13 @@ void ItemWindow::onActivate(WORD state, HWND) {
     // make sure frame is correct if window is maximized
     extendWindowFrame();
 
-    // TODO handle this in WM_NCACTIVATE instead
-    RECT captionRect;
-    GetClientRect(hwnd, &captionRect);
-    captionRect.bottom = CAPTION_HEIGHT;
-    InvalidateRect(hwnd, &captionRect, FALSE); // make sure to update caption text color
+    if (!tray) {
+        // TODO handle this in WM_NCACTIVATE instead
+        RECT captionRect;
+        GetClientRect(hwnd, &captionRect);
+        captionRect.bottom = CAPTION_HEIGHT;
+        InvalidateRect(hwnd, &captionRect, FALSE); // make sure to update caption text color
+    }
 
     if (state != WA_INACTIVE) {
         activeWindow = this;
@@ -541,7 +556,7 @@ void ItemWindow::extendWindowFrame() {
     MARGINS margins;
     margins.cxLeftWidth = 0;
     margins.cxRightWidth = 0;
-    margins.cyTopHeight = CAPTION_HEIGHT;
+    margins.cyTopHeight = tray ? 0 : CAPTION_HEIGHT;
     margins.cyBottomHeight = 0;
     checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
 }
@@ -550,6 +565,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-c-hittestnca-function
     // the default window proc handles the left, right, and bottom edges
     // so only need to check top edge and caption
+    // (default proc handles everything for the tray)
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect); // TODO what about the shadow??
 
@@ -571,6 +587,8 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
 }
 
 void ItemWindow::onPaint(PAINTSTRUCT paint) {
+    if (tray)
+        return;
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-b-painting-the-caption-title
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
