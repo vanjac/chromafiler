@@ -430,9 +430,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
 }
 
 bool ItemWindow::handleTopLevelMessage(MSG *msg) {
-    if (TranslateAccelerator(hwnd, accelTable, msg))
-        return true;
-    return false;
+    return !!TranslateAccelerator(hwnd, accelTable, msg);
 }
 
 void ItemWindow::onCreate() {
@@ -449,7 +447,7 @@ void ItemWindow::onCreate() {
     // will succeed for folders and EXEs, and fail for regular files
     if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget)))) {
         checkHR(dropTargetHelper.CoCreateInstance(CLSID_DragDropHelper));
-        RegisterDragDrop(hwnd, this);
+        checkHR(RegisterDragDrop(hwnd, this));
     }
 
     HMODULE instance = GetWindowInstance(hwnd);
