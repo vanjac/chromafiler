@@ -176,7 +176,8 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     else
         owner = createChainOwner(showCommand);
 
-    HWND createHwnd = CreateWindow(
+    HWND createHwnd = CreateWindowEx(
+        tray ? WS_EX_TOOLWINDOW : 0, // tool windows have a lighter shadow and no rounded corners
         className(), title,
         // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
         (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX) | WS_CLIPCHILDREN,
