@@ -760,7 +760,9 @@ void ItemWindow::detachFromParent() {
             GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
     }
     clearParent();
-    ShowWindow(parentButton, SW_SHOW);
+    CComPtr<IShellItem> parentItem;
+    if (SUCCEEDED(item->GetParent(&parentItem)))
+        ShowWindow(parentButton, SW_SHOW);
     activate(); // bring this chain to front
 }
 
