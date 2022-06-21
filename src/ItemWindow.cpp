@@ -169,7 +169,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     }
 
     HWND owner;
-    if (parent)
+    if (parent && !parent->tray)
         owner = GetWindowOwner(parent->hwnd);
     else if (child)
         owner = GetWindowOwner(child->hwnd);
@@ -747,18 +747,20 @@ void ItemWindow::clearParent() {
 
 void ItemWindow::detachFromParent() {
     parent->activate(); // focus parent in chain
+    if (!parent->tray) {
+        HWND prevOwner = GetWindowOwner(hwnd);
+        HWND owner = createChainOwner(SW_SHOWNORMAL);
+        int numChildren = 0;
+        for (ItemWindow *next = this; next != nullptr; next = next->child) {
+            SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
+            numChildren++;
+        }
+        SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
+        SetWindowLongPtr(prevOwner, GWLP_USERDATA,
+            GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
+    }
     clearParent();
     ShowWindow(parentButton, SW_SHOW);
-    HWND prevOwner = GetWindowOwner(hwnd);
-    HWND owner = createChainOwner(SW_SHOWNORMAL);
-    int numChildren = 0;
-    for (ItemWindow *next = this; next != nullptr; next = next->child) {
-        SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
-        numChildren++;
-    }
-    SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
-    SetWindowLongPtr(prevOwner, GWLP_USERDATA,
-        GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
     activate(); // bring this chain to front
 }
 
