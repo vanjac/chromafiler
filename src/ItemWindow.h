@@ -33,10 +33,6 @@ public:
     virtual SIZE requestedSize();
 
     bool create(RECT rect, int showCommand);
-    void close();
-    void activate();
-    void setPos(POINT pos);
-    void move(int x, int y);
 
     virtual bool handleTopLevelMessage(MSG *msg);
 
@@ -81,6 +77,11 @@ protected:
 
 private:
     virtual const wchar_t * className() = 0;
+
+    void close();
+    void activate();
+    void setPos(POINT pos);
+    void move(int x, int y);
 
     HWND createChainOwner(int showCommand);
 
