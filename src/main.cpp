@@ -96,9 +96,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         SIZE size = initialWindow->requestedSize();
         RECT windowRect;
         if (tray) {
-            // primary monitor origin is always (0, 0)
-            int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-            windowRect = {0, screenHeight - size.cy, size.cx, screenHeight};
+            // TODO check taskbar position/alignment
+            RECT workArea;
+            SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+            windowRect = {workArea.left, workArea.bottom,
+                          workArea.left + size.cx, workArea.bottom + size.cy};
         } else {
             windowRect = {CW_USEDEFAULT, CW_USEDEFAULT,
                           CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
