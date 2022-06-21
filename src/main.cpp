@@ -66,7 +66,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     {
         CComPtr<IShellItem> startItem;
-        if (argc > 1) {
+        bool tray = false;
+        if (argc > 1 && lstrcmpi(argv[1], L"/tray") == 0) {
+            if (!checkHR(SHGetKnownFolderItem(FOLDERID_Links, KF_FLAG_DEFAULT, nullptr,
+                    IID_PPV_ARGS(&startItem)))) {
+                return 0;
+            }
+            tray = true;
+        } else if (argc > 1) {
             int pathLen = lstrlen(argv[1]);
             if (argv[1][pathLen - 1] == '"')
                 argv[1][pathLen - 1] = '\\'; // fix weird CommandLineToArgvW behavior with \"
@@ -85,9 +92,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
         CComPtr<chromabrowse::ItemWindow> initialWindow
             = chromabrowse::createItemWindow(nullptr, startItem);
+        initialWindow->setTrayMode(tray);
         SIZE size = initialWindow->requestedSize();
         RECT windowRect;
-        if (argc > 1) {
+        if (argc > 1 && !tray) {
             windowRect = {CW_USEDEFAULT, CW_USEDEFAULT,
                           CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
         } else {
