@@ -320,7 +320,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             windowRectChanged();
             return 0;
         case WM_SIZING:
-            if (parent) {
+            if (parent && !parent->tray) {
                 RECT *desiredRect = (RECT *)lParam;
                 RECT curRect;
                 GetWindowRect(hwnd, &curRect);
@@ -332,7 +332,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     moveY = desiredRect->top - curRect.top;
                 if (moveX != 0 || moveY != 0) {
                     auto topParent = parent;
-                    while (topParent->parent)
+                    while (topParent->parent && !topParent->parent->tray)
                         topParent = topParent->parent;
                     topParent->move(moveX, moveY);
                 }
@@ -548,7 +548,7 @@ void ItemWindow::onSize(int, int) {
 }
 
 void ItemWindow::windowRectChanged() {
-    if (child) {
+    if (child && !tray) {
         child->setPos(childPos());
     }
 }
@@ -700,9 +700,18 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     }
     child = createItemWindow(this, childItem);
     SIZE size = child->preserveSize() ? storedChildSize : child->requestedSize();
-    POINT pos = childPos();
+    RECT rect;
+    if (tray) {
+        RECT windowRect;
+        GetWindowRect(hwnd, &windowRect);
+        rect = {windowRect.left, windowRect.top - size.cy, // ignore drop shadow, some space is good
+                windowRect.left + size.cx, windowRect.top};
+    } else {
+        POINT pos = childPos();
+        rect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
+    }
     // will flush message queue
-    child->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNOACTIVATE);
+    child->create(rect, SW_SHOWNOACTIVATE);
 }
 
 void ItemWindow::closeChild() {
