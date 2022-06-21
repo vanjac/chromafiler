@@ -95,14 +95,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         initialWindow->setTrayMode(tray);
         SIZE size = initialWindow->requestedSize();
         RECT windowRect;
-        if (argc > 1 && !tray) {
+        if (tray) {
+            // primary monitor origin is always (0, 0)
+            int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+            windowRect = {0, screenHeight - size.cy, size.cx, screenHeight};
+        } else {
             windowRect = {CW_USEDEFAULT, CW_USEDEFAULT,
                           CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
-        } else {
-            RECT workArea;
-            SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-            windowRect = {workArea.left, workArea.bottom - size.cy,
-                          workArea.left + size.cx, workArea.bottom};
         }
         initialWindow->create(windowRect, showCommand);
     }
