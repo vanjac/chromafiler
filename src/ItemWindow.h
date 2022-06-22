@@ -33,6 +33,7 @@ public:
     virtual SIZE requestedSize();
 
     bool create(RECT rect, int showCommand);
+    void setPos(POINT pos);
 
     virtual bool handleTopLevelMessage(MSG *msg);
 
@@ -80,7 +81,6 @@ private:
 
     void close();
     void activate();
-    void setPos(POINT pos);
     void move(int x, int y);
 
     HWND createChainOwner(int showCommand);
