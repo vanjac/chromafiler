@@ -92,11 +92,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
         CComPtr<chromabrowse::ItemWindow> initialWindow
             = chromabrowse::createItemWindow(nullptr, startItem);
-        initialWindow->setTrayMode(tray);
         SIZE size = initialWindow->requestedSize();
         RECT windowRect = {CW_USEDEFAULT, CW_USEDEFAULT,
                            CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
-        initialWindow->create(windowRect, showCommand);
+        initialWindow->create(windowRect, showCommand, tray);
         if (tray) {
             // CreateWindow() won't allow positioning below the work area
             // TODO check taskbar position/alignment

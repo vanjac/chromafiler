@@ -27,12 +27,10 @@ public:
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
     virtual ~ItemWindow();
 
-    void setTrayMode(bool isTray);
-
     virtual bool preserveSize(); // if true, requested size will be ignored by parent
     virtual SIZE requestedSize();
 
-    bool create(RECT rect, int showCommand);
+    bool create(RECT rect, int showCommand, bool isTray = false);
     void setPos(POINT pos);
 
     virtual bool handleTopLevelMessage(MSG *msg);
@@ -123,6 +121,8 @@ private:
     CComQIPtr<IContextMenu3> contextMenu3;
 
     bool tray = false;
+    HWND traySizeGrip;
+
     SIZE storedChildSize;
     POINT moveAccum;
     // drop target state

@@ -122,10 +122,6 @@ ItemWindow::~ItemWindow() {
         DestroyIcon(iconSmall);
 }
 
-void ItemWindow::setTrayMode(bool isTray) {
-    tray = isTray;
-}
-
 bool ItemWindow::preserveSize() {
     return true;
 }
@@ -134,7 +130,9 @@ SIZE ItemWindow::requestedSize() {
     return DEFAULT_SIZE;
 }
 
-bool ItemWindow::create(RECT rect, int showCommand) {
+bool ItemWindow::create(RECT rect, int showCommand, bool isTray) {
+    tray = isTray;
+
     if (!checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         return false;
     debugPrintf(L"Open %s\n", &*title);
@@ -176,11 +174,12 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     else
         owner = createChainOwner(showCommand);
 
+    // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
+    DWORD style = WS_CLIPCHILDREN | (tray ? (WS_POPUP | WS_SYSMENU)
+        : (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX));
     HWND createHwnd = CreateWindowEx(
         tray ? WS_EX_TOOLWINDOW : 0, // tool windows have a lighter shadow and no rounded corners
-        className(), title,
-        // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
-        (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX) | WS_CLIPCHILDREN,
+        className(), title, style,
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
         owner, nullptr, GetModuleHandle(nullptr), this);
     if (!createHwnd) {
@@ -269,7 +268,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         case WM_NCCALCSIZE:
-            if (wParam == TRUE) {
+            if (wParam == TRUE && !tray) {
                 // allow resizing past the edge of the window by reducing client rect
                 NCCALCSIZE_PARAMS *params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
                 params->rgrc[0].left = params->rgrc[0].left + RESIZE_MARGIN;
@@ -279,6 +278,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 // for DWM custom frame
                 return 0;
             }
+            break;
         case WM_NCHITTEST: {
             // for DWM custom frame
             LRESULT defHitTest = DefWindowProc(hwnd, message, wParam, lParam);
@@ -444,19 +444,26 @@ bool ItemWindow::handleTopLevelMessage(MSG *msg) {
 }
 
 void ItemWindow::onCreate() {
-    BOOL disableAnimations = true;
-    checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-        &disableAnimations, sizeof(disableAnimations)));
-    extendWindowFrame();
-
     if (iconLarge)
         PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
-    if (tray)
+    if (tray) {
+        RECT clientRect;
+        GetClientRect(hwnd, &clientRect);
+        traySizeGrip = CreateWindow(L"SCROLLBAR", nullptr,
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SBS_SIZEBOX | SBS_SIZEBOXBOTTOMRIGHTALIGN,
+            0, 0, clientRect.right, clientRect.bottom,
+            hwnd, nullptr, GetModuleHandle(nullptr), nullptr);
         return; // !!
+    }
     /* everything below relates to caption */
+
+    BOOL disableAnimations = true;
+    checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+        &disableAnimations, sizeof(disableAnimations)));
+    extendWindowFrame();
 
     // will succeed for folders and EXEs, and fail for regular files
     if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget)))) {
@@ -538,12 +545,19 @@ void ItemWindow::onActivate(WORD state, HWND) {
     }
 }
 
-void ItemWindow::onSize(int, int) {
+void ItemWindow::onSize(int width, int height) {
     windowRectChanged();
     if (parent && preserveSize()) {
         RECT rect;
         GetWindowRect(hwnd, &rect);
         parent->storedChildSize = rectSize(rect);
+    }
+    if (tray) {
+        RECT gripRect;
+        GetWindowRect(traySizeGrip, &gripRect);
+        SetWindowPos(traySizeGrip, nullptr,
+            width - rectWidth(gripRect), height - rectHeight(gripRect), 0, 0,
+            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
 }
 
@@ -566,7 +580,6 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-c-hittestnca-function
     // the default window proc handles the left, right, and bottom edges
     // so only need to check top edge and caption
-    // (default proc handles everything for the tray)
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect); // TODO what about the shadow??
 
@@ -575,7 +588,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
 
     if (cursor.y < windowRect.top || cursor.y >= windowRect.bottom) {
         return HTNOWHERE;
-    } else if (cursor.y < windowRect.top + RESIZE_MARGIN) {
+    } else if (cursor.y < windowRect.top + RESIZE_MARGIN && !tray) {
         if (cursor.x < windowRect.left + RESIZE_MARGIN * 2)
             return HTTOPLEFT;
         else if (cursor.x >= windowRect.right - RESIZE_MARGIN * 2)
