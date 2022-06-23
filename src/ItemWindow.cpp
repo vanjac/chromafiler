@@ -466,7 +466,7 @@ void ItemWindow::onCreate() {
         GetClientRect(hwnd, &clientRect);
         traySizeGrip = CreateWindow(L"SCROLLBAR", nullptr,
             WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SBS_SIZEBOX | SBS_SIZEBOXBOTTOMRIGHTALIGN,
-            0, 0, clientRect.right, clientRect.bottom,
+            0, 0, clientRect.right - 1, clientRect.bottom - 1,
             hwnd, nullptr, instance, nullptr);
         return; // !!
     }
@@ -566,7 +566,7 @@ void ItemWindow::onSize(int width, int height) {
         RECT gripRect;
         GetWindowRect(traySizeGrip, &gripRect);
         SetWindowPos(traySizeGrip, nullptr,
-            width - rectWidth(gripRect), height - rectHeight(gripRect), 0, 0,
+            width - rectWidth(gripRect) - 1, height - rectHeight(gripRect) - 1, 0, 0,
             SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
 }
