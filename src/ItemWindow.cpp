@@ -177,8 +177,7 @@ bool ItemWindow::create(RECT rect, int showCommand, bool isTray) {
     // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
     DWORD style = WS_CLIPCHILDREN | (tray ? (WS_POPUP | WS_SYSMENU)
         : (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX));
-    HWND createHwnd = CreateWindowEx(
-        tray ? WS_EX_TOOLWINDOW : 0, // tool windows have a lighter shadow and no rounded corners
+    HWND createHwnd = CreateWindow(
         className(), title, style,
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
         owner, nullptr, GetModuleHandle(nullptr), this);
