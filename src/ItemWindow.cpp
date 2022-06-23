@@ -398,10 +398,10 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             break;
         }
         case WM_COMMAND: {
-            if ((HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
+            if (parentButton && (HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
                 openParent();
                 return 0;
-            } else if ((HWND)lParam == renameBox && HIWORD(wParam) == EN_KILLFOCUS) {
+            } else if (renameBox && (HWND)lParam == renameBox && HIWORD(wParam) == EN_KILLFOCUS) {
                 if (IsWindowVisible(renameBox))
                     completeRename();
                 return 0;
