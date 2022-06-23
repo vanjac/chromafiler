@@ -183,7 +183,7 @@ bool ItemWindow::create(RECT rect, int showCommand, bool isTray) {
         owner = createChainOwner(showCommand);
 
     // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
-    DWORD style = WS_CLIPCHILDREN | (tray ? (WS_POPUP | WS_SYSMENU)
+    DWORD style = WS_CLIPCHILDREN | (tray ? (WS_POPUP | WS_SYSMENU | WS_BORDER)
         : (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX));
     HWND createHwnd = CreateWindow(
         className(), title, style,
@@ -468,13 +468,13 @@ void ItemWindow::onCreate() {
     if (tray) {
         CreateWindow(MOVE_GRIP_CLASS, nullptr,
             WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
-            1, 1, GetSystemMetrics(SM_CXVSCROLL), GetSystemMetrics(SM_CYHSCROLL),
+            0, 0, GetSystemMetrics(SM_CXVSCROLL), GetSystemMetrics(SM_CYHSCROLL),
             hwnd, nullptr, instance, nullptr);
         RECT clientRect;
         GetClientRect(hwnd, &clientRect);
         traySizeGrip = CreateWindow(L"SCROLLBAR", nullptr,
             WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SBS_SIZEBOX | SBS_SIZEBOXBOTTOMRIGHTALIGN,
-            0, 0, clientRect.right - 1, clientRect.bottom - 1,
+            0, 0, clientRect.right, clientRect.bottom,
             hwnd, nullptr, instance, nullptr);
         return; // !!
     }
@@ -574,7 +574,7 @@ void ItemWindow::onSize(int width, int height) {
         RECT gripRect;
         GetWindowRect(traySizeGrip, &gripRect);
         SetWindowPos(traySizeGrip, nullptr,
-            width - rectWidth(gripRect) - 1, height - rectHeight(gripRect) - 1, 0, 0,
+            width - rectWidth(gripRect), height - rectHeight(gripRect), 0, 0,
             SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     }
 }
@@ -1200,8 +1200,8 @@ LRESULT CALLBACK ItemWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
                 POINT offset = {GET_X_LPARAM(offsetParam), GET_Y_LPARAM(offsetParam)};
                 HWND parent = GetParent(hwnd);
                 MapWindowPoints(hwnd, parent, &offset, 1);
-                SetWindowPos(parent, nullptr, cursor.x - offset.x, cursor.y - offset.y, 0, 0,
-                    SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+                SetWindowPos(parent, nullptr, cursor.x - offset.x - 1, cursor.y - offset.y - 1,
+                    0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
             }
             break;
         case WM_LBUTTONUP:

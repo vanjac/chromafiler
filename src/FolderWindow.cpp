@@ -86,11 +86,11 @@ void FolderWindow::onCreate() {
     folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;
+    checkHR(browser->SetOptions(EBO_NAVIGATEONCE | EBO_NOBORDER)); // no navigation
     if (!checkHR(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
         browser = nullptr;
         return;
     }
-    checkHR(browser->SetOptions(EBO_NAVIGATEONCE)); // no navigation
 
     checkHR(browser->SetPropertyBag(PROPERTY_BAG));
     if (!checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
