@@ -109,6 +109,7 @@ private:
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
     static LRESULT CALLBACK renameBoxProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
+    static LRESULT CALLBACK moveGripProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
     HICON iconLarge = nullptr, iconSmall = nullptr;
 

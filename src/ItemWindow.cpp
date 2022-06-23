@@ -13,6 +13,7 @@
 namespace chromabrowse {
 
 const wchar_t *CHAIN_OWNER_CLASS = L"Chain";
+const wchar_t *MOVE_GRIP_CLASS = L"Move Grip";
 const wchar_t *WINDOW_THEME = L"CompositedWindow::Window";
 
 // dimensions
@@ -43,6 +44,13 @@ void ItemWindow::init() {
     chainClass.lpfnWndProc = DefWindowProc;
     chainClass.hInstance = hInstance;
     RegisterClass(&chainClass);
+
+    WNDCLASS moveGripClass = {};
+    moveGripClass.lpszClassName = MOVE_GRIP_CLASS;
+    moveGripClass.lpfnWndProc = moveGripProc;
+    moveGripClass.hbrBackground = (HBRUSH)(COLOR_3DFACE + 1);
+    moveGripClass.hCursor = LoadCursor(nullptr, IDC_SIZEALL);
+    RegisterClass(&moveGripClass);
 
     RECT adjustedRect = {};
     AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
@@ -448,13 +456,18 @@ void ItemWindow::onCreate() {
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
+    HMODULE instance = GetWindowInstance(hwnd);
     if (tray) {
+        CreateWindow(MOVE_GRIP_CLASS, nullptr,
+            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+            1, 1, GetSystemMetrics(SM_CXVSCROLL), GetSystemMetrics(SM_CYHSCROLL),
+            hwnd, nullptr, instance, nullptr);
         RECT clientRect;
         GetClientRect(hwnd, &clientRect);
         traySizeGrip = CreateWindow(L"SCROLLBAR", nullptr,
             WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SBS_SIZEBOX | SBS_SIZEBOXBOTTOMRIGHTALIGN,
             0, 0, clientRect.right, clientRect.bottom,
-            hwnd, nullptr, GetModuleHandle(nullptr), nullptr);
+            hwnd, nullptr, instance, nullptr);
         return; // !!
     }
     /* everything below relates to caption */
@@ -469,8 +482,6 @@ void ItemWindow::onCreate() {
         checkHR(dropTargetHelper.CoCreateInstance(CLSID_DragDropHelper));
         checkHR(RegisterDragDrop(hwnd, this));
     }
-
-    HMODULE instance = GetWindowInstance(hwnd);
 
     tooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
         WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
@@ -1165,6 +1176,47 @@ LRESULT CALLBACK ItemWindow::renameBoxProc(HWND hwnd, UINT message,
         return 0;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
+LRESULT CALLBACK ItemWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+        case WM_LBUTTONDOWN:
+            SetCapture(hwnd);
+            SetWindowLongPtr(hwnd, GWLP_USERDATA, lParam); // cursor offset
+            break;
+        case WM_MOUSEMOVE:
+            if (wParam & MK_LBUTTON) {
+                POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+                ClientToScreen(hwnd, &cursor);
+                LPARAM offsetParam = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+                POINT offset = {GET_X_LPARAM(offsetParam), GET_Y_LPARAM(offsetParam)};
+                HWND parent = GetParent(hwnd);
+                SetWindowPos(parent, nullptr, cursor.x - offset.x, cursor.y - offset.y, 0, 0,
+                    SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+            }
+            break;
+        case WM_LBUTTONUP:
+            ReleaseCapture();
+            break;
+        case WM_RBUTTONUP:
+            PostMessage(GetParent(hwnd), WM_SYSCOMMAND, SC_KEYMENU, ' '); // show system menu
+            break;
+        case WM_PAINT: {
+            PAINTSTRUCT paint;
+            BeginPaint(hwnd, &paint);
+            RECT rect;
+            GetClientRect(hwnd, &rect);
+            InflateRect(&rect, -4, -4);
+            HBRUSH oldBrush = SelectBrush(paint.hdc, GetStockBrush(NULL_BRUSH));
+            HPEN oldPen = SelectPen(paint.hdc, GetStockPen(BLACK_PEN));
+            Rectangle(paint.hdc, rect.left, rect.top, rect.right, rect.bottom);
+            SelectBrush(paint.hdc, oldBrush);
+            SelectPen(paint.hdc, oldPen);
+            EndPaint(hwnd, &paint);
+            break;
+        }
+    }
+    return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
 } // namespace
