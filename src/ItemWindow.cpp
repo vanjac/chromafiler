@@ -349,6 +349,14 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             return 0;
         }
+        case WM_GETMINMAXINFO:
+            if (tray) {
+                MINMAXINFO *minMax = (LPMINMAXINFO)lParam;
+                minMax->ptMinTrackSize.x = 28;
+                minMax->ptMinTrackSize.y = 28;
+                return 0;
+            }
+            break;
         case WM_NCLBUTTONDOWN: {
             POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             POINT clientCursor = cursor;
