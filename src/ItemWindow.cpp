@@ -1191,6 +1191,7 @@ LRESULT CALLBACK ItemWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
                 LPARAM offsetParam = GetWindowLongPtr(hwnd, GWLP_USERDATA);
                 POINT offset = {GET_X_LPARAM(offsetParam), GET_Y_LPARAM(offsetParam)};
                 HWND parent = GetParent(hwnd);
+                MapWindowPoints(hwnd, parent, &offset, 1);
                 SetWindowPos(parent, nullptr, cursor.x - offset.x, cursor.y - offset.y, 0, 0,
                     SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
             }
