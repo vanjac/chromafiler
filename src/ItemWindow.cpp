@@ -13,7 +13,6 @@
 namespace chromabrowse {
 
 const wchar_t *CHAIN_OWNER_CLASS = L"Chain";
-const wchar_t *MOVE_GRIP_CLASS = L"Move Grip";
 const wchar_t *WINDOW_THEME = L"CompositedWindow::Window";
 
 // dimensions
@@ -44,13 +43,6 @@ void ItemWindow::init() {
     chainClass.lpfnWndProc = DefWindowProc;
     chainClass.hInstance = hInstance;
     RegisterClass(&chainClass);
-
-    WNDCLASS moveGripClass = {};
-    moveGripClass.lpszClassName = MOVE_GRIP_CLASS;
-    moveGripClass.lpfnWndProc = moveGripProc;
-    moveGripClass.hbrBackground = (HBRUSH)(COLOR_3DFACE + 1);
-    moveGripClass.hCursor = LoadCursor(nullptr, IDC_SIZEALL);
-    RegisterClass(&moveGripClass);
 
     RECT adjustedRect = {};
     AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
@@ -130,17 +122,31 @@ ItemWindow::~ItemWindow() {
         DestroyIcon(iconSmall);
 }
 
-bool ItemWindow::preserveSize() {
+bool ItemWindow::preserveSize() const {
     return true;
 }
 
-SIZE ItemWindow::requestedSize() {
+SIZE ItemWindow::requestedSize() const {
     return DEFAULT_SIZE;
 }
 
-bool ItemWindow::create(RECT rect, int showCommand, bool isTray) {
-    tray = isTray;
+DWORD ItemWindow::windowStyle() const {
+    return WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX;
+}
 
+bool ItemWindow::useCustomFrame() const {
+    return true;
+}
+
+bool ItemWindow::alwaysOnTop() const {
+    return false;
+}
+
+bool ItemWindow::stickToChild() const {
+    return true;
+}
+
+bool ItemWindow::create(RECT rect, int showCommand) {
     if (!checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         return false;
     debugPrintf(L"Open %s\n", &*title);
@@ -162,7 +168,7 @@ bool ItemWindow::create(RECT rect, int showCommand, bool isTray) {
     }
 
     // keep window on screen
-    if (rect.left != CW_USEDEFAULT && rect.top != CW_USEDEFAULT) {
+    if (!alwaysOnTop() && rect.left != CW_USEDEFAULT && rect.top != CW_USEDEFAULT) {
         POINT testPoint = {rect.left, rect.top + CAPTION_HEIGHT};
         HMONITOR nearestMonitor = MonitorFromPoint(testPoint, MONITOR_DEFAULTTONEAREST);
         MONITORINFO monitorInfo;
@@ -175,18 +181,16 @@ bool ItemWindow::create(RECT rect, int showCommand, bool isTray) {
     }
 
     HWND owner;
-    if (parent && !parent->tray)
+    if (parent && !parent->alwaysOnTop())
         owner = GetWindowOwner(parent->hwnd);
     else if (child)
         owner = GetWindowOwner(child->hwnd);
     else
         owner = createChainOwner(showCommand);
 
-    // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
-    DWORD style = WS_CLIPCHILDREN | (tray ? (WS_POPUP | WS_SYSMENU | WS_BORDER)
-        : (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX));
     HWND createHwnd = CreateWindow(
-        className(), title, style,
+        // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
+        className(), title, windowStyle() | WS_CLIPCHILDREN,
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
         owner, nullptr, GetModuleHandle(nullptr), this);
     if (!createHwnd) {
@@ -204,7 +208,7 @@ bool ItemWindow::create(RECT rect, int showCommand, bool isTray) {
 
 HWND ItemWindow::createChainOwner(int showCommand) {
     HWND ownerOwner = nullptr;
-    if (tray)
+    if (alwaysOnTop())
         ownerOwner = FindWindow(L"Shell_TrayWnd", NULL);
     HWND window = CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
         ownerOwner, nullptr, GetModuleHandle(nullptr), 0); // user data stores num owned windows
@@ -234,7 +238,8 @@ void ItemWindow::move(int x, int y) {
 RECT ItemWindow::windowBody() {
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    return tray ? clientRect : RECT {0, CAPTION_HEIGHT, clientRect.right, clientRect.bottom};
+    return useCustomFrame() ? RECT {0, CAPTION_HEIGHT, clientRect.right, clientRect.bottom}
+        : clientRect;
 }
 
 LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -250,8 +255,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_CREATE:
             onCreate();
-            // ensure WM_NCCALCSIZE gets called
-            // for DWM custom frame
+            // ensure WM_NCCALCSIZE gets called; necessary for custom frame
             SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
             return 0;
@@ -275,26 +279,23 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
         case WM_NCCALCSIZE:
-            if (wParam == TRUE && !tray) {
+            if (wParam == TRUE && useCustomFrame()) {
                 // allow resizing past the edge of the window by reducing client rect
                 NCCALCSIZE_PARAMS *params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
                 params->rgrc[0].left = params->rgrc[0].left + RESIZE_MARGIN;
                 params->rgrc[0].top = params->rgrc[0].top;
                 params->rgrc[0].right = params->rgrc[0].right - RESIZE_MARGIN;
                 params->rgrc[0].bottom = params->rgrc[0].bottom - RESIZE_MARGIN;
-                // for DWM custom frame
                 return 0;
             }
             break;
         case WM_NCHITTEST: {
-            // for DWM custom frame
             LRESULT defHitTest = DefWindowProc(hwnd, message, wParam, lParam);
             if (defHitTest != HTCLIENT)
                 return defHitTest;
             return hitTestNCA({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
         }
         case WM_PAINT: {
-            // for DWM custom frame
             PAINTSTRUCT paint;
             BeginPaint(hwnd, &paint);
             onPaint(paint);
@@ -327,7 +328,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             windowRectChanged();
             return 0;
         case WM_SIZING:
-            if (parent && !parent->tray) {
+            if (parent && parent->stickToChild()) {
                 RECT *desiredRect = (RECT *)lParam;
                 RECT curRect;
                 GetWindowRect(hwnd, &curRect);
@@ -339,7 +340,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     moveY = desiredRect->top - curRect.top;
                 if (moveX != 0 || moveY != 0) {
                     auto topParent = parent;
-                    while (topParent->parent && !topParent->parent->tray)
+                    while (topParent->parent && topParent->parent->stickToChild())
                         topParent = topParent->parent;
                     topParent->move(moveX, moveY);
                 }
@@ -349,14 +350,6 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
             return 0;
         }
-        case WM_GETMINMAXINFO:
-            if (tray) {
-                MINMAXINFO *minMax = (LPMINMAXINFO)lParam;
-                minMax->ptMinTrackSize.x = 28;
-                minMax->ptMinTrackSize.y = 28;
-                return 0;
-            }
-            break;
         case WM_NCLBUTTONDOWN: {
             POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             POINT clientCursor = cursor;
@@ -422,7 +415,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 case ID_PREV_WINDOW:
                     if (parent)
                         parent->activate();
-                    else if (!tray)
+                    else if (useCustomFrame())
                         openParent();
                     return 0;
                 case ID_CLOSE_WINDOW:
@@ -432,14 +425,14 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     refresh();
                     return 0;
                 case ID_PROXY_MENU:
-                    if (!tray) {
+                    if (useCustomFrame()) {
                         POINT menuPos = {proxyRect.right, proxyRect.top};
                         ClientToScreen(hwnd, &menuPos);
                         openProxyContextMenu(menuPos);
                         return 0;
                     }
                 case ID_RENAME_PROXY:
-                    if (!tray)
+                    if (useCustomFrame())
                         beginRename();
                     return 0;
                 case ID_HELP:
@@ -464,26 +457,19 @@ void ItemWindow::onCreate() {
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
-    HMODULE instance = GetWindowInstance(hwnd);
-    if (tray) {
-        CreateWindow(MOVE_GRIP_CLASS, nullptr,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
-            0, 0, GetSystemMetrics(SM_CXVSCROLL), GetSystemMetrics(SM_CYHSCROLL),
-            hwnd, nullptr, instance, nullptr);
-        RECT clientRect;
-        GetClientRect(hwnd, &clientRect);
-        traySizeGrip = CreateWindow(L"SCROLLBAR", nullptr,
-            WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SBS_SIZEBOX | SBS_SIZEBOXBOTTOMRIGHTALIGN,
-            0, 0, clientRect.right, clientRect.bottom,
-            hwnd, nullptr, instance, nullptr);
+    if (!useCustomFrame())
         return; // !!
-    }
     /* everything below relates to caption */
 
     BOOL disableAnimations = true;
     checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
         &disableAnimations, sizeof(disableAnimations)));
-    extendWindowFrame();
+    MARGINS margins;
+    margins.cxLeftWidth = 0;
+    margins.cxRightWidth = 0;
+    margins.cyTopHeight = CAPTION_HEIGHT;
+    margins.cyBottomHeight = 0;
+    checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
 
     // will succeed for folders and EXEs, and fail for regular files
     if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget)))) {
@@ -491,6 +477,7 @@ void ItemWindow::onCreate() {
         checkHR(RegisterDragDrop(hwnd, this));
     }
 
+    HMODULE instance = GetWindowInstance(hwnd);
     tooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
         WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
@@ -542,11 +529,7 @@ void ItemWindow::onDestroy() {
 }
 
 void ItemWindow::onActivate(WORD state, HWND) {
-    // for DWM custom frame
-    // make sure frame is correct if window is maximized
-    extendWindowFrame();
-
-    if (!tray) {
+    if (useCustomFrame()) {
         // TODO handle this in WM_NCACTIVATE instead
         RECT captionRect;
         GetClientRect(hwnd, &captionRect);
@@ -563,35 +546,19 @@ void ItemWindow::onActivate(WORD state, HWND) {
     }
 }
 
-void ItemWindow::onSize(int width, int height) {
+void ItemWindow::onSize(int, int) {
     windowRectChanged();
     if (parent && preserveSize()) {
         RECT rect;
         GetWindowRect(hwnd, &rect);
         parent->storedChildSize = rectSize(rect);
     }
-    if (tray) {
-        RECT gripRect;
-        GetWindowRect(traySizeGrip, &gripRect);
-        SetWindowPos(traySizeGrip, nullptr,
-            width - rectWidth(gripRect), height - rectHeight(gripRect), 0, 0,
-            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-    }
 }
 
 void ItemWindow::windowRectChanged() {
-    if (child && !tray) {
-        child->setPos(childPos());
+    if (child && stickToChild()) {
+        child->setPos(childPos({})); // TODO pass child size
     }
-}
-
-void ItemWindow::extendWindowFrame() {
-    MARGINS margins;
-    margins.cxLeftWidth = 0;
-    margins.cxRightWidth = 0;
-    margins.cyTopHeight = tray ? 0 : CAPTION_HEIGHT;
-    margins.cyBottomHeight = 0;
-    checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
 }
 
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {
@@ -606,7 +573,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
 
     if (cursor.y < windowRect.top || cursor.y >= windowRect.bottom) {
         return HTNOWHERE;
-    } else if (cursor.y < windowRect.top + RESIZE_MARGIN && !tray) {
+    } else if (cursor.y < windowRect.top + RESIZE_MARGIN && useCustomFrame()) {
         if (cursor.x < windowRect.left + RESIZE_MARGIN * 2)
             return HTTOPLEFT;
         else if (cursor.x >= windowRect.right - RESIZE_MARGIN * 2)
@@ -619,7 +586,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
 }
 
 void ItemWindow::onPaint(PAINTSTRUCT paint) {
-    if (tray)
+    if (!useCustomFrame())
         return;
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-b-painting-the-caption-title
     RECT clientRect;
@@ -731,18 +698,9 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     }
     child = createItemWindow(this, childItem);
     SIZE size = child->preserveSize() ? storedChildSize : child->requestedSize();
-    RECT rect;
-    if (tray) {
-        RECT windowRect;
-        GetWindowRect(hwnd, &windowRect);
-        rect = {windowRect.left, windowRect.top - size.cy, // ignore drop shadow, some space is good
-                windowRect.left + size.cx, windowRect.top};
-    } else {
-        POINT pos = childPos();
-        rect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
-    }
+    POINT pos = childPos(size);
     // will flush message queue
-    child->create(rect, SW_SHOWNOACTIVATE);
+    child->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNOACTIVATE);
 }
 
 void ItemWindow::closeChild() {
@@ -778,7 +736,7 @@ void ItemWindow::clearParent() {
 
 void ItemWindow::detachFromParent() {
     parent->activate(); // focus parent in chain
-    if (!parent->tray) {
+    if (!parent->alwaysOnTop()) {
         HWND prevOwner = GetWindowOwner(hwnd);
         HWND owner = createChainOwner(SW_SHOWNORMAL);
         int numChildren = 0;
@@ -799,7 +757,7 @@ void ItemWindow::detachFromParent() {
 
 void ItemWindow::onChildDetached() {}
 
-POINT ItemWindow::childPos() {
+POINT ItemWindow::childPos(SIZE) {
     RECT windowRect = {}, clientRect = {};
     // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
     // GetWindowRect includes the drop shadow! (why??)
@@ -1184,48 +1142,6 @@ LRESULT CALLBACK ItemWindow::renameBoxProc(HWND hwnd, UINT message,
         return 0;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
-}
-
-LRESULT CALLBACK ItemWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    switch (message) {
-        case WM_LBUTTONDOWN:
-            SetCapture(hwnd);
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, lParam); // cursor offset
-            break;
-        case WM_MOUSEMOVE:
-            if (wParam & MK_LBUTTON) {
-                POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-                ClientToScreen(hwnd, &cursor);
-                LPARAM offsetParam = GetWindowLongPtr(hwnd, GWLP_USERDATA);
-                POINT offset = {GET_X_LPARAM(offsetParam), GET_Y_LPARAM(offsetParam)};
-                HWND parent = GetParent(hwnd);
-                MapWindowPoints(hwnd, parent, &offset, 1);
-                SetWindowPos(parent, nullptr, cursor.x - offset.x - 1, cursor.y - offset.y - 1,
-                    0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-            }
-            break;
-        case WM_LBUTTONUP:
-            ReleaseCapture();
-            break;
-        case WM_RBUTTONUP:
-            PostMessage(GetParent(hwnd), WM_SYSCOMMAND, SC_KEYMENU, ' '); // show system menu
-            break;
-        case WM_PAINT: {
-            PAINTSTRUCT paint;
-            BeginPaint(hwnd, &paint);
-            RECT rect;
-            GetClientRect(hwnd, &rect);
-            InflateRect(&rect, -4, -4);
-            HBRUSH oldBrush = SelectBrush(paint.hdc, GetStockBrush(NULL_BRUSH));
-            HPEN oldPen = SelectPen(paint.hdc, GetStockPen(BLACK_PEN));
-            Rectangle(paint.hdc, rect.left, rect.top, rect.right, rect.bottom);
-            SelectBrush(paint.hdc, oldBrush);
-            SelectPen(paint.hdc, oldPen);
-            EndPaint(hwnd, &paint);
-            break;
-        }
-    }
-    return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
 } // namespace

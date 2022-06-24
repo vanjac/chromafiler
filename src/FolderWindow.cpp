@@ -33,11 +33,11 @@ const wchar_t * FolderWindow::className() {
     return FOLDER_WINDOW_CLASS;
 }
 
-bool FolderWindow::preserveSize() {
+bool FolderWindow::preserveSize() const {
     return false;
 }
 
-SIZE FolderWindow::requestedSize() {
+SIZE FolderWindow::requestedSize() const {
     if (propBag) {
         VARIANT sizeVar = {};
         sizeVar.vt = VT_UI4;

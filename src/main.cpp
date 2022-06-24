@@ -1,6 +1,7 @@
 #include "FolderWindow.h"
 #include "ThumbnailWindow.h"
 #include "PreviewWindow.h"
+#include "TrayWindow.h"
 #include "CreateItemWindow.h"
 #include "resource.h"
 #include <shellapi.h>
@@ -57,6 +58,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     chromabrowse::FolderWindow::init();
     chromabrowse::ThumbnailWindow::init();
     chromabrowse::PreviewWindow::init();
+    chromabrowse::TrayWindow::init();
 
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));
@@ -90,19 +92,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             }
         }
 
-        CComPtr<chromabrowse::ItemWindow> initialWindow
-            = chromabrowse::createItemWindow(nullptr, startItem);
-        SIZE size = initialWindow->requestedSize();
-        RECT windowRect = {CW_USEDEFAULT, CW_USEDEFAULT,
-                           CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
-        initialWindow->create(windowRect, showCommand, tray);
+        CComPtr<chromabrowse::ItemWindow> initialWindow;
+        POINT pos;
         if (tray) {
-            // CreateWindow() won't allow positioning below the work area
-            // TODO check taskbar position/alignment
+            initialWindow.Attach(new chromabrowse::TrayWindow(nullptr, startItem));
             RECT workArea;
             SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-            initialWindow->setPos({workArea.left, workArea.bottom});
+            pos = {workArea.left, workArea.bottom};
+        } else {
+            initialWindow = chromabrowse::createItemWindow(nullptr, startItem);
+            pos = {CW_USEDEFAULT, CW_USEDEFAULT};
         }
+        SIZE size = initialWindow->requestedSize();
+        initialWindow->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, showCommand);
     }
     LocalFree(argv);
 

@@ -27,10 +27,10 @@ public:
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
     virtual ~ItemWindow();
 
-    virtual bool preserveSize(); // if true, requested size will be ignored by parent
-    virtual SIZE requestedSize();
+    virtual bool preserveSize() const; // if true, requested size will be ignored by parent
+    virtual SIZE requestedSize() const;
 
-    bool create(RECT rect, int showCommand, bool isTray = false);
+    bool create(RECT rect, int showCommand);
     void setPos(POINT pos);
 
     virtual bool handleTopLevelMessage(MSG *msg);
@@ -77,6 +77,12 @@ protected:
 private:
     virtual const wchar_t * className() = 0;
 
+    // extension points for TrayWindow
+    virtual DWORD windowStyle() const;
+    virtual bool useCustomFrame() const;
+    virtual bool alwaysOnTop() const;
+    virtual bool stickToChild() const;
+
     void close();
     void activate();
     void move(int x, int y);
@@ -85,14 +91,12 @@ private:
 
     void windowRectChanged();
     void bringGroupToFront();
-    // for DWM custom frame:
-    void extendWindowFrame();
     LRESULT hitTestNCA(POINT cursor);
 
     void openParent();
     void clearParent();
     void detachFromParent(); // updates UI state
-    POINT childPos(); // top left corner of child
+    virtual POINT childPos(SIZE size); // top left corner of child
     POINT parentPos(); // top right corner of parent
 
     void invokeProxyDefaultVerb(POINT point);
@@ -109,7 +113,6 @@ private:
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
     static LRESULT CALLBACK renameBoxProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
-    static LRESULT CALLBACK moveGripProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
     HICON iconLarge = nullptr, iconSmall = nullptr;
 
@@ -120,9 +123,6 @@ private:
     // for handling delayed context menu messages while open (eg. for Open With menu)
     CComQIPtr<IContextMenu2> contextMenu2;
     CComQIPtr<IContextMenu3> contextMenu3;
-
-    bool tray = false;
-    HWND traySizeGrip;
 
     SIZE storedChildSize;
     POINT moveAccum;
