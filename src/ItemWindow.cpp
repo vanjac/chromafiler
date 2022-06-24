@@ -543,6 +543,10 @@ void ItemWindow::onActivate(WORD state, HWND) {
         SetWindowText(owner, title); // update taskbar / alt-tab
         PostMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
         PostMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+        if (alwaysOnTop() && child) {
+            SetWindowPos(child->hwnd, HWND_TOP, 0, 0, 0, 0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
     }
 }
 
