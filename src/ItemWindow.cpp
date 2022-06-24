@@ -429,8 +429,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                         POINT menuPos = {proxyRect.right, proxyRect.top};
                         ClientToScreen(hwnd, &menuPos);
                         openProxyContextMenu(menuPos);
-                        return 0;
                     }
+                    return 0;
                 case ID_RENAME_PROXY:
                     if (useCustomFrame())
                         beginRename();
