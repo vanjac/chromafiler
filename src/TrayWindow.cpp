@@ -183,9 +183,16 @@ LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
 
 LRESULT CALLBACK TrayWindow::sizeGripProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
-    if (message == WM_SETCURSOR && LOWORD(lParam) == HTCLIENT) {
-        SetCursor(LoadCursor(nullptr, IDC_SIZENWSE));
-        return TRUE;
+    switch (message) {
+        case WM_SETCURSOR:
+            if (LOWORD(lParam) == HTCLIENT) {
+                SetCursor(LoadCursor(nullptr, IDC_SIZENWSE));
+                return TRUE;
+            }
+            break;
+        case WM_LBUTTONDBLCLK: // suppress default maximize behavior
+        case WM_RBUTTONUP: // suppress right click menu
+            return 0;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
