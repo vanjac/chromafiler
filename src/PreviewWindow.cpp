@@ -102,10 +102,8 @@ void PreviewWindow::onSize(int width, int height) {
     if (preview) {
         RECT previewRect = windowBody();
         RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
-        SetWindowPos(container, 0,
-            previewRect.left, previewRect.top,
-            containerClientRect.right, containerClientRect.bottom,
-            SWP_NOZORDER | SWP_NOACTIVATE);
+        MoveWindow(container, previewRect.left, previewRect.top,
+            containerClientRect.right, containerClientRect.bottom, TRUE);
         checkHR(preview->SetRect(&containerClientRect));
     }
 }

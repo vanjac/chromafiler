@@ -223,7 +223,6 @@ void ItemWindow::activate() {
 }
 
 void ItemWindow::setPos(POINT pos) {
-    // TODO SWP_ASYNCWINDOWPOS?
     SetWindowPos(hwnd, nullptr, pos.x, pos.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
@@ -501,8 +500,7 @@ void ItemWindow::onCreate() {
         WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         hwnd, nullptr, instance, nullptr);
-    SetWindowPos(tooltip, HWND_TOPMOST, 0, 0, 0, 0, 
-                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    SetWindowPos(tooltip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     if (captionFont)
         SendMessage(tooltip, WM_SETFONT, (WPARAM)captionFont, FALSE);
     TOOLINFO toolInfo = {};
@@ -936,8 +934,7 @@ void ItemWindow::beginRename() {
     GetClientRect(hwnd, &clientRect);
     int renameWidth = clientRect.right - GetSystemMetrics(SM_CXSIZE) - renamePos.x;
     ClientToScreen(hwnd, &renamePos);
-    SetWindowPos(renameBox, nullptr, renamePos.x, renamePos.y, renameWidth, renameHeight,
-        SWP_NOZORDER | SWP_NOACTIVATE);
+    MoveWindow(renameBox, renamePos.x, renamePos.y, renameWidth, renameHeight, FALSE);
 
     SendMessage(renameBox, WM_SETTEXT, 0, (LPARAM)&*title);
     wchar_t *ext = PathFindExtension(title);
