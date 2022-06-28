@@ -87,6 +87,7 @@ void TrayWindow::onCreate() {
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SBS_SIZEBOX | SBS_SIZEBOXBOTTOMRIGHTALIGN,
         0, 0, clientRect.right, clientRect.bottom,
         hwnd, nullptr, instance, nullptr);
+    SetWindowSubclass(traySizeGrip, sizeGripProc, 0, 0);
 
     FolderWindow::onCreate();
 }
@@ -170,6 +171,15 @@ LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
         }
     }
     return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+LRESULT CALLBACK TrayWindow::sizeGripProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
+    if (message == WM_SETCURSOR && LOWORD(lParam) == HTCLIENT) {
+        SetCursor(LoadCursor(nullptr, IDC_SIZENWSE));
+        return TRUE;
+    }
+    return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 
 } // namespace
