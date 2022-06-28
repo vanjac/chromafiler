@@ -181,14 +181,15 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     }
 
     HWND owner;
-    if (parent && !parent->alwaysOnTop())
+    if (parent)
         owner = GetWindowOwner(parent->hwnd);
     else if (child)
         owner = GetWindowOwner(child->hwnd);
     else
         owner = createChainOwner(showCommand);
 
-    HWND createHwnd = CreateWindow(
+    HWND createHwnd = CreateWindowEx(
+        alwaysOnTop() ? WS_EX_TOPMOST : 0,
         // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
         className(), title, windowStyle() | WS_CLIPCHILDREN,
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
@@ -207,11 +208,8 @@ bool ItemWindow::create(RECT rect, int showCommand) {
 }
 
 HWND ItemWindow::createChainOwner(int showCommand) {
-    HWND ownerOwner = nullptr;
-    if (alwaysOnTop())
-        ownerOwner = FindWindow(L"Shell_TrayWnd", NULL);
     HWND window = CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
-        ownerOwner, nullptr, GetModuleHandle(nullptr), 0); // user data stores num owned windows
+        nullptr, nullptr, GetModuleHandle(nullptr), 0); // user data stores num owned windows
     ShowWindow(window, showCommand); // show in taskbar
     return window;
 }
@@ -398,6 +396,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break;
         }
+        case WM_TIMER:
+            if (wParam == TIMER_MAKE_TOPMOST) {
+                SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                return 0;
+            }
+            break;
         case WM_COMMAND: {
             if (parentButton && (HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
                 openParent();
@@ -456,6 +460,9 @@ void ItemWindow::onCreate() {
         PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+
+    if (alwaysOnTop())
+        SetCoalescableTimer(hwnd, TIMER_MAKE_TOPMOST, 500, nullptr, 250);
 
     if (!useCustomFrame())
         return; // !!
@@ -740,19 +747,19 @@ void ItemWindow::clearParent() {
 
 void ItemWindow::detachFromParent() {
     parent->activate(); // focus parent in chain
-    if (!parent->alwaysOnTop()) {
-        HWND prevOwner = GetWindowOwner(hwnd);
-        HWND owner = createChainOwner(SW_SHOWNORMAL);
-        int numChildren = 0;
-        for (ItemWindow *next = this; next != nullptr; next = next->child) {
-            SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
-            numChildren++;
-        }
-        SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
-        SetWindowLongPtr(prevOwner, GWLP_USERDATA,
-            GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
-    }
     clearParent();
+
+    HWND prevOwner = GetWindowOwner(hwnd);
+    HWND owner = createChainOwner(SW_SHOWNORMAL);
+    int numChildren = 0;
+    for (ItemWindow *next = this; next != nullptr; next = next->child) {
+        SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
+        numChildren++;
+    }
+    SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
+    SetWindowLongPtr(prevOwner, GWLP_USERDATA,
+        GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
+
     CComPtr<IShellItem> parentItem;
     if (SUCCEEDED(item->GetParent(&parentItem)))
         ShowWindow(parentButton, SW_SHOW);

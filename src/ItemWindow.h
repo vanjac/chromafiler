@@ -52,6 +52,10 @@ public:
     CComPtr<IShellItem> item;
 
 protected:
+    enum TimerID {
+        TIMER_MAKE_TOPMOST = 1,
+        TIMER_LAST
+    };
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
