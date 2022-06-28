@@ -405,7 +405,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         case WM_TIMER:
             if (wParam == TIMER_MAKE_TOPMOST && !fullScreen) {
-                SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                GUITHREADINFO guiThread = {sizeof(guiThread)};
+                // don't cover up eg. menus or drag overlays
+                if (!(GetGUIThreadInfo(0, &guiThread) && guiThread.hwndCapture)) {
+                    SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
+                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                }
                 return 0;
             }
             break;
