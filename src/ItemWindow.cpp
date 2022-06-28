@@ -408,7 +408,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 GUITHREADINFO guiThread = {sizeof(guiThread)};
                 // don't cover up eg. menus or drag overlays
                 if (!(GetGUIThreadInfo(0, &guiThread) && guiThread.hwndCapture)) {
-                    SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0,
+                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
                         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
                 }
                 return 0;
