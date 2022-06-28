@@ -10,10 +10,11 @@
 
 namespace chromabrowse {
 
-const wchar_t *FOLDER_WINDOW_CLASS = L"Folder Window";
-const wchar_t *PROPERTY_BAG = L"chromabrowse";
-const wchar_t *PROP_VISITED = L"chromabrowse.visited";
-const wchar_t *PROP_SIZE = L"chromabrowse.size";
+const wchar_t FOLDER_WINDOW_CLASS[] = L"Folder Window";
+
+const wchar_t PROPERTY_BAG[] = L"chromabrowse";
+const wchar_t PROP_VISITED[] = L"chromabrowse.visited";
+const wchar_t PROP_SIZE[] = L"chromabrowse.size";
 
 void FolderWindow::init() {
     WNDCLASS wndClass = createWindowClass(FOLDER_WINDOW_CLASS);

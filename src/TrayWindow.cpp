@@ -4,13 +4,13 @@
 
 namespace chromabrowse {
 
-const wchar_t *TRAY_WINDOW_CLASS = L"Tray";
-const wchar_t *MOVE_GRIP_CLASS = L"Move Grip";
+const wchar_t TRAY_WINDOW_CLASS[] = L"Tray";
+const wchar_t MOVE_GRIP_CLASS[] = L"Move Grip";
 
-const wchar_t *REG_TRAY_X       = L"TrayX";
-const wchar_t *REG_TRAY_Y       = L"TrayY";
-const wchar_t *REG_TRAY_WIDTH   = L"TrayWidth";
-const wchar_t *REG_TRAY_HEIGHT  = L"TrayHeight";
+const wchar_t REG_TRAY_X[]      = L"TrayX";
+const wchar_t REG_TRAY_Y[]      = L"TrayY";
+const wchar_t REG_TRAY_WIDTH[]  = L"TrayWidth";
+const wchar_t REG_TRAY_HEIGHT[] = L"TrayHeight";
 
 void TrayWindow::init() {
     WNDCLASS wndClass = createWindowClass(TRAY_WINDOW_CLASS);

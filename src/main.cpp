@@ -16,7 +16,7 @@
 #pragma comment(lib, "UxTheme.lib")
 #pragma comment(lib, "Comctl32.lib")
 
-const wchar_t *APP_ID = L"chroma.browse";
+const wchar_t APP_ID[] = L"chroma.browse";
 
 #ifdef CHROMABROWSE_DEBUG
 int main(int, char**) {

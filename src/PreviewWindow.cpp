@@ -22,8 +22,8 @@ struct std::hash<CLSID> {
 
 namespace chromabrowse {
 
-const wchar_t *PREVIEW_WINDOW_CLASS = L"Preview Window";
-const wchar_t *PREVIEW_CONTAINER_CLASS = L"Preview Container";
+const wchar_t PREVIEW_WINDOW_CLASS[] = L"Preview Window";
+const wchar_t PREVIEW_CONTAINER_CLASS[] = L"Preview Container";
 
 enum WorkerUserMessage {
     MSG_INIT_PREVIEW_REQUEST = WM_USER,

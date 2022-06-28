@@ -12,8 +12,8 @@
 
 namespace chromabrowse {
 
-const wchar_t *CHAIN_OWNER_CLASS = L"Chain";
-const wchar_t *WINDOW_THEME = L"CompositedWindow::Window";
+const wchar_t CHAIN_OWNER_CLASS[] = L"Chain";
+const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 
 // dimensions
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
