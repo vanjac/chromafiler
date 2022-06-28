@@ -12,10 +12,14 @@ public:
 
     TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
+    POINT requestedPosition();
+    SIZE requestedSize() const override;
+
 protected:
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     void onCreate() override;
+    void onDestroy() override;
     void onSize(int width, int height) override;
 
 private:

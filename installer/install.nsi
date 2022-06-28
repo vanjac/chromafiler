@@ -1,15 +1,15 @@
-!include LogicLib.nsh
-!include MUI2.nsh
-!include "nsis-shortcut-properties\shortcut-properties.nsh"
-
-!define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\chromabrowse"
-!define CONTEXT_MENU_TEXT "Open in chromabrowse"
-
 Name "chromabrowse"
 OutFile "..\build\chromabrowse-install.exe"
 RequestExecutionLevel admin
 Unicode True
 SetCompressor LZMA
+
+!include MUI2.nsh
+!include EnumUsersReg.nsh
+!include "nsis-shortcut-properties\shortcut-properties.nsh"
+
+!define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\chromabrowse"
+!define CONTEXT_MENU_TEXT "Open in chromabrowse"
 
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
@@ -97,7 +97,14 @@ Section "un.Uninstall"
 	DeleteRegKey HKCR CompressedFolder\shell\chromabrowse
 	DeleteRegKey HKCR Drive\shell\chromabrowse
 	Delete $SMPROGRAMS\chromabrowse.lnk
+
+	${un.EnumUsersReg} un.CleanupUser chromabrowse.temp
 SectionEnd
+
+Function un.CleanupUser
+	Pop $0
+	DeleteRegKey HKU "$0\Software\chromabrowse"
+FunctionEnd
 
 LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
 LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the start menu to launch chromabrowse."

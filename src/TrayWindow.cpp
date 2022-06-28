@@ -7,6 +7,11 @@ namespace chromabrowse {
 const wchar_t *TRAY_WINDOW_CLASS = L"Tray";
 const wchar_t *MOVE_GRIP_CLASS = L"Move Grip";
 
+const wchar_t *REG_TRAY_X       = L"TrayX";
+const wchar_t *REG_TRAY_Y       = L"TrayY";
+const wchar_t *REG_TRAY_WIDTH   = L"TrayWidth";
+const wchar_t *REG_TRAY_HEIGHT  = L"TrayHeight";
+
 void TrayWindow::init() {
     WNDCLASS wndClass = createWindowClass(TRAY_WINDOW_CLASS);
     wndClass.style = 0; // clear redraw style
@@ -25,6 +30,26 @@ TrayWindow::TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
 
 const wchar_t * TrayWindow::className() {
     return TRAY_WINDOW_CLASS;
+}
+
+POINT TrayWindow::requestedPosition() {
+    POINT pos = {CW_USEDEFAULT, CW_USEDEFAULT};
+    DWORD dataSize = sizeof(pos.x);
+    RegGetValue(HKEY_CURRENT_USER, CHROMABROWSE_REG_KEY, REG_TRAY_X, RRF_RT_DWORD,
+        nullptr, &pos.x, &dataSize);
+    RegGetValue(HKEY_CURRENT_USER, CHROMABROWSE_REG_KEY, REG_TRAY_Y, RRF_RT_DWORD,
+        nullptr, &pos.y, &dataSize);
+    return pos;
+}
+
+SIZE TrayWindow::requestedSize() const {
+    SIZE size = {600, 48};
+    DWORD dataSize = sizeof(size.cx);
+    RegGetValue(HKEY_CURRENT_USER, CHROMABROWSE_REG_KEY, REG_TRAY_WIDTH, RRF_RT_DWORD,
+        nullptr, &size.cx, &dataSize);
+    RegGetValue(HKEY_CURRENT_USER, CHROMABROWSE_REG_KEY, REG_TRAY_HEIGHT, RRF_RT_DWORD,
+        nullptr, &size.cy, &dataSize);
+    return size;
 }
 
 DWORD TrayWindow::windowStyle() const {
@@ -64,6 +89,23 @@ void TrayWindow::onCreate() {
         hwnd, nullptr, instance, nullptr);
 
     FolderWindow::onCreate();
+}
+
+void TrayWindow::onDestroy() {
+    FolderWindow::onDestroy();
+
+    RECT windowRect;
+    GetWindowRect(hwnd, &windowRect);
+    DWORD windowWidth = rectWidth(windowRect);
+    DWORD windowHeight = rectHeight(windowRect);
+    RegSetKeyValue(HKEY_CURRENT_USER, CHROMABROWSE_REG_KEY, REG_TRAY_X, REG_DWORD,
+        &windowRect.left, sizeof(windowRect.left));
+    RegSetKeyValue(HKEY_CURRENT_USER, CHROMABROWSE_REG_KEY, REG_TRAY_Y, REG_DWORD,
+        &windowRect.top, sizeof(windowRect.top));
+    RegSetKeyValue(HKEY_CURRENT_USER, CHROMABROWSE_REG_KEY, REG_TRAY_WIDTH, REG_DWORD,
+        &windowWidth, sizeof(windowWidth));
+    RegSetKeyValue(HKEY_CURRENT_USER, CHROMABROWSE_REG_KEY, REG_TRAY_HEIGHT, REG_DWORD,
+        &windowHeight, sizeof(windowHeight));
 }
 
 void TrayWindow::onSize(int width, int height) {

@@ -96,9 +96,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         POINT pos;
         if (tray) {
             initialWindow.Attach(new chromabrowse::TrayWindow(nullptr, startItem));
-            RECT workArea;
-            SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
-            pos = {workArea.left, workArea.bottom};
+            pos = ((chromabrowse::TrayWindow *)initialWindow.p)->requestedPosition();
         } else {
             initialWindow = chromabrowse::createItemWindow(nullptr, startItem);
             pos = {CW_USEDEFAULT, CW_USEDEFAULT};
