@@ -98,7 +98,7 @@ private:
     HWND createChainOwner(int showCommand);
 
     void windowRectChanged();
-    void bringGroupToFront();
+    void forceTopmost();
     LRESULT hitTestNCA(POINT cursor);
 
     void openParent();

@@ -407,10 +407,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             if (wParam == TIMER_MAKE_TOPMOST && !fullScreen) {
                 GUITHREADINFO guiThread = {sizeof(guiThread)};
                 // don't cover up eg. menus or drag overlays
-                if (!(GetGUIThreadInfo(0, &guiThread) && guiThread.hwndCapture)) {
-                    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-                }
+                if (!(GetGUIThreadInfo(0, &guiThread) && guiThread.hwndCapture))
+                    forceTopmost();
                 return 0;
             }
             break;
@@ -591,6 +589,25 @@ void ItemWindow::windowRectChanged() {
     if (child && stickToChild()) {
         child->setPos(childPos({})); // TODO pass child size
     }
+}
+
+void ItemWindow::forceTopmost() {
+    RECT windowRect;
+    GetWindowRect(hwnd, &windowRect);
+    POINT testPoint {(windowRect.left + windowRect.right) / 2,
+                     (windowRect.top + windowRect.bottom) / 2};
+    if (GetAncestor(WindowFromPoint(testPoint), GA_ROOT) == hwnd)
+        return; // already on top
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+    if (GetAncestor(WindowFromPoint(testPoint), GA_ROOT) == hwnd)
+        return; // success!
+    debugPrintf(L"Forcing topmost\n");
+    // ugly hack https://shlomio.wordpress.com/2012/09/04/solved-setforegroundwindow-win32-api-not-always-works/
+    DWORD fgThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
+    AttachThreadInput(fgThread, GetCurrentThreadId(), true);
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+    AttachThreadInput(fgThread, GetCurrentThreadId(), false);
+    return;
 }
 
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {
