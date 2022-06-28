@@ -78,11 +78,12 @@ void TrayWindow::onSize(int width, int height) {
 
 LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
-        case WM_GETMINMAXINFO:
+        case WM_GETMINMAXINFO: {
             MINMAXINFO *minMax = (LPMINMAXINFO)lParam;
             minMax->ptMinTrackSize.x = 28;
             minMax->ptMinTrackSize.y = 28;
             return 0;
+        }
     }
     return FolderWindow::handleMessage(message, wParam, lParam);
 }

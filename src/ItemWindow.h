@@ -52,6 +52,10 @@ public:
     CComPtr<IShellItem> item;
 
 protected:
+    enum UserMessage {
+        MSG_APPBAR_CALLBACK = WM_USER,
+        MSG_LAST
+    };
     enum TimerID {
         TIMER_MAKE_TOPMOST = 1,
         TIMER_LAST
@@ -130,6 +134,7 @@ private:
 
     SIZE storedChildSize;
     POINT moveAccum;
+    bool fullScreen = false;
     // drop target state
     IDataObject *dropDataObject;
     bool overDropTarget = false;

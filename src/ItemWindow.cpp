@@ -396,8 +396,15 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break;
         }
+        case MSG_APPBAR_CALLBACK:
+            if (wParam == ABN_FULLSCREENAPP) {
+                fullScreen = !!lParam;
+                SetWindowPos(hwnd, fullScreen ? HWND_BOTTOM : HWND_TOPMOST,
+                    0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+            }
+            return 0;
         case WM_TIMER:
-            if (wParam == TIMER_MAKE_TOPMOST) {
+            if (wParam == TIMER_MAKE_TOPMOST && !fullScreen) {
                 SetWindowPos(hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
                 return 0;
             }
@@ -461,8 +468,13 @@ void ItemWindow::onCreate() {
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
-    if (alwaysOnTop())
+    if (alwaysOnTop()) {
         SetCoalescableTimer(hwnd, TIMER_MAKE_TOPMOST, 500, nullptr, 250);
+        // to receive fullscreen notifications:
+        APPBARDATA abData = {sizeof(abData), hwnd};
+        abData.uCallbackMessage = MSG_APPBAR_CALLBACK;
+        SHAppBarMessage(ABM_NEW, &abData);
+    }
 
     if (!useCustomFrame())
         return; // !!
@@ -533,6 +545,11 @@ void ItemWindow::onDestroy() {
 
     if (itemDropTarget)
         RevokeDragDrop(hwnd);
+
+    if (alwaysOnTop()) {
+        APPBARDATA abData = {sizeof(abData), hwnd};
+        SHAppBarMessage(ABM_REMOVE, &abData);
+    }
 }
 
 void ItemWindow::onActivate(WORD state, HWND) {
