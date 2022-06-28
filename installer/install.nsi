@@ -83,6 +83,11 @@ Section /o "    (DANGER) Make default file browser" SecDefault
 	WriteRegStr HKCR Drive\Shell "" "chromabrowse"
 SectionEnd
 
+Section /o "Open tray on startup" SecTray
+	SetRegView 64
+	WriteRegStr HKLM SOFTWARE\Microsoft\Windows\CurrentVersion\Run "chromabrowse" '"$INSTDIR\chromabrowse.exe" /tray'
+SectionEnd
+
 Section "un.Uninstall"
 	Delete $INSTDIR\*.exe
 	RMDir $INSTDIR
@@ -96,6 +101,7 @@ Section "un.Uninstall"
 	DeleteRegKey HKCR Directory\Background\shell\chromabrowse
 	DeleteRegKey HKCR CompressedFolder\shell\chromabrowse
 	DeleteRegKey HKCR Drive\shell\chromabrowse
+	DeleteRegValue HKLM SOFTWARE\Microsoft\Windows\CurrentVersion\Run "chromabrowse"
 	Delete $SMPROGRAMS\chromabrowse.lnk
 
 	${un.EnumUsersReg} un.CleanupUser chromabrowse.temp
@@ -110,12 +116,14 @@ LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required compo
 LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the start menu to launch chromabrowse."
 LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromabrowse' command when right-clicking a folder."
 LangString DESC_SecDefault ${LANG_ENGLISH} "Replace File Explorer as the default program for opening folders. WARNING: Experimental, could cause instability."
+LangString DESC_SecTray ${LANG_ENGLISH} "Open a floating Tray window when you log in"
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecBase} $(DESC_SecBase)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecStart} $(DESC_SecStart)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecContext} $(DESC_SecContext)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecDefault} $(DESC_SecDefault)
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecTray} $(DESC_SecTray)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Function .onSelChange
