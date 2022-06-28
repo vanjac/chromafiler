@@ -1,6 +1,7 @@
 #include "TrayWindow.h"
 #include "RectUtils.h"
 #include <windowsx.h>
+#include <shellapi.h>
 
 namespace chromabrowse {
 
@@ -97,6 +98,12 @@ void TrayWindow::onCreate() {
         hwnd, nullptr, instance, nullptr);
     SetWindowSubclass(traySizeGrip, sizeGripProc, 0, 0);
 
+    SetCoalescableTimer(hwnd, TIMER_MAKE_TOPMOST, 500, nullptr, 250);
+    // to receive fullscreen notifications:
+    APPBARDATA abData = {sizeof(abData), hwnd};
+    abData.uCallbackMessage = MSG_APPBAR_CALLBACK;
+    SHAppBarMessage(ABM_NEW, &abData);
+
     FolderWindow::onCreate();
 }
 
@@ -115,6 +122,9 @@ void TrayWindow::onDestroy() {
         &windowWidth, sizeof(windowWidth));
     RegSetKeyValue(HKEY_CURRENT_USER, CHROMABROWSE_REG_KEY, REG_TRAY_HEIGHT, REG_DWORD,
         &windowHeight, sizeof(windowHeight));
+
+    APPBARDATA abData = {sizeof(abData), hwnd};
+    SHAppBarMessage(ABM_REMOVE, &abData);
 }
 
 void TrayWindow::onSize(int width, int height) {
@@ -135,8 +145,43 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             minMax->ptMinTrackSize.y = 28;
             return 0;
         }
+        case MSG_APPBAR_CALLBACK:
+            if (wParam == ABN_FULLSCREENAPP) {
+                fullScreen = !!lParam;
+                SetWindowPos(hwnd, fullScreen ? HWND_BOTTOM : HWND_TOPMOST,
+                    0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+            }
+            return 0;
+        case WM_TIMER:
+            if (wParam == TIMER_MAKE_TOPMOST && !fullScreen) {
+                GUITHREADINFO guiThread = {sizeof(guiThread)};
+                // don't cover up eg. menus or drag overlays
+                if (!(GetGUIThreadInfo(0, &guiThread) && guiThread.hwndCapture))
+                    forceTopmost();
+                return 0;
+            }
+            break;
     }
     return FolderWindow::handleMessage(message, wParam, lParam);
+}
+
+void TrayWindow::forceTopmost() {
+    RECT windowRect;
+    GetWindowRect(hwnd, &windowRect);
+    POINT testPoint {(windowRect.left + windowRect.right) / 2,
+                     (windowRect.top + windowRect.bottom) / 2};
+    if (GetAncestor(WindowFromPoint(testPoint), GA_ROOT) == hwnd)
+        return; // already on top
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+    if (GetAncestor(WindowFromPoint(testPoint), GA_ROOT) == hwnd)
+        return; // success!
+    debugPrintf(L"Forcing topmost\n");
+    // ugly hack https://shlomio.wordpress.com/2012/09/04/solved-setforegroundwindow-win32-api-not-always-works/
+    DWORD fgThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
+    AttachThreadInput(fgThread, GetCurrentThreadId(), true);
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+    AttachThreadInput(fgThread, GetCurrentThreadId(), false);
+    return;
 }
 
 LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {

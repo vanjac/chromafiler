@@ -16,6 +16,10 @@ public:
     SIZE requestedSize() const override;
 
 protected:
+    enum TimerID {
+        TIMER_MAKE_TOPMOST = 1,
+        TIMER_LAST
+    };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     void onCreate() override;
@@ -33,11 +37,14 @@ private:
     wchar_t * propertyBag() const override;
     void initDefaultView(CComPtr<IFolderView2> folderView) override;
 
+    void forceTopmost();
+
     static LRESULT CALLBACK moveGripProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     static LRESULT CALLBACK sizeGripProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     HWND traySizeGrip;
+    bool fullScreen = false;
 };
 
 } // namespace

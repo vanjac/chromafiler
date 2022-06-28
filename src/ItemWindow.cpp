@@ -396,22 +396,6 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break;
         }
-        case MSG_APPBAR_CALLBACK:
-            if (wParam == ABN_FULLSCREENAPP) {
-                fullScreen = !!lParam;
-                SetWindowPos(hwnd, fullScreen ? HWND_BOTTOM : HWND_TOPMOST,
-                    0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-            }
-            return 0;
-        case WM_TIMER:
-            if (wParam == TIMER_MAKE_TOPMOST && !fullScreen) {
-                GUITHREADINFO guiThread = {sizeof(guiThread)};
-                // don't cover up eg. menus or drag overlays
-                if (!(GetGUIThreadInfo(0, &guiThread) && guiThread.hwndCapture))
-                    forceTopmost();
-                return 0;
-            }
-            break;
         case WM_COMMAND: {
             if (parentButton && (HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
                 openParent();
@@ -470,14 +454,6 @@ void ItemWindow::onCreate() {
         PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
-
-    if (alwaysOnTop()) {
-        SetCoalescableTimer(hwnd, TIMER_MAKE_TOPMOST, 500, nullptr, 250);
-        // to receive fullscreen notifications:
-        APPBARDATA abData = {sizeof(abData), hwnd};
-        abData.uCallbackMessage = MSG_APPBAR_CALLBACK;
-        SHAppBarMessage(ABM_NEW, &abData);
-    }
 
     if (!useCustomFrame())
         return; // !!
@@ -547,11 +523,6 @@ void ItemWindow::onDestroy() {
 
     if (itemDropTarget)
         RevokeDragDrop(hwnd);
-
-    if (alwaysOnTop()) {
-        APPBARDATA abData = {sizeof(abData), hwnd};
-        SHAppBarMessage(ABM_REMOVE, &abData);
-    }
 }
 
 void ItemWindow::onActivate(WORD state, HWND) {
@@ -589,25 +560,6 @@ void ItemWindow::windowRectChanged() {
     if (child && stickToChild()) {
         child->setPos(childPos({})); // TODO pass child size
     }
-}
-
-void ItemWindow::forceTopmost() {
-    RECT windowRect;
-    GetWindowRect(hwnd, &windowRect);
-    POINT testPoint {(windowRect.left + windowRect.right) / 2,
-                     (windowRect.top + windowRect.bottom) / 2};
-    if (GetAncestor(WindowFromPoint(testPoint), GA_ROOT) == hwnd)
-        return; // already on top
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-    if (GetAncestor(WindowFromPoint(testPoint), GA_ROOT) == hwnd)
-        return; // success!
-    debugPrintf(L"Forcing topmost\n");
-    // ugly hack https://shlomio.wordpress.com/2012/09/04/solved-setforegroundwindow-win32-api-not-always-works/
-    DWORD fgThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
-    AttachThreadInput(fgThread, GetCurrentThreadId(), true);
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-    AttachThreadInput(fgThread, GetCurrentThreadId(), false);
-    return;
 }
 
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {

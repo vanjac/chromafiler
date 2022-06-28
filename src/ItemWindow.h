@@ -56,10 +56,6 @@ protected:
         MSG_APPBAR_CALLBACK = WM_USER,
         MSG_LAST
     };
-    enum TimerID {
-        TIMER_MAKE_TOPMOST = 1,
-        TIMER_LAST
-    };
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -98,7 +94,6 @@ private:
     HWND createChainOwner(int showCommand);
 
     void windowRectChanged();
-    void forceTopmost();
     LRESULT hitTestNCA(POINT cursor);
 
     void openParent();
@@ -134,7 +129,6 @@ private:
 
     SIZE storedChildSize;
     POINT moveAccum;
-    bool fullScreen = false;
     // drop target state
     IDataObject *dropDataObject;
     bool overDropTarget = false;
