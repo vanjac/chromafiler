@@ -13,9 +13,15 @@ SetCompressor LZMA
 
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
+!define MUI_FINISHPAGE_RUN_TEXT "Open chromabrowse tray"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\chromabrowse.exe"
+!define MUI_FINISHPAGE_RUN_PARAMETERS "/tray"
+!define MUI_FINISHPAGE_RUN_NOTCHECKED
+
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
