@@ -181,7 +181,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     }
 
     HWND owner;
-    if (parent)
+    if (parent && !parent->alwaysOnTop())
         owner = GetWindowOwner(parent->hwnd);
     else if (child)
         owner = GetWindowOwner(child->hwnd);
@@ -210,7 +210,8 @@ bool ItemWindow::create(RECT rect, int showCommand) {
 HWND ItemWindow::createChainOwner(int showCommand) {
     HWND window = CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
         nullptr, nullptr, GetModuleHandle(nullptr), 0); // user data stores num owned windows
-    ShowWindow(window, showCommand); // show in taskbar
+    if (!alwaysOnTop())
+        ShowWindow(window, showCommand); // show in taskbar
     return window;
 }
 
@@ -762,18 +763,19 @@ void ItemWindow::clearParent() {
 
 void ItemWindow::detachFromParent() {
     parent->activate(); // focus parent in chain
-    clearParent();
-
-    HWND prevOwner = GetWindowOwner(hwnd);
-    HWND owner = createChainOwner(SW_SHOWNORMAL);
-    int numChildren = 0;
-    for (ItemWindow *next = this; next != nullptr; next = next->child) {
-        SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
-        numChildren++;
+    if (!parent->alwaysOnTop()) {
+        HWND prevOwner = GetWindowOwner(hwnd);
+        HWND owner = createChainOwner(SW_SHOWNORMAL);
+        int numChildren = 0;
+        for (ItemWindow *next = this; next != nullptr; next = next->child) {
+            SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
+            numChildren++;
+        }
+        SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
+        SetWindowLongPtr(prevOwner, GWLP_USERDATA,
+            GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
     }
-    SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
-    SetWindowLongPtr(prevOwner, GWLP_USERDATA,
-        GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
+    clearParent();
 
     CComPtr<IShellItem> parentItem;
     if (SUCCEEDED(item->GetParent(&parentItem)))
