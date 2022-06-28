@@ -74,6 +74,14 @@ POINT TrayWindow::childPos(SIZE size) {
     return {windowRect.left, windowRect.top - size.cy}; // ignore drop shadow, some space is good
 }
 
+wchar_t * TrayWindow::propertyBag() const {
+    return L"chromabrowse.tray";
+}
+
+void TrayWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
+    checkHR(folderView->SetViewModeAndIconSize(FVM_LIST, GetSystemMetrics(SM_CXSMICON)));
+}
+
 void TrayWindow::onCreate() {
     HMODULE instance = GetWindowInstance(hwnd);
 

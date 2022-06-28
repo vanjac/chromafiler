@@ -12,7 +12,6 @@ namespace chromabrowse {
 
 const wchar_t FOLDER_WINDOW_CLASS[] = L"Folder Window";
 
-const wchar_t PROPERTY_BAG[] = L"chromabrowse";
 const wchar_t PROP_VISITED[] = L"chromabrowse.visited";
 const wchar_t PROP_SIZE[] = L"chromabrowse.size";
 
@@ -25,7 +24,7 @@ FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : ItemWindow(parent, item) {
     CComHeapPtr<ITEMIDLIST> idList;
     if (checkHR(SHGetIDListFromObject(item, &idList))) {
-        checkHR(SHGetViewStatePropertyBag(idList, PROPERTY_BAG, SHGVSPB_FOLDERNODEFAULTS,
+        checkHR(SHGetViewStatePropertyBag(idList, propertyBag(), SHGVSPB_FOLDERNODEFAULTS,
             IID_PPV_ARGS(&propBag)));
     }
 }
@@ -47,6 +46,10 @@ SIZE FolderWindow::requestedSize() const {
         }
     }
     return {231, 450}; // just wide enough for scrollbar tooltips
+}
+
+wchar_t * FolderWindow::propertyBag() const {
+    return L"chromabrowse";
 }
 
 LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -83,7 +86,7 @@ void FolderWindow::onCreate() {
     browserRect.bottom += browserRect.top; // initial rect is wrong
 
     FOLDERSETTINGS folderSettings = {};
-    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see below)
+    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see initDefaultView)
     folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;
@@ -93,7 +96,7 @@ void FolderWindow::onCreate() {
         return;
     }
 
-    checkHR(browser->SetPropertyBag(PROPERTY_BAG));
+    checkHR(browser->SetPropertyBag(propertyBag()));
     if (!checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
         checkHR(browser->Destroy());
@@ -113,13 +116,9 @@ void FolderWindow::onCreate() {
         }
     }
 
-    CComPtr<IFolderView2> view;
-    if (!visited && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
-        // FVM_SMALLICON only seems to work if it's also specified with an icon size
-        // TODO should this be the shell small icon size?
-        // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
-        checkHR(view->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON))); // = 16
-    }
+    CComPtr<IFolderView2> folderView;
+    if (!visited && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+        initDefaultView(folderView);
 
     if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&shellView)))) {
         if (child) {
@@ -134,6 +133,13 @@ void FolderWindow::onCreate() {
     }
 
     checkHR(IUnknown_SetSite(browser, (IServiceProvider *)this));
+}
+
+void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
+    // FVM_SMALLICON only seems to work if it's also specified with an icon size
+    // TODO should this be the shell small icon size?
+    // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
+    checkHR(folderView->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)));
 }
 
 void FolderWindow::onDestroy() {
