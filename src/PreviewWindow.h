@@ -35,6 +35,10 @@ public:
     STDMETHODIMP TranslateAccelerator(MSG *msg);
 
 protected:
+    enum UserMessage {
+        MSG_INIT_PREVIEW_COMPLETE = WM_USER,
+        MSG_LAST
+    };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     void onCreate() override;

@@ -25,11 +25,10 @@ namespace chromabrowse {
 const wchar_t *PREVIEW_WINDOW_CLASS = L"Preview Window";
 const wchar_t *PREVIEW_CONTAINER_CLASS = L"Preview Container";
 
-/* worker thread user messages */
-const UINT MSG_INIT_PREVIEW_REQUEST = WM_USER;
-const UINT MSG_RELEASE_PREVIEW = WM_USER + 1;
-/* PreviewWindow user messages */
-const UINT MSG_INIT_PREVIEW_COMPLETE = WM_USER;
+enum WorkerUserMessage {
+    MSG_INIT_PREVIEW_REQUEST = WM_USER,
+    MSG_RELEASE_PREVIEW
+};
 
 HANDLE PreviewWindow::initPreviewThread = nullptr;
 // used by worker thread:
