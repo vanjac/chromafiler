@@ -72,7 +72,12 @@ bool TrayWindow::stickToChild() const {
 POINT TrayWindow::childPos(SIZE size) {
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect);
-    return {windowRect.left, windowRect.top - size.cy}; // ignore drop shadow, some space is good
+    if (rectHeight(windowRect) > rectWidth(windowRect)) {
+        return FolderWindow::childPos(size); // open to the right
+    } else {
+        // open above
+        return {windowRect.left, windowRect.top - size.cy}; // ignore drop shadow, space is ok
+    }
 }
 
 wchar_t * TrayWindow::propertyBag() const {

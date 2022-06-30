@@ -70,6 +70,8 @@ protected:
     void openChild(CComPtr<IShellItem> childItem);
     void closeChild();
     virtual void onChildDetached();
+    virtual POINT childPos(SIZE size); // top left corner of child
+    POINT parentPos(); // top right corner of parent
 
     virtual void refresh();
 
@@ -99,8 +101,6 @@ private:
     void openParent();
     void clearParent();
     void detachFromParent(); // updates UI state
-    virtual POINT childPos(SIZE size); // top left corner of child
-    POINT parentPos(); // top right corner of parent
 
     void invokeProxyDefaultVerb(POINT point);
     void openProxyProperties();
