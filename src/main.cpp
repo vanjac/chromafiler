@@ -1,6 +1,7 @@
 #include "FolderWindow.h"
 #include "ThumbnailWindow.h"
 #include "PreviewWindow.h"
+#include "TextWindow.h"
 #include "TrayWindow.h"
 #include "CreateItemWindow.h"
 #include "resource.h"
@@ -58,6 +59,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     chromabrowse::FolderWindow::init();
     chromabrowse::ThumbnailWindow::init();
     chromabrowse::PreviewWindow::init();
+    chromabrowse::TextWindow::init();
     chromabrowse::TrayWindow::init();
 
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
@@ -120,6 +122,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     chromabrowse::ItemWindow::uninit();
     chromabrowse::PreviewWindow::uninit();
+    chromabrowse::TextWindow::uninit();
     OleUninitialize();
 
     return (int)msg.wParam;

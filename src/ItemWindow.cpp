@@ -19,6 +19,7 @@ const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int WINDOW_ICON_PADDING = 4;
 const int RENAME_BOX_PADDING = 2; // with border
+const int SYMBOL_FONT_HEIGHT = 12;
 const int SNAP_DISTANCE = 32;
 const SIZE DEFAULT_SIZE = {450, 450};
 // colors
@@ -61,8 +62,8 @@ void ItemWindow::init() {
     DWORD count = 1;
     symbolFontHandle = (HFONT)AddFontMemResourceEx(symbolFontAddr,
         SizeofResource(hInstance, symbolFontResource), 0, &count);
-    symbolFont = CreateFont(12, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET,
-        OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
+    symbolFont = CreateFont(SYMBOL_FONT_HEIGHT, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
+        ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
 
     accelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ITEM_ACCEL));
