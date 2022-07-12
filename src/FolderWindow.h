@@ -5,7 +5,8 @@
 
 namespace chromabrowse {
 
-class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlgBrowser {
+class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlgBrowser,
+        public IExplorerBrowserEvents {
 public:
     static void init();
 
@@ -26,6 +27,11 @@ public:
     STDMETHODIMP OnDefaultCommand(IShellView *view) override;
     STDMETHODIMP OnStateChange(IShellView *view, ULONG change) override;
     STDMETHODIMP IncludeObject(IShellView *view, PCUITEMID_CHILD pidl) override;
+    // IExplorerBrowserEvents
+    STDMETHODIMP OnNavigationPending(PCIDLIST_ABSOLUTE folder) override;
+    STDMETHODIMP OnNavigationComplete(PCIDLIST_ABSOLUTE folder) override;
+    STDMETHODIMP OnNavigationFailed(PCIDLIST_ABSOLUTE folder) override;
+    STDMETHODIMP OnViewCreated(IShellView *shellView) override;
 
 protected:
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
@@ -51,6 +57,7 @@ private:
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
     CComPtr<IShellView> shellView;
     CComPtr<IPropertyBag> propBag;
+    DWORD eventsCookie = 0;
 
     SIZE lastSize = {-1, -1};
     bool sizeChanged = false;

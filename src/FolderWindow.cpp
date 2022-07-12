@@ -96,6 +96,8 @@ void FolderWindow::onCreate() {
         return;
     }
 
+    checkHR(IUnknown_SetSite(browser, (IServiceProvider *)this));
+    checkHR(browser->Advise(this, &eventsCookie));
     checkHR(browser->SetPropertyBag(propertyBag()));
     if (!checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
@@ -103,36 +105,6 @@ void FolderWindow::onCreate() {
         browser = nullptr;
         return;
     }
-
-    bool visited = false; // folder has been visited by chromabrowse before
-    if (propBag) {
-        VARIANT var = {};
-        if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr))) {
-            visited = true;
-        } else {
-            if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
-                checkHR(propBag->Write(PROP_VISITED, &var));
-            }
-        }
-    }
-
-    CComPtr<IFolderView2> folderView;
-    if (!visited && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
-        initDefaultView(folderView);
-
-    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&shellView)))) {
-        if (child) {
-            // window was created by clicking the parent button
-            ignoreNextSelection = true; // TODO jank
-            CComHeapPtr<ITEMID_CHILD> childID;
-            checkHR(CComQIPtr<IParentAndItem>(child->item)
-                ->GetParentAndItem(nullptr, nullptr, &childID));
-            checkHR(shellView->SelectItem(childID,
-                SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
-        }
-    }
-
-    checkHR(IUnknown_SetSite(browser, (IServiceProvider *)this));
 }
 
 void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
@@ -152,6 +124,7 @@ void FolderWindow::onDestroy() {
     }
     ItemWindow::onDestroy();
     if (browser) {
+        checkHR(browser->Unadvise(eventsCookie));
         checkHR(IUnknown_SetSite(browser, nullptr));
         checkHR(browser->Destroy());
     }
@@ -327,6 +300,52 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
 
 STDMETHODIMP FolderWindow::IncludeObject(IShellView *, PCUITEMID_CHILD) {
     return S_OK; // include all objects
+}
+
+/* IExplorerBrowserEvents */
+
+STDMETHODIMP FolderWindow::OnNavigationPending(PCIDLIST_ABSOLUTE) {
+    return S_OK;
+}
+
+STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
+    return S_OK;
+}
+
+STDMETHODIMP FolderWindow::OnNavigationFailed(PCIDLIST_ABSOLUTE) {
+    return S_OK;
+}
+
+STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
+    shellView = view;
+
+    bool visited = false; // folder has been visited by chromabrowse before
+    if (propBag) {
+        VARIANT var = {};
+        if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr))) {
+            visited = true;
+        } else {
+            if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
+                checkHR(propBag->Write(PROP_VISITED, &var));
+            }
+        }
+    }
+    if (!visited) {
+        CComQIPtr<IFolderView2> folderView(view);
+        if (folderView)
+            initDefaultView(folderView);
+    }
+
+    if (child) {
+        // window was created by clicking the parent button
+        ignoreNextSelection = true; // TODO jank
+        CComHeapPtr<ITEMID_CHILD> childID;
+        checkHR(CComQIPtr<IParentAndItem>(child->item)
+            ->GetParentAndItem(nullptr, nullptr, &childID));
+        checkHR(view->SelectItem(childID,
+            SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
+    }
+    return S_OK;
 }
 
 } // namespace
