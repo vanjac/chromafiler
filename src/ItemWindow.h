@@ -73,6 +73,7 @@ protected:
     virtual POINT childPos(SIZE size); // top left corner of child
     POINT parentPos(); // top right corner of parent
 
+    virtual void onItemChanged();
     virtual void refresh();
 
     HWND hwnd;
@@ -102,6 +103,8 @@ private:
     void clearParent();
     void detachFromParent(); // updates UI state
 
+    bool resolveItem();
+
     void invokeProxyDefaultVerb(POINT point);
     void openProxyProperties();
     void openProxyContextMenu(POINT point);
@@ -116,6 +119,8 @@ private:
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
     static LRESULT CALLBACK renameBoxProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
+
+    CComPtr<IShellLink> link;
 
     HICON iconLarge = nullptr, iconSmall = nullptr;
 

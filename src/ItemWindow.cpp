@@ -30,6 +30,7 @@ const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
 static HANDLE symbolFontHandle = 0;
 static HFONT captionFont = 0, symbolFont = 0;
 
+// ItemWindow.h
 long numOpenWindows;
 CComPtr<ItemWindow> activeWindow;
 
@@ -397,7 +398,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break;
         }
-        case WM_COMMAND: {
+        case WM_COMMAND:
             if (parentButton && (HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
                 openParent();
                 return 0;
@@ -421,7 +422,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     close();
                     return 0;
                 case ID_REFRESH:
-                    refresh();
+                    if (resolveItem())
+                        refresh();
                     return 0;
                 case ID_PROXY_MENU:
                     if (useCustomFrame()) {
@@ -440,7 +442,6 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     return 0;
             }
             break;
-        }
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -455,6 +456,13 @@ void ItemWindow::onCreate() {
         PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     if (iconSmall)
         PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+
+    CComHeapPtr<ITEMIDLIST> idList;
+    if (checkHR(SHGetIDListFromObject(item, &idList))) {
+        if (checkHR(link.CoCreateInstance(__uuidof(ShellLink)))) {
+            checkHR(link->SetIDList(idList));
+        }
+    }
 
     if (!useCustomFrame())
         return; // !!
@@ -775,6 +783,65 @@ POINT ItemWindow::parentPos() {
     POINT shadow = {windowRect.left, windowRect.top};
     ScreenToClient(hwnd, &shadow); // determine size of drop shadow
     return {windowRect.left - shadow.x * 2, windowRect.top};
+}
+
+bool ItemWindow::resolveItem() {
+    SFGAOF attr;
+    // check if item exists
+    if (SUCCEEDED(item->GetAttributes(SFGAO_VALIDATE, &attr)))
+        return true;
+
+    if (link) {
+        checkHR(link->Resolve(nullptr, SLR_NO_UI));
+
+        CComHeapPtr<ITEMIDLIST> currentIDList, newIDList;
+        CComPtr<IShellFolder> desktopFolder;
+        if (checkHR(SHGetIDListFromObject(item, &currentIDList))
+                && checkHR(link->GetIDList(&newIDList))
+                && checkHR(SHGetDesktopFolder(&desktopFolder))) {
+            HRESULT compareHR;
+            if (checkHR(compareHR = desktopFolder->CompareIDs(SHCIDS_CANONICALONLY,
+                    currentIDList, newIDList))) {
+                if ((short)HRESULT_CODE(compareHR) != 0) {
+                    debugPrintf(L"Item has moved!\n");
+                    CComPtr<IShellItem> newItem;
+                    if (!checkHR(SHCreateShellItem(nullptr, nullptr, newIDList, &newItem))) {
+                        close();
+                        return false;
+                    }
+                    item = newItem;
+                    onItemChanged();
+                    return true;
+                }
+            }
+        }
+    }
+
+    debugPrintf(L"Item has been deleted!\n");
+    close();
+    return false;
+}
+
+void ItemWindow::onItemChanged() {
+    CComHeapPtr<wchar_t> newTitle;
+    if (checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &newTitle))) {
+        title = newTitle;
+        SetWindowText(hwnd, title);
+    }
+    if (useCustomFrame()) {
+        // redraw caption
+        RECT captionRect;
+        GetClientRect(hwnd, &captionRect);
+        captionRect.bottom = CAPTION_HEIGHT;
+        InvalidateRect(hwnd, &captionRect, FALSE);
+
+        if (itemDropTarget) {
+            itemDropTarget = nullptr;
+            if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject,
+                    IID_PPV_ARGS(&itemDropTarget))))
+                RevokeDragDrop(hwnd);
+        }
+    }
 }
 
 void ItemWindow::refresh() {}

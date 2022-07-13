@@ -15,6 +15,18 @@ const wchar_t FOLDER_WINDOW_CLASS[] = L"Folder Window";
 const wchar_t PROP_VISITED[] = L"chromabrowse.visited";
 const wchar_t PROP_SIZE[] = L"chromabrowse.size";
 
+// local property bags can be found at:
+// HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags
+CComPtr<IPropertyBag> getItemPropertyBag(CComPtr<IShellItem> item, wchar_t *name) {
+    CComPtr<IPropertyBag> propBag;
+    CComHeapPtr<ITEMIDLIST> idList;
+    if (checkHR(SHGetIDListFromObject(item, &idList))) {
+        checkHR(SHGetViewStatePropertyBag(idList, name, SHGVSPB_FOLDERNODEFAULTS,
+            IID_PPV_ARGS(&propBag)));
+    }
+    return propBag;
+}
+
 void FolderWindow::init() {
     WNDCLASS wndClass = createWindowClass(FOLDER_WINDOW_CLASS);
     RegisterClass(&wndClass);
@@ -22,11 +34,7 @@ void FolderWindow::init() {
 
 FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : ItemWindow(parent, item) {
-    CComHeapPtr<ITEMIDLIST> idList;
-    if (checkHR(SHGetIDListFromObject(item, &idList))) {
-        checkHR(SHGetViewStatePropertyBag(idList, propertyBag(), SHGVSPB_FOLDERNODEFAULTS,
-            IID_PPV_ARGS(&propBag)));
-    }
+    propBag = getItemPropertyBag(item, propertyBag());
 }
 
 const wchar_t * FolderWindow::className() {
@@ -99,6 +107,7 @@ void FolderWindow::onCreate() {
     checkHR(IUnknown_SetSite(browser, (IServiceProvider *)this));
     checkHR(browser->Advise(this, &eventsCookie));
     checkHR(browser->SetPropertyBag(propertyBag()));
+    // will call IExplorerBrowserEvents callbacks
     if (!checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
         // eg. browsing a subdirectory in the recycle bin
         checkHR(browser->Destroy());
@@ -189,6 +198,15 @@ void FolderWindow::onChildDetached() {
     }
 }
 
+void FolderWindow::onItemChanged() {
+    ItemWindow::onItemChanged();
+    propBag = getItemPropertyBag(item, propertyBag());
+    shellView = nullptr;
+    checkHR(browser->SetOptions(EBO_NOBORDER));
+    checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE));
+    checkHR(browser->SetOptions(EBO_NAVIGATEONCE | EBO_NOBORDER));
+}
+
 void FolderWindow::refresh() {
     if (shellView) {
         checkHR(shellView->Refresh());
@@ -247,27 +265,6 @@ STDMETHODIMP_(ULONG) FolderWindow::Release() {
 /* IServiceProvider */
 
 STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void **ppv) {
-    // services that IExplorerBrowser queries for:
-    // 2BD6990F-2D1A-4B5A-9D61-AB6229A36CAA     ??
-    // 4C96BE40-915C-11CF-99D3-00AA004AE837     STopLevelBrowser (IShellBrowser, IShellBrowserService...)
-    // 2E228BA3-EA25-4378-97B6-D574FAEBA356     ??
-    // 3934E4C2-8143-4E4C-A1DC-718F8563F337     ??
-    // A36A3ACE-8332-45CE-AA29-503CB76B2587     ??
-    // 04BA120E-AD52-4A2D-9807-2DA178D0C3E1     IFolderTypeModifier
-    // DD1E21CC-E2C7-402C-BF05-10328D3F6BAD     IBrowserSettings
-    // 16770868-239C-445B-A01D-F26C7FBBF26C     ??
-    // 6CCB7BE0-6807-11D0-B810-00C04FD706EC     IShellTaskScheduler
-    // 000214F1-0000-0000-C000-000000000046     ICommDlgBrowser / SExplorerBrowserFrame
-    // 05A89298-6246-4C63-BB0D-9BDAF140BF3B     IBrowserWithActivationNotification
-    // 00021400-0000-0000-C000-000000000046     Desktop
-    // E38FE0F3-3DB0-47EE-A314-25CF7F4BF521     IInfoBarHost https://stackoverflow.com/a/63954982
-    // D7F81F62-491F-49BC-891D-5665085DF969     ??
-    // FAD451C2-AF58-4161-B9FF-57AFBBED0AD2     ??
-    // 9EA5491C-89C8-4BEF-93D3-7F665FB82A33     IFileDialogPrivate
-    // 0AEE655F-9B0F-493F-9843-A4A0ABBE928F     ??
-    // 31E4FA78-02B4-419F-9430-7B7585237C77     IFrameManager
-    // 5C65B0D2-FC07-48B6-BA51-4597DAC84747     ??
-
     HRESULT result = E_NOINTERFACE;
     *ppv = nullptr;
 
@@ -320,13 +317,12 @@ STDMETHODIMP FolderWindow::OnNavigationFailed(PCIDLIST_ABSOLUTE) {
 }
 
 STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
-    shellView = view;
-
     bool visited = false; // folder has been visited by chromabrowse before
     if (propBag) {
         VARIANT var = {};
+        var.vt = VT_BOOL;
         if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr)))
-            visited = true;
+            visited = !!var.boolVal;
     }
     if (!visited) {
         CComQIPtr<IFolderView2> folderView(view);
@@ -335,7 +331,7 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
     }
 
     if (child) {
-        // window was created by clicking the parent button
+        // window was created by clicking the parent button OR onItemChanged was called
         ignoreNextSelection = true; // TODO jank
         CComHeapPtr<ITEMID_CHILD> childID;
         checkHR(CComQIPtr<IParentAndItem>(child->item)
@@ -343,6 +339,8 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
         checkHR(view->SelectItem(childID,
             SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
     }
+
+    shellView = view;
     return S_OK;
 }
 

@@ -43,6 +43,7 @@ protected:
 
     void onChildDetached() override;
 
+    void onItemChanged() override;
     void refresh() override;
 
 private:
