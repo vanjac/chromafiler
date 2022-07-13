@@ -160,15 +160,15 @@ void FolderWindow::onSize(int width, int height) {
 }
 
 void FolderWindow::selectionChanged() {
-    CComPtr<IFolderView2> view;
-    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&view)))) {
+    CComPtr<IFolderView2> folderView;
+    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
         int numSelected;
-        if (checkHR(view->ItemCount(SVGIO_SELECTION, &numSelected)) && numSelected == 1) {
+        if (checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected)) && numSelected == 1) {
             int index;
             // GetSelectedItem seems to ignore the iStart parameter!
-            if (view->GetSelectedItem(-1, &index) == S_OK) {
+            if (folderView->GetSelectedItem(-1, &index) == S_OK) {
                 CComPtr<IShellItem> selected;
-                if (checkHR(view->GetItem(index, IID_PPV_ARGS(&selected)))) {
+                if (checkHR(folderView->GetItem(index, IID_PPV_ARGS(&selected)))) {
                     openChild(selected);
                 }
             }
