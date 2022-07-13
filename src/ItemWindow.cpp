@@ -805,7 +805,7 @@ bool ItemWindow::resolveItem() {
                 if ((short)HRESULT_CODE(compareHR) != 0) {
                     debugPrintf(L"Item has moved!\n");
                     CComPtr<IShellItem> newItem;
-                    if (!checkHR(SHCreateShellItem(nullptr, nullptr, newIDList, &newItem))) {
+                    if (!checkHR(SHCreateItemFromIDList(newIDList, IID_PPV_ARGS(&newItem)))) {
                         close();
                         return false;
                     }

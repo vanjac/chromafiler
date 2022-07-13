@@ -69,7 +69,7 @@ CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem) {
             CComHeapPtr<ITEMIDLIST> targetPIDL;
             if (checkHR(link->GetIDList(&targetPIDL))) {
                 CComPtr<IShellItem> targetItem;
-                if (checkHR(SHCreateShellItem(nullptr, nullptr, targetPIDL, &targetItem))) {
+                if (checkHR(SHCreateItemFromIDList(targetPIDL, IID_PPV_ARGS(&targetItem)))) {
                     // don't need to recurse, shortcuts to shortcuts are not allowed
                     return targetItem;
                 }
