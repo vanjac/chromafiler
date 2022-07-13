@@ -153,22 +153,6 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         return false;
     debugPrintf(L"Open %s\n", &*title);
 
-    CComPtr<IExtractIcon> extractIcon;
-    if (checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
-        wchar_t iconFile[MAX_PATH];
-        int index;
-        UINT flags;
-        if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
-            UINT iconSizes = (GetSystemMetrics(SM_CXSMICON) << 16) + GetSystemMetrics(SM_CXICON);
-            if (extractIcon->Extract(iconFile, index, &iconLarge, &iconSmall, iconSizes) != S_OK) {
-                debugPrintf(L"IExtractIcon failed\n");
-                // https://devblogs.microsoft.com/oldnewthing/20140501-00/?p=1103
-                checkHR(SHDefExtractIcon(iconFile, index, flags,
-                    &iconLarge, &iconSmall, iconSizes));
-            }
-        }
-    }
-
     // keep window on screen
     if (!alwaysOnTop() && rect.left != CW_USEDEFAULT && rect.top != CW_USEDEFAULT) {
         POINT testPoint = {rect.left, rect.top + CAPTION_HEIGHT};
@@ -452,6 +436,21 @@ bool ItemWindow::handleTopLevelMessage(MSG *msg) {
 }
 
 void ItemWindow::onCreate() {
+    CComPtr<IExtractIcon> extractIcon;
+    if (checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
+        wchar_t iconFile[MAX_PATH];
+        int index;
+        UINT flags;
+        if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
+            UINT iconSizes = (GetSystemMetrics(SM_CXSMICON) << 16) + GetSystemMetrics(SM_CXICON);
+            if (extractIcon->Extract(iconFile, index, &iconLarge, &iconSmall, iconSizes) != S_OK) {
+                debugPrintf(L"IExtractIcon failed\n");
+                // https://devblogs.microsoft.com/oldnewthing/20140501-00/?p=1103
+                checkHR(SHDefExtractIcon(iconFile, index, flags,
+                    &iconLarge, &iconSmall, iconSizes));
+            }
+        }
+    }
     if (iconLarge)
         PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     if (iconSmall)
