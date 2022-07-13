@@ -62,6 +62,7 @@ private:
 
     SIZE lastSize = {-1, -1};
     bool sizeChanged = false;
+    SIZE oldStoredChildSize;
 
     // jank flags
     bool ignoreNextSelection = false;

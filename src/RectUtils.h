@@ -17,4 +17,8 @@ constexpr SIZE rectSize(const RECT &rect) {
     return {rectWidth(rect), rectHeight(rect)};
 }
 
+constexpr bool sizeEqual(SIZE a, SIZE b) {
+    return a.cx == b.cx && a.cy == b.cy;
+}
+
 } // namespace

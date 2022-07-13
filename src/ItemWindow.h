@@ -80,6 +80,7 @@ protected:
     CComHeapPtr<wchar_t> title;
 
     CComPtr<ItemWindow> parent, child;
+    SIZE storedChildSize;
 
 private:
     virtual const wchar_t * className() = 0;
@@ -132,7 +133,6 @@ private:
     CComQIPtr<IContextMenu2> contextMenu2;
     CComQIPtr<IContextMenu3> contextMenu3;
 
-    SIZE storedChildSize;
     POINT moveAccum;
     // drop target state
     IDataObject *dropDataObject;

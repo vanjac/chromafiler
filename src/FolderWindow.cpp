@@ -14,6 +14,7 @@ const wchar_t FOLDER_WINDOW_CLASS[] = L"Folder Window";
 
 const wchar_t PROP_VISITED[] = L"chromabrowse.visited";
 const wchar_t PROP_SIZE[] = L"chromabrowse.size";
+const wchar_t PROP_CHILD_SIZE[] = L"chromabrowse.childsize";
 
 // local property bags can be found at:
 // HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags
@@ -35,6 +36,15 @@ void FolderWindow::init() {
 FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : ItemWindow(parent, item) {
     propBag = getItemPropertyBag(item, propertyBag());
+    if (propBag) {
+        VARIANT sizeVar = {};
+        sizeVar.vt = VT_UI4;
+        if (SUCCEEDED(propBag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
+            // may be overwritten before create()
+            storedChildSize = {GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)};
+        }
+    }
+    oldStoredChildSize = storedChildSize;
 }
 
 const wchar_t * FolderWindow::className() {
@@ -124,14 +134,23 @@ void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
 }
 
 void FolderWindow::onDestroy() {
-    VARIANT var = {};
-    if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
-        checkHR(propBag->Write(PROP_VISITED, &var));
-    }
-    if (sizeChanged && propBag) {
-        if (checkHR(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var))) {
-            debugPrintf(L"Write window size\n");
-            checkHR(propBag->Write(PROP_SIZE, &var));
+    if (propBag) {
+        VARIANT var = {};
+        if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
+            checkHR(propBag->Write(PROP_VISITED, &var));
+        }
+        if (sizeChanged) {
+            if (checkHR(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var))) {
+                debugPrintf(L"Write window size\n");
+                checkHR(propBag->Write(PROP_SIZE, &var));
+            }
+        }
+        if (!sizeEqual(storedChildSize, oldStoredChildSize)) {
+            if (checkHR(InitVariantFromUInt32(
+                    MAKELONG(storedChildSize.cx, storedChildSize.cy), &var))) {
+                debugPrintf(L"Write child size\n");
+                checkHR(propBag->Write(PROP_CHILD_SIZE, &var));
+            }
         }
     }
     ItemWindow::onDestroy();
@@ -163,7 +182,7 @@ void FolderWindow::onSize(int width, int height) {
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect);
     SIZE windowSize = rectSize(windowRect);
-    if (lastSize.cx != -1 && (windowSize.cx != lastSize.cx || windowSize.cy != lastSize.cy))
+    if (lastSize.cx != -1 && !sizeEqual(windowSize, lastSize))
         sizeChanged = true;
     lastSize = windowSize;
 
