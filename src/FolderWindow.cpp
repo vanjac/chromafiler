@@ -115,8 +115,11 @@ void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
 }
 
 void FolderWindow::onDestroy() {
+    VARIANT var = {};
+    if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
+        checkHR(propBag->Write(PROP_VISITED, &var));
+    }
     if (sizeChanged && propBag) {
-        VARIANT var = {};
         if (checkHR(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var))) {
             debugPrintf(L"Write window size\n");
             checkHR(propBag->Write(PROP_SIZE, &var));
@@ -322,13 +325,8 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
     bool visited = false; // folder has been visited by chromabrowse before
     if (propBag) {
         VARIANT var = {};
-        if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr))) {
+        if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr)))
             visited = true;
-        } else {
-            if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
-                checkHR(propBag->Write(PROP_VISITED, &var));
-            }
-        }
     }
     if (!visited) {
         CComQIPtr<IFolderView2> folderView(view);
