@@ -1,12 +1,11 @@
 #include <windows.h>
-#include <prsht.h>
 #include "resource.h"
 
-IDR_RT_MANIFEST1 RT_MANIFEST "res\chromabrowse.exe.manifest"
+IDR_RT_MANIFEST1 RT_MANIFEST "res\\chromabrowse.exe.manifest"
 
-IDR_APP_ICON    ICON    "res\folder.ico"
+IDR_APP_ICON    ICON    "res\\folder.ico"
 
-IDR_ICON_FONT   FONT    "res\SegMDL2-subset.ttf"
+IDR_ICON_FONT   FONT    "res\\SegMDL2-subset.ttf"
 
 IDR_ITEM_ACCEL  ACCELERATORS {
     VK_TAB,     ID_NEXT_WINDOW,     VIRTKEY
@@ -25,7 +24,7 @@ IDR_ITEM_ACCEL  ACCELERATORS {
 }
 
 IDD_SETTINGS_GENERAL    DIALOGEX
-        0, 0, PROP_SM_CXDLG, PROP_SM_CYDLG
+        0, 0, 212, 188 // PROP_SM_CXDLG, PROP_SM_CYDLG
         STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
         CAPTION "General"
         FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
