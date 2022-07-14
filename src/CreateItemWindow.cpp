@@ -3,6 +3,7 @@
 #include "ThumbnailWindow.h"
 #include "PreviewWindow.h"
 #include "TextWindow.h"
+#include "Settings.h"
 #include <Shlguid.h>
 #include <shlobj.h>
 
@@ -24,12 +25,12 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
     if (checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEPARSING, &parsingName))) {
         wchar_t *ext = PathFindExtension(parsingName);
         if (ext) {
-            if (isTextFile(ext)) {
+            if (settings::getTextEditorEnabled() && isTextFile(ext)) {
                 window.Attach(new TextWindow(parent, item));
                 return window;
             }
             CLSID previewID;
-            if (previewHandlerCLSID(ext, &previewID)) {
+            if (settings::getPreviewsEnabled() && previewHandlerCLSID(ext, &previewID)) {
                 window.Attach(new PreviewWindow(parent, item, previewID));
                 return window;
             }
