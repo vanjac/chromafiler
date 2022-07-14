@@ -7,9 +7,21 @@
 
 namespace chromabrowse {
 
+const wchar_t *SPECIAL_PATHS[] = {
+    L"shell:Desktop",
+    L"shell:MyComputerFolder",
+    L"shell:Links",
+    L"shell:Recent",
+    L"shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}" // Quick access
+};
+
 INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_INITDIALOG: {
+            for (int i = 0; i < _countof(SPECIAL_PATHS); i++) {
+                SendDlgItemMessage(hwnd, IDC_START_FOLDER_PATH, CB_ADDSTRING, 0,
+                    (LPARAM)SPECIAL_PATHS[i]);
+            }
             CComHeapPtr<wchar_t> startingFolder;
             settings::getStartingFolder(startingFolder);
             SetDlgItemText(hwnd, IDC_START_FOLDER_PATH, startingFolder);
@@ -52,8 +64,6 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 settings::setTextEditorEnabled(!!IsDlgButtonChecked(hwnd, IDC_TEXT_EDITOR_ENABLED));
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
-            } else if (notif->code == PSN_RESET) {
-                return TRUE;
             }
             return FALSE;
         }
@@ -64,6 +74,8 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                     L"rundll32.exe", L"shell32.dll,Options_RunDLL 7", nullptr, SW_SHOWNORMAL);
                 return TRUE;
             } else if (HIWORD(wParam) == EN_CHANGE
+                    || LOWORD(wParam) == IDC_START_FOLDER_PATH && HIWORD(wParam) == CBN_EDITCHANGE
+                    || LOWORD(wParam) == IDC_START_FOLDER_PATH && HIWORD(wParam) == CBN_SELCHANGE
                     || LOWORD(wParam) == IDC_PREVIEWS_ENABLED && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TEXT_EDITOR_ENABLED && HIWORD(wParam) == BN_CLICKED) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
