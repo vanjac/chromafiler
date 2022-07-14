@@ -2,7 +2,7 @@
 #include "resource.h"
 #include <atlbase.h>
 #include <prsht.h>
-#include <shobjidl_core.h>
+#include <shellapi.h>
 
 namespace chromabrowse {
 
@@ -25,10 +25,9 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
         }
         case WM_COMMAND:
             if (LOWORD(wParam) == IDC_EXPLORER_SETTINGS && HIWORD(wParam) == BN_CLICKED) {
-                CComPtr<IOpenControlPanel> openControlPanel;
-                if (checkHR(openControlPanel.CoCreateInstance(__uuidof(OpenControlPanel)))) {
-                    checkHR(openControlPanel->Open(L"Microsoft.FolderOptions", nullptr, nullptr));
-                }
+                // https://docs.microsoft.com/en-us/windows/win32/shell/executing-control-panel-items#folder-options
+                ShellExecute(nullptr, L"open",
+                    L"rundll32.exe", L"shell32.dll,Options_RunDLL 7", nullptr, SW_SHOWNORMAL);
                 return TRUE;
             }
             return FALSE;
