@@ -4,6 +4,7 @@
 #include "TextWindow.h"
 #include "TrayWindow.h"
 #include "CreateItemWindow.h"
+#include "Settings.h"
 #include "resource.h"
 #include <shellapi.h>
 #include <shlobj.h>
@@ -69,30 +70,30 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     SHCreateThreadWithHandle(updateJumpList, nullptr, CTF_COINIT_STA, nullptr, &jumpListThread);
 
     {
-        CComPtr<IShellItem> startItem;
+        CComHeapPtr<wchar_t> pathAlloc;
+        wchar_t *path;
         bool tray = false;
         if (argc > 1 && lstrcmpi(argv[1], L"/tray") == 0) {
-            if (!checkHR(SHGetKnownFolderItem(FOLDERID_Links, KF_FLAG_DEFAULT, nullptr,
-                    IID_PPV_ARGS(&startItem)))) {
-                return 0;
-            }
+            chromabrowse::settings::getTrayFolder(pathAlloc);
+            path = pathAlloc;
             tray = true;
         } else if (argc > 1) {
-            int pathLen = lstrlen(argv[1]);
-            if (argv[1][pathLen - 1] == '"')
-                argv[1][pathLen - 1] = '\\'; // fix weird CommandLineToArgvW behavior with \"
-            // parse name vs display name https://stackoverflow.com/q/42966489
-            if (FAILED(SHCreateItemFromParsingName(argv[1], nullptr, IID_PPV_ARGS(&startItem)))) {
-                debugPrintf(L"Unable to locate item at path %s\n", argv[1]);
-                return 0;
-            }
-            startItem = chromabrowse::resolveLink(nullptr, startItem);
+            path = argv[1];
+            int pathLen = lstrlen(path);
+            if (path[pathLen - 1] == '"')
+                path[pathLen - 1] = '\\'; // fix weird CommandLineToArgvW behavior with \"
         } else {
-            if (!checkHR(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
-                    IID_PPV_ARGS(&startItem)))) {
-                return 0;
-            }
+            chromabrowse::settings::getStartingFolder(pathAlloc);
+            path = pathAlloc;
         }
+
+        CComPtr<IShellItem> startItem;
+        // parse name vs display name https://stackoverflow.com/q/42966489
+        if (FAILED(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&startItem)))) {
+            debugPrintf(L"Unable to locate item at path %s\n", path);
+            return 0;
+        }
+        startItem = chromabrowse::resolveLink(nullptr, startItem);
 
         CComPtr<chromabrowse::ItemWindow> initialWindow;
         POINT pos;

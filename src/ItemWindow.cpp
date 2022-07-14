@@ -298,7 +298,6 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 GetWindowRect(hwnd, &curRect);
                 moveAccum.x += desiredRect->left - curRect.left;
                 moveAccum.y += desiredRect->top - curRect.top;
-                // windows max macro prevents me from using std::max :')
                 int moveAmount = max(abs(moveAccum.x), abs(moveAccum.y));
                 if (moveAmount > SNAP_DISTANCE) {
                     detachFromParent();
