@@ -1,6 +1,7 @@
 #include "ItemWindow.h"
 #include "CreateItemWindow.h"
 #include "RectUtils.h"
+#include "Settings.h"
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
@@ -21,7 +22,6 @@ const int WINDOW_ICON_PADDING = 4;
 const int RENAME_BOX_PADDING = 2; // with border
 const int SYMBOL_FONT_HEIGHT = 12;
 const int SNAP_DISTANCE = 32;
-const SIZE DEFAULT_SIZE = {450, 450};
 // colors
 // this is the color used in every high-contrast theme
 // regular light mode theme uses #999999
@@ -113,9 +113,10 @@ LRESULT CALLBACK ItemWindow::windowProc(
 }
 
 ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
-    : parent(parent),
-      item(item),
-      storedChildSize(DEFAULT_SIZE) {}
+        : parent(parent),
+          item(item) {
+    storedChildSize = settings::getItemWindowSize();
+}
 
 ItemWindow::~ItemWindow() {
     if (iconLarge)
@@ -129,7 +130,7 @@ bool ItemWindow::preserveSize() const {
 }
 
 SIZE ItemWindow::requestedSize() const {
-    return DEFAULT_SIZE;
+    return settings::getItemWindowSize();
 }
 
 DWORD ItemWindow::windowStyle() const {

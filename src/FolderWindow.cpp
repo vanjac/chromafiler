@@ -1,5 +1,6 @@
 #include "FolderWindow.h"
 #include "RectUtils.h"
+#include "Settings.h"
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
@@ -63,7 +64,7 @@ SIZE FolderWindow::requestedSize() const {
             return {GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)};
         }
     }
-    return {231, 450}; // just wide enough for scrollbar tooltips
+    return settings::getFolderWindowSize();
 }
 
 wchar_t * FolderWindow::propertyBag() const {
