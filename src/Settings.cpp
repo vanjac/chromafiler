@@ -11,6 +11,7 @@ const bool      DEFAULT_TEXT_EDITOR_ENABLED = false;
 const wchar_t   DEFAULT_TRAY_FOLDER[]       = L"shell:links";
 const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
 const SIZE      DEFAULT_TRAY_SIZE           = {600, 48};
+const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
 
 const wchar_t KEY_SETTINGS[]    = L"Software\\chromabrowse";
 
@@ -26,6 +27,7 @@ const wchar_t VAL_TRAY_X[]              = L"TrayX";
 const wchar_t VAL_TRAY_Y[]              = L"TrayY";
 const wchar_t VAL_TRAY_W[]              = L"TrayWidth";
 const wchar_t VAL_TRAY_H[]              = L"TrayHeight";
+const wchar_t VAL_TRAY_DIRECTION[]      = L"TrayDirection";
 
 // type should be a RRF_RT_* constant
 // data should already contain default value
@@ -140,6 +142,16 @@ SIZE getTraySize() {
 void setTraySize(SIZE value) {
     setSettingsValue(VAL_TRAY_W, REG_DWORD, &value.cx, sizeof(value.cx));
     setSettingsValue(VAL_TRAY_H, REG_DWORD, &value.cy, sizeof(value.cy));
+}
+
+TrayDirection getTrayDirection() {
+    DWORD value = DEFAULT_TRAY_DIRECTION;
+    getSettingsValue(VAL_TRAY_DIRECTION, RRF_RT_DWORD, &value, sizeof(value));
+    return (TrayDirection)value;
+}
+
+void setTrayDirection(TrayDirection value) {
+    setSettingsValue(VAL_TRAY_DIRECTION, REG_DWORD, &value, sizeof(value));
 }
 
 } // namespace

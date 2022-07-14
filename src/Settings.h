@@ -28,4 +28,8 @@ void setTrayPosition(POINT value);
 SIZE getTraySize();
 void setTraySize(SIZE value);
 
+enum TrayDirection : DWORD { TRAY_UP, TRAY_DOWN, TRAY_RIGHT };
+TrayDirection getTrayDirection();
+void setTrayDirection(TrayDirection value);
+
 } // namespace

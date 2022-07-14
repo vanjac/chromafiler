@@ -56,11 +56,13 @@ bool TrayWindow::stickToChild() const {
 POINT TrayWindow::childPos(SIZE size) {
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect);
-    if (rectHeight(windowRect) > rectWidth(windowRect)) {
-        return FolderWindow::childPos(size); // open to the right
-    } else {
-        // open above
-        return {windowRect.left, windowRect.top - size.cy}; // ignore drop shadow, space is ok
+    switch (settings::getTrayDirection()) {
+        default: // TRAY_UP
+            return {windowRect.left, windowRect.top - size.cy}; // ignore drop shadow, space is ok
+        case settings::TRAY_DOWN:
+            return {windowRect.left, windowRect.bottom};
+        case settings::TRAY_RIGHT:
+            return FolderWindow::childPos(size);
     }
 }
 
