@@ -31,6 +31,25 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, FALSE);
                 return TRUE;
             } else if (notif->code == PSN_APPLY) {
+                wchar_t startingFolder[MAX_PATH];
+                if (GetDlgItemText(hwnd, IDC_START_FOLDER_PATH, startingFolder, MAX_PATH))
+                    settings::setStartingFolder(startingFolder);
+                BOOL success;
+                SIZE size;
+                size.cx = GetDlgItemInt(hwnd, IDC_FOLDER_WINDOW_WIDTH, &success, TRUE);
+                if (success) {
+                    size.cy = GetDlgItemInt(hwnd, IDC_FOLDER_WINDOW_HEIGHT, &success, TRUE);
+                    if (success)
+                        settings::setFolderWindowSize(size);
+                }
+                size.cx = GetDlgItemInt(hwnd, IDC_ITEM_WINDOW_WIDTH, &success, TRUE);
+                if (success) {
+                    size.cy = GetDlgItemInt(hwnd, IDC_ITEM_WINDOW_HEIGHT, &success, TRUE);
+                    if (success)
+                        settings::setItemWindowSize(size);
+                }
+                settings::setPreviewsEnabled(!!IsDlgButtonChecked(hwnd, IDC_PREVIEWS_ENABLED));
+                settings::setTextEditorEnabled(!!IsDlgButtonChecked(hwnd, IDC_TEXT_EDITOR_ENABLED));
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             } else if (notif->code == PSN_RESET) {
@@ -43,6 +62,11 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 // https://docs.microsoft.com/en-us/windows/win32/shell/executing-control-panel-items#folder-options
                 ShellExecute(nullptr, L"open",
                     L"rundll32.exe", L"shell32.dll,Options_RunDLL 7", nullptr, SW_SHOWNORMAL);
+                return TRUE;
+            } else if (HIWORD(wParam) == EN_CHANGE
+                    || LOWORD(wParam) == IDC_PREVIEWS_ENABLED && HIWORD(wParam) == BN_CLICKED
+                    || LOWORD(wParam) == IDC_TEXT_EDITOR_ENABLED && HIWORD(wParam) == BN_CLICKED) {
+                PropSheet_Changed(GetParent(hwnd), hwnd);
                 return TRUE;
             }
             return FALSE;
