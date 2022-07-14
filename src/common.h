@@ -1,7 +1,5 @@
 #pragma once
 
-#define CHROMABROWSE_REG_KEY L"Software\\chromabrowse"
-
 // win32
 #ifndef UNICODE
 #define UNICODE
