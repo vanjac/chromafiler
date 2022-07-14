@@ -1,4 +1,5 @@
 #include "SettingsDialog.h"
+#include "Settings.h"
 #include "resource.h"
 #include <atlbase.h>
 #include <prsht.h>
@@ -8,8 +9,22 @@ namespace chromabrowse {
 
 INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
-        case WM_INITDIALOG:
+        case WM_INITDIALOG: {
+            CComHeapPtr<wchar_t> startingFolder;
+            settings::getStartingFolder(startingFolder);
+            SetDlgItemText(hwnd, IDC_START_FOLDER_PATH, startingFolder);
+            SIZE folderWindowSize = settings::getFolderWindowSize();
+            SetDlgItemInt(hwnd, IDC_FOLDER_WINDOW_WIDTH, folderWindowSize.cx, TRUE);
+            SetDlgItemInt(hwnd, IDC_FOLDER_WINDOW_HEIGHT, folderWindowSize.cy, TRUE);
+            SIZE itemWindowSize = settings::getItemWindowSize();
+            SetDlgItemInt(hwnd, IDC_ITEM_WINDOW_WIDTH, itemWindowSize.cx, TRUE);
+            SetDlgItemInt(hwnd, IDC_ITEM_WINDOW_HEIGHT, itemWindowSize.cy, TRUE);
+            CheckDlgButton(hwnd, IDC_PREVIEWS_ENABLED,
+                settings::getPreviewsEnabled() ? BST_CHECKED : BST_UNCHECKED);
+            CheckDlgButton(hwnd, IDC_TEXT_EDITOR_ENABLED,
+                settings::getTextEditorEnabled() ? BST_CHECKED : BST_UNCHECKED);
             return TRUE;
+        }
         case WM_NOTIFY: {
             NMHDR *notif = (NMHDR *)lParam;
             if (notif->code == PSN_KILLACTIVE) {
