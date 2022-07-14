@@ -18,6 +18,8 @@
 #pragma comment(lib, "UxTheme.lib")
 #pragma comment(lib, "Comctl32.lib")
 
+using namespace chromabrowse;
+
 const wchar_t APP_ID[] = L"chroma.browse";
 
 #ifdef CHROMABROWSE_DEBUG
@@ -56,12 +58,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     controls.dwICC = ICC_STANDARD_CLASSES | ICC_BAR_CLASSES;
     InitCommonControlsEx(&controls);
 
-    chromabrowse::ItemWindow::init();
-    chromabrowse::FolderWindow::init();
-    chromabrowse::ThumbnailWindow::init();
-    chromabrowse::PreviewWindow::init();
-    chromabrowse::TextWindow::init();
-    chromabrowse::TrayWindow::init();
+    ItemWindow::init();
+    FolderWindow::init();
+    ThumbnailWindow::init();
+    PreviewWindow::init();
+    TextWindow::init();
+    TrayWindow::init();
 
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));
@@ -74,7 +76,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         wchar_t *path;
         bool tray = false;
         if (argc > 1 && lstrcmpi(argv[1], L"/tray") == 0) {
-            chromabrowse::settings::getTrayFolder(pathAlloc);
+            settings::getTrayFolder(pathAlloc);
             path = pathAlloc;
             tray = true;
         } else if (argc > 1) {
@@ -83,7 +85,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             if (path[pathLen - 1] == '"')
                 path[pathLen - 1] = '\\'; // fix weird CommandLineToArgvW behavior with \"
         } else {
-            chromabrowse::settings::getStartingFolder(pathAlloc);
+            settings::getStartingFolder(pathAlloc);
             path = pathAlloc;
         }
 
@@ -93,15 +95,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             debugPrintf(L"Unable to locate item at path %s\n", path);
             return 0;
         }
-        startItem = chromabrowse::resolveLink(nullptr, startItem);
+        startItem = resolveLink(nullptr, startItem);
 
-        CComPtr<chromabrowse::ItemWindow> initialWindow;
+        CComPtr<ItemWindow> initialWindow;
         POINT pos;
         if (tray) {
-            initialWindow.Attach(new chromabrowse::TrayWindow(nullptr, startItem));
-            pos = ((chromabrowse::TrayWindow *)initialWindow.p)->requestedPosition();
+            initialWindow.Attach(new TrayWindow(nullptr, startItem));
+            pos = ((TrayWindow *)initialWindow.p)->requestedPosition();
         } else {
-            initialWindow = chromabrowse::createItemWindow(nullptr, startItem);
+            initialWindow = createItemWindow(nullptr, startItem);
             pos = {CW_USEDEFAULT, CW_USEDEFAULT};
         }
         SIZE size = initialWindow->requestedSize();
@@ -111,7 +113,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
-        if (chromabrowse::activeWindow && chromabrowse::activeWindow->handleTopLevelMessage(&msg))
+        if (activeWindow && activeWindow->handleTopLevelMessage(&msg))
             continue;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
@@ -121,9 +123,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     CloseHandle(jumpListThread);
     updateJumpList(nullptr);
 
-    chromabrowse::ItemWindow::uninit();
-    chromabrowse::PreviewWindow::uninit();
-    chromabrowse::TextWindow::uninit();
+    ItemWindow::uninit();
+    PreviewWindow::uninit();
+    TextWindow::uninit();
     OleUninitialize();
 
     return (int)msg.wParam;
