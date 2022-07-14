@@ -2,6 +2,7 @@
 #include "CreateItemWindow.h"
 #include "RectUtils.h"
 #include "Settings.h"
+#include "SettingsDialog.h"
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
@@ -423,6 +424,9 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 case ID_HELP:
                     ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
                         nullptr, nullptr, SW_SHOWNORMAL);
+                    return 0;
+                case ID_SETTINGS:
+                    openSettingsDialog(nullptr);
                     return 0;
             }
             break;
