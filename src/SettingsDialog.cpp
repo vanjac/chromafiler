@@ -43,9 +43,10 @@ void openSettingsDialog(HWND owner) {
     generalPage.pfnDlgProc = generalProc;
 
     PROPSHEETHEADER sheet = {sizeof(sheet)};
-    sheet.dwFlags = PSH_PROPSHEETPAGE | PSH_NOCONTEXTHELP;
+    sheet.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOCONTEXTHELP;
     sheet.hwndParent = owner;
     sheet.hInstance = GetModuleHandle(nullptr);
+    sheet.pszIcon = MAKEINTRESOURCE(IDR_APP_ICON);
     sheet.pszCaption = MAKEINTRESOURCE(IDS_SETTINGS_CAPTION);
     sheet.nPages = 1;
     sheet.ppsp = &generalPage;
