@@ -87,6 +87,11 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 settings::setTextEditorEnabled(!!IsDlgButtonChecked(hwnd, IDC_TEXT_EDITOR_ENABLED));
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
+            } else if (notif->code == PSN_HELP) {
+                ShellExecute(nullptr, L"open",
+                    L"https://github.com/vanjac/chromabrowse/wiki/Settings#general",
+                    nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
             }
             return FALSE;
         }
@@ -170,6 +175,11 @@ INT_PTR trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 else if (IsDlgButtonChecked(hwnd, IDC_TRAY_DIR_RIGHT))
                     settings::setTrayDirection(settings::TRAY_RIGHT);
                 return TRUE;
+            } else if (notif->code == PSN_HELP) {
+                ShellExecute(nullptr, L"open",
+                    L"https://github.com/vanjac/chromabrowse/wiki/Settings#tray",
+                    nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
             }
             return FALSE;
         }
@@ -212,11 +222,13 @@ void openSettingsDialog() {
     PROPSHEETPAGE pages[2];
 
     pages[0] = {sizeof(PROPSHEETPAGE)};
+    pages[0].dwFlags = PSP_HASHELP;
     pages[0].hInstance = GetModuleHandle(nullptr);
     pages[0].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_GENERAL);
     pages[0].pfnDlgProc = generalProc;
 
     pages[1] = {sizeof(PROPSHEETPAGE)};
+    pages[1].dwFlags = PSP_HASHELP;
     pages[1].hInstance = GetModuleHandle(nullptr);
     pages[1].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_TRAY);
     pages[1].pfnDlgProc = trayProc;
