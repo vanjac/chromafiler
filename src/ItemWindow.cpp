@@ -367,6 +367,9 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             if (wParam == HTCAPTION && PtInRect(&proxyRect, clientCursor)) {
                 openProxyContextMenu(cursor);
                 return 0;
+            } else if (wParam == HTCAPTION) {
+                PostMessage(hwnd, WM_SYSCOMMAND, SC_KEYMENU, ' '); // show system menu
+                return 0;
             }
             break; // pass to DefWindowProc
         }
