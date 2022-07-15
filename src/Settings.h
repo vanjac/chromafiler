@@ -21,6 +21,8 @@ void setPreviewsEnabled(bool value);
 bool getTextEditorEnabled();
 void setTextEditorEnabled(bool value);
 
+bool getTrayOpenOnStartup();
+void setTrayOpenOnStartup(bool value);
 void getTrayFolder(CComHeapPtr<wchar_t> &value);
 void setTrayFolder(wchar_t *value);
 POINT getTrayPosition();

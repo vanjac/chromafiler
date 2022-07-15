@@ -127,6 +127,8 @@ void openTray(wchar_t *path) {
 INT_PTR trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_INITDIALOG: {
+            CheckDlgButton(hwnd, IDC_OPEN_TRAY_ON_STARTUP,
+                settings::getTrayOpenOnStartup() ? BST_CHECKED : BST_UNCHECKED);
             for (int i = 0; i < _countof(SPECIAL_PATHS); i++) {
                 SendDlgItemMessage(hwnd, IDC_TRAY_FOLDER_PATH, CB_ADDSTRING, 0,
                     (LPARAM)SPECIAL_PATHS[i]);
@@ -153,6 +155,8 @@ INT_PTR trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, FALSE);
                 return TRUE;
             } else if (notif->code == PSN_APPLY) {
+                settings::setTrayOpenOnStartup(
+                    !!IsDlgButtonChecked(hwnd, IDC_OPEN_TRAY_ON_STARTUP));
                 wchar_t trayFolder[MAX_PATH];
                 if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, trayFolder, _countof(trayFolder)))
                     settings::setTrayFolder(trayFolder);

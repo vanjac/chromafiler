@@ -1,4 +1,5 @@
 #include "Settings.h"
+#include <strsafe.h>
 
 namespace chromabrowse::settings {
 
@@ -13,7 +14,7 @@ const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
 const SIZE      DEFAULT_TRAY_SIZE           = {600, 48};
 const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
 
-const wchar_t KEY_SETTINGS[]    = L"Software\\chromabrowse";
+const wchar_t KEY_SETTINGS[]            = L"Software\\chromabrowse";
 
 const wchar_t VAL_STARTING_FOLDER[]     = L"StartingFolder";
 const wchar_t VAL_ITEM_WINDOW_W[]       = L"ItemWindowWidth";
@@ -28,6 +29,9 @@ const wchar_t VAL_TRAY_Y[]              = L"TrayY";
 const wchar_t VAL_TRAY_W[]              = L"TrayWidth";
 const wchar_t VAL_TRAY_H[]              = L"TrayHeight";
 const wchar_t VAL_TRAY_DIRECTION[]      = L"TrayDirection";
+
+const wchar_t KEY_STARTUP[]             = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
+const wchar_t VAL_STARTUP[]             = L"chromabrowse";
 
 // type should be a RRF_RT_* constant
 // data should already contain default value
@@ -110,6 +114,26 @@ bool getTextEditorEnabled() {
 void setTextEditorEnabled(bool value) {
     DWORD dwValue = value;
     setSettingsValue(VAL_TEXT_EDITOR_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
+}
+
+bool getTrayOpenOnStartup() {
+    return !RegGetValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP,
+        RRF_RT_ANY, nullptr, nullptr, nullptr);
+}
+
+void setTrayOpenOnStartup(bool value) {
+    if (value) {
+        if (getTrayOpenOnStartup())
+            return; // don't overwrite existing command
+        wchar_t command[MAX_PATH];
+        command[0] = L'"';
+        GetModuleFileName(GetModuleHandle(nullptr), command + 1, _countof(command) - 1);
+        StringCchCat(command, _countof(command), L"\" /tray");
+        RegSetKeyValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP, REG_EXPAND_SZ,
+            command, (lstrlen(command) + 1) * sizeof(wchar_t));
+    } else {
+        RegDeleteKeyValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP);
+    }
 }
 
 void getTrayFolder(CComHeapPtr<wchar_t> &value) {
