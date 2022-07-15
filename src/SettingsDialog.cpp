@@ -4,6 +4,7 @@
 #include <atlbase.h>
 #include <prsht.h>
 #include <shellapi.h>
+#include <shobjidl_core.h>
 
 namespace chromabrowse {
 
@@ -14,6 +15,23 @@ const wchar_t *SPECIAL_PATHS[] = {
     L"shell:Recent",
     L"shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}" // Quick access
 };
+
+bool chooseFolder(HWND owner, CComHeapPtr<wchar_t> &pathOut) {
+    CComPtr<IFileOpenDialog> openDialog;
+    if (!checkHR(openDialog.CoCreateInstance(__uuidof(FileOpenDialog))))
+        return false;
+    FILEOPENDIALOGOPTIONS opts;
+    if (!checkHR(openDialog->GetOptions(&opts)))
+        return false;
+    if (!checkHR(openDialog->SetOptions(opts | FOS_PICKFOLDERS | FOS_ALLNONSTORAGEITEMS)))
+        return false;
+    if (!checkHR(openDialog->Show(GetParent(owner))))
+        return false;
+    CComPtr<IShellItem> item;
+    if (!checkHR(openDialog->GetResult(&item)))
+        return false;
+    return checkHR(item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &pathOut));
+}
 
 INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
@@ -68,7 +86,13 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
             return FALSE;
         }
         case WM_COMMAND:
-            if (LOWORD(wParam) == IDC_EXPLORER_SETTINGS && HIWORD(wParam) == BN_CLICKED) {
+            if (LOWORD(wParam) == IDC_START_FOLDER_BROWSE && HIWORD(wParam) == BN_CLICKED) {
+                CComHeapPtr<wchar_t> selected;
+                if (chooseFolder(GetParent(hwnd), selected)) {
+                    SetDlgItemText(hwnd, IDC_START_FOLDER_PATH, selected);
+                    PropSheet_Changed(GetParent(hwnd), hwnd);
+                }
+            } else if (LOWORD(wParam) == IDC_EXPLORER_SETTINGS && HIWORD(wParam) == BN_CLICKED) {
                 // https://docs.microsoft.com/en-us/windows/win32/shell/executing-control-panel-items#folder-options
                 ShellExecute(nullptr, L"open",
                     L"rundll32.exe", L"shell32.dll,Options_RunDLL 7", nullptr, SW_SHOWNORMAL);
