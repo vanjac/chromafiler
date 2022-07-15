@@ -434,13 +434,13 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                         nullptr, nullptr, SW_SHOWNORMAL);
                     return 0;
                 case ID_SETTINGS:
-                    openSettingsDialog(nullptr);
+                    openSettingsDialog();
                     return 0;
             }
             break;
         case WM_SYSCOMMAND:
             if (LOWORD(wParam) == ID_SETTINGS) {
-                openSettingsDialog(nullptr);
+                openSettingsDialog();
                 return 0;
             }
             break;

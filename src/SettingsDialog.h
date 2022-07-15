@@ -5,6 +5,7 @@
 
 namespace chromabrowse {
 
-void openSettingsDialog(HWND owner);
+void openSettingsDialog();
+bool handleSettingsDialogMessage(MSG *msg);
 
 } // namespace

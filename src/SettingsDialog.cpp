@@ -17,6 +17,8 @@ const wchar_t *SPECIAL_PATHS[] = {
     L"shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}" // Quick access
 };
 
+static HWND settingsDialog = nullptr;
+
 bool chooseFolder(HWND owner, CComHeapPtr<wchar_t> &pathOut) {
     CComPtr<IFileOpenDialog> openDialog;
     if (!checkHR(openDialog.CoCreateInstance(__uuidof(FileOpenDialog))))
@@ -197,7 +199,12 @@ INT_PTR trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     }
 }
 
-void openSettingsDialog(HWND owner) {
+void openSettingsDialog() {
+    if (settingsDialog) {
+        SetActiveWindow(settingsDialog);
+        return;
+    }
+
     PROPSHEETPAGE pages[2];
 
     pages[0] = {sizeof(PROPSHEETPAGE)};
@@ -211,14 +218,24 @@ void openSettingsDialog(HWND owner) {
     pages[1].pfnDlgProc = trayProc;
 
     PROPSHEETHEADER sheet = {sizeof(sheet)};
-    sheet.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOCONTEXTHELP;
-    sheet.hwndParent = owner;
+    sheet.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOCONTEXTHELP | PSH_MODELESS;
     sheet.hInstance = GetModuleHandle(nullptr);
     sheet.pszIcon = MAKEINTRESOURCE(IDR_APP_ICON);
     sheet.pszCaption = MAKEINTRESOURCE(IDS_SETTINGS_CAPTION);
     sheet.nPages = _countof(pages);
     sheet.ppsp = pages;
-    PropertySheet(&sheet);
+    settingsDialog = (HWND)PropertySheet(&sheet);
+}
+
+bool handleSettingsDialogMessage(MSG *msg) {
+    if (settingsDialog && PropSheet_IsDialogMessage(settingsDialog, msg)) {
+        if (!PropSheet_GetCurrentPageHwnd(settingsDialog)) {
+            DestroyWindow(settingsDialog);
+            settingsDialog = nullptr;
+        }
+        return true;
+    }
+    return false;
 }
 
 } // namespace

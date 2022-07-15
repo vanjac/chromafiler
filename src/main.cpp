@@ -5,6 +5,7 @@
 #include "TrayWindow.h"
 #include "CreateItemWindow.h"
 #include "Settings.h"
+#include "SettingsDialog.h"
 #include "resource.h"
 #include <shellapi.h>
 #include <shlobj.h>
@@ -109,6 +110,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
+        if (handleSettingsDialogMessage(&msg))
+            continue;
         if (activeWindow && activeWindow->handleTopLevelMessage(&msg))
             continue;
         TranslateMessage(&msg);
