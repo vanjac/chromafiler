@@ -458,7 +458,7 @@ void ItemWindow::onCreate() {
         wchar_t iconFile[MAX_PATH];
         int index;
         UINT flags;
-        if (extractIcon->GetIconLocation(0, iconFile, MAX_PATH, &index, &flags) == S_OK) {
+        if (extractIcon->GetIconLocation(0, iconFile, _countof(iconFile), &index, &flags) == S_OK) {
             UINT iconSizes = (GetSystemMetrics(SM_CXSMICON) << 16) + GetSystemMetrics(SM_CXICON);
             if (extractIcon->Extract(iconFile, index, &iconLarge, &iconSmall, iconSizes) != S_OK) {
                 debugPrintf(L"IExtractIcon failed\n");
@@ -928,8 +928,8 @@ void ItemWindow::openProxyContextMenu(POINT point) {
         // https://groups.google.com/g/microsoft.public.win32.programmer.ui/c/PhXQcfhYPHQ
         wchar_t verb[64];
         verb[0] = 0; // some handlers may return S_OK without touching the buffer
-        if (checkHR(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr, (char*)verb, 64))
-                && lstrcmpi(verb, L"rename") == 0) {
+        if (checkHR(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr,
+                (char*)verb, _countof(verb))) && lstrcmpi(verb, L"rename") == 0) {
             beginRename();
         } else {
             CMINVOKECOMMANDINFOEX info = {sizeof(info)};
@@ -1007,7 +1007,7 @@ void ItemWindow::beginRename() {
 
 void ItemWindow::completeRename() {
     wchar_t newName[MAX_PATH];
-    SendMessage(renameBox, WM_GETTEXT, MAX_PATH, (LPARAM)newName);
+    SendMessage(renameBox, WM_GETTEXT, _countof(newName), (LPARAM)newName);
     cancelRename();
 
     if (lstrcmp(newName, title) == 0)
@@ -1021,7 +1021,7 @@ void ItemWindow::completeRename() {
         int titleLen = lstrlen(title);
         if (fileNameLen > titleLen) { // if extensions are hidden in File Explorer Options
             debugPrintf(L"Appending extension %s\n", fileName + titleLen);
-            checkHR(StringCchCat(newName, MAX_PATH, fileName + titleLen));
+            checkHR(StringCchCat(newName, _countof(newName), fileName + titleLen));
         }
     }
 
@@ -1194,7 +1194,7 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
             if (checkHR(GetThemeBackgroundContentRect(theme, hdc, BP_PUSHBUTTON, 
                     themeState, &buttonRect, &contentRect))) {
                 wchar_t buttonText[32];
-                GetWindowText(hwnd, buttonText, 32);
+                GetWindowText(hwnd, buttonText, _countof(buttonText));
                 HFONT oldFont = SelectFont(hdc, symbolFont);
                 SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
                 SetBkMode(hdc, TRANSPARENT);

@@ -53,7 +53,7 @@ bool isTextFile(wchar_t *ext) {
 bool previewHandlerCLSID(wchar_t *ext, CLSID *previewID) {
     // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-1-ui-assoc/
     wchar_t resultGUID[64];
-    DWORD resultLen = 64;
+    DWORD resultLen = _countof(resultGUID);
     if (FAILED(AssocQueryString(ASSOCF_INIT_DEFAULTTOSTAR | ASSOCF_NOTRUNCATE,
             ASSOCSTR_SHELLEXTENSION, ext, IPreviewHandlerIID, resultGUID, &resultLen)))
         return false;
