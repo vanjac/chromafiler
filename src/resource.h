@@ -27,5 +27,13 @@
 #define IDC_TEXT_EDITOR_ENABLED     1008
 #define IDC_EXPLORER_SETTINGS       1009
 
+#define IDD_SETTINGS_TRAY           105
+#define IDC_OPEN_TRAY_ON_STARTUP    1001
+#define IDC_OPEN_TRAY               1002
+#define IDC_TRAY_FOLDER_PATH        1003
+#define IDC_TRAY_FOLDER_BROWSE      1004
+#define IDC_TRAY_DIR_ABOVE          1005
+#define IDC_TRAY_DIR_BELOW          1006
+#define IDC_TRAY_DIR_RIGHT          1007
 
 #define IDS_SETTINGS_CAPTION    200

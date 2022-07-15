@@ -1,5 +1,6 @@
 #include "SettingsDialog.h"
 #include "Settings.h"
+#include "TrayWindow.h"
 #include "resource.h"
 #include <atlbase.h>
 #include <prsht.h>
@@ -62,7 +63,8 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                 return TRUE;
             } else if (notif->code == PSN_APPLY) {
                 wchar_t startingFolder[MAX_PATH];
-                if (GetDlgItemText(hwnd, IDC_START_FOLDER_PATH, startingFolder, MAX_PATH))
+                if (GetDlgItemText(hwnd, IDC_START_FOLDER_PATH,
+                        startingFolder, _countof(startingFolder)))
                     settings::setStartingFolder(startingFolder);
                 BOOL success;
                 SIZE size;
@@ -111,11 +113,98 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     }
 }
 
+void openTray(wchar_t *path) {
+    CComPtr<IShellItem> item;
+    if (!checkHR(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&item))))
+        return;
+    CComPtr<TrayWindow> tray;
+    tray.Attach(new TrayWindow(nullptr, item));
+    POINT pos = tray->requestedPosition();
+    SIZE size = tray->requestedSize();
+    tray->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNORMAL);
+}
+
+INT_PTR trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+        case WM_INITDIALOG: {
+            for (int i = 0; i < _countof(SPECIAL_PATHS); i++) {
+                SendDlgItemMessage(hwnd, IDC_TRAY_FOLDER_PATH, CB_ADDSTRING, 0,
+                    (LPARAM)SPECIAL_PATHS[i]);
+            }
+            CComHeapPtr<wchar_t> trayFolder;
+            settings::getTrayFolder(trayFolder);
+            SetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, trayFolder);
+            switch (settings::getTrayDirection()) {
+                case settings::TRAY_UP:
+                    CheckDlgButton(hwnd, IDC_TRAY_DIR_ABOVE, BST_CHECKED);
+                    break;
+                case settings::TRAY_DOWN:
+                    CheckDlgButton(hwnd, IDC_TRAY_DIR_BELOW, BST_CHECKED);
+                    break;
+                case settings::TRAY_RIGHT:
+                    CheckDlgButton(hwnd, IDC_TRAY_DIR_RIGHT, BST_CHECKED);
+                    break;
+            }
+            return TRUE;
+        }
+        case WM_NOTIFY: {
+            NMHDR *notif = (NMHDR *)lParam;
+            if (notif->code == PSN_KILLACTIVE) {
+                SetWindowLongPtr(hwnd, DWLP_MSGRESULT, FALSE);
+                return TRUE;
+            } else if (notif->code == PSN_APPLY) {
+                wchar_t trayFolder[MAX_PATH];
+                if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, trayFolder, _countof(trayFolder)))
+                    settings::setTrayFolder(trayFolder);
+                if (IsDlgButtonChecked(hwnd, IDC_TRAY_DIR_ABOVE))
+                    settings::setTrayDirection(settings::TRAY_UP);
+                else if (IsDlgButtonChecked(hwnd, IDC_TRAY_DIR_BELOW))
+                    settings::setTrayDirection(settings::TRAY_DOWN);
+                else if (IsDlgButtonChecked(hwnd, IDC_TRAY_DIR_RIGHT))
+                    settings::setTrayDirection(settings::TRAY_RIGHT);
+                return TRUE;
+            }
+            return FALSE;
+        }
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDC_OPEN_TRAY && HIWORD(wParam) == BN_CLICKED) {
+                wchar_t path[MAX_PATH];
+                if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, path, _countof(path)))
+                    openTray(path);
+            } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_BROWSE && HIWORD(wParam) == BN_CLICKED) {
+                CComHeapPtr<wchar_t> selected;
+                if (chooseFolder(GetParent(hwnd), selected)) {
+                    SetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, selected);
+                    PropSheet_Changed(GetParent(hwnd), hwnd);
+                }
+            } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_PATH
+                    && (HIWORD(wParam) == CBN_EDITCHANGE || HIWORD(wParam) == CBN_SELCHANGE)) {
+                PropSheet_Changed(GetParent(hwnd), hwnd);
+                return TRUE;
+            } else if (HIWORD(wParam) == BN_CLICKED && (LOWORD(wParam) == IDC_OPEN_TRAY_ON_STARTUP
+                    || LOWORD(wParam) == IDC_TRAY_DIR_ABOVE || LOWORD(wParam) == IDC_TRAY_DIR_BELOW
+                    || LOWORD(wParam) == IDC_TRAY_DIR_RIGHT)) {
+                PropSheet_Changed(GetParent(hwnd), hwnd);
+                return TRUE;
+            }
+            return FALSE;
+        default:
+            return FALSE;
+    }
+}
+
 void openSettingsDialog(HWND owner) {
-    PROPSHEETPAGE generalPage = {sizeof(generalPage)};
-    generalPage.hInstance = GetModuleHandle(nullptr);
-    generalPage.pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_GENERAL);
-    generalPage.pfnDlgProc = generalProc;
+    PROPSHEETPAGE pages[2];
+
+    pages[0] = {sizeof(PROPSHEETPAGE)};
+    pages[0].hInstance = GetModuleHandle(nullptr);
+    pages[0].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_GENERAL);
+    pages[0].pfnDlgProc = generalProc;
+
+    pages[1] = {sizeof(PROPSHEETPAGE)};
+    pages[1].hInstance = GetModuleHandle(nullptr);
+    pages[1].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_TRAY);
+    pages[1].pfnDlgProc = trayProc;
 
     PROPSHEETHEADER sheet = {sizeof(sheet)};
     sheet.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOCONTEXTHELP;
@@ -123,8 +212,8 @@ void openSettingsDialog(HWND owner) {
     sheet.hInstance = GetModuleHandle(nullptr);
     sheet.pszIcon = MAKEINTRESOURCE(IDR_APP_ICON);
     sheet.pszCaption = MAKEINTRESOURCE(IDS_SETTINGS_CAPTION);
-    sheet.nPages = 1;
-    sheet.ppsp = &generalPage;
+    sheet.nPages = _countof(pages);
+    sheet.ppsp = pages;
     PropertySheet(&sheet);
 }
 

@@ -147,18 +147,6 @@ DWORD WINAPI updateJumpList(void *) {
     wchar_t exePath[MAX_PATH];
     GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH);
 
-    CComPtr<IShellLink> trayLink;
-    if (checkHR(trayLink.CoCreateInstance(__uuidof(ShellLink)))) {
-        checkHR(trayLink->SetPath(exePath));
-        checkHR(trayLink->SetArguments(L"/tray"));
-        checkHR(trayLink->SetIconLocation(exePath, IDR_APP_ICON));
-        CComQIPtr<IPropertyStore> trayLinkProps(trayLink);
-        PROPVARIANT propVar;
-        if (checkHR(InitPropVariantFromString(L"Open Tray", &propVar))) // TODO string resource
-            trayLinkProps->SetValue(PKEY_Title, propVar);
-        checkHR(tasks->AddObject(trayLink));
-    }
-
     CComPtr<IShellItem> favoritesFolder;
     if (IsWindows10OrGreater()) {
         // Quick Access
