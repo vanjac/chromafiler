@@ -246,8 +246,7 @@ void FolderWindow::newFolder() {
     if (!popupMenu)
         return;
     if (checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_OPTIMIZEFORINVOKE))) {
-        CMINVOKECOMMANDINFO info = {};
-        info.cbSize = sizeof(info);
+        CMINVOKECOMMANDINFO info = {sizeof(info)};
         info.hwnd = hwnd;
         info.lpVerb = CMDSTR_NEWFOLDERA;
         CComPtr<IFolderView2> folderView;

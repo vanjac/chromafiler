@@ -164,8 +164,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     if (!alwaysOnTop() && rect.left != CW_USEDEFAULT && rect.top != CW_USEDEFAULT) {
         POINT testPoint = {rect.left, rect.top + CAPTION_HEIGHT};
         HMONITOR nearestMonitor = MonitorFromPoint(testPoint, MONITOR_DEFAULTTONEAREST);
-        MONITORINFO monitorInfo;
-        monitorInfo.cbSize = sizeof(monitorInfo);
+        MONITORINFO monitorInfo = {sizeof(monitorInfo)};
         GetMonitorInfo(nearestMonitor, &monitorInfo);
         if (testPoint.x < monitorInfo.rcWork.left)
             OffsetRect(&rect, monitorInfo.rcWork.left - testPoint.x, 0);
@@ -513,8 +512,7 @@ void ItemWindow::onCreate() {
     SetWindowPos(tooltip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     if (captionFont)
         SendMessage(tooltip, WM_SETFONT, (WPARAM)captionFont, FALSE);
-    TOOLINFO toolInfo = {};
-    toolInfo.cbSize = sizeof(toolInfo);
+    TOOLINFO toolInfo = {sizeof(toolInfo)};
     toolInfo.uFlags = TTF_SUBCLASS | TTF_TRANSPARENT;
     toolInfo.hwnd = hwnd;
     toolInfo.hinst = instance;
@@ -667,8 +665,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     proxyRect = {headerLeft, 0, headerLeft + headerWidth, CAPTION_HEIGHT};
 
     if (truncateTitle) {
-        TOOLINFO toolInfo = {};
-        toolInfo.cbSize = sizeof(toolInfo);
+        TOOLINFO toolInfo = {sizeof(toolInfo)};
         toolInfo.hwnd = hwnd;
         toolInfo.rect = proxyRect;
         SendMessage(tooltip, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo); // rect to trigger tooltip
@@ -688,7 +685,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     // https://github.com/res2k/Windows10Colors
     HTHEME windowTheme = OpenThemeData(hwnd, WINDOW_THEME);
     if (windowTheme) {
-        DTTOPTS textOpts = {sizeof(DTTOPTS)};
+        DTTOPTS textOpts = {sizeof(textOpts)};
         bool isActive = GetActiveWindow() == hwnd;
         if (IsWindows10OrGreater()) {
             // COLOR_INACTIVECAPTIONTEXT doesn't work in Windows 10
@@ -878,8 +875,7 @@ void ItemWindow::invokeProxyDefaultVerb(POINT point) {
     if (checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_DEFAULTONLY))) {
         UINT id = GetMenuDefaultItem(popupMenu, FALSE, 0);
         if (id != (UINT)-1) {
-            CMINVOKECOMMANDINFOEX info = {};
-            info.cbSize = sizeof(info);
+            CMINVOKECOMMANDINFOEX info = {sizeof(info)};
             info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE
                 | CMIC_MASK_ASYNCOK | CMIC_MASK_FLAG_LOG_USAGE;
             info.hwnd = hwnd;
@@ -896,8 +892,7 @@ void ItemWindow::invokeProxyDefaultVerb(POINT point) {
 void ItemWindow::openProxyProperties() {
     CComHeapPtr<ITEMIDLIST> idList;
     if (checkHR(SHGetIDListFromObject(item, &idList))) {
-        SHELLEXECUTEINFO info = {};
-        info.cbSize = sizeof(info);
+        SHELLEXECUTEINFO info = {sizeof(info)};
         info.fMask = SEE_MASK_INVOKEIDLIST;
         info.lpVerb = L"properties";
         info.lpIDList = idList;
@@ -937,8 +932,7 @@ void ItemWindow::openProxyContextMenu(POINT point) {
                 && lstrcmpi(verb, L"rename") == 0) {
             beginRename();
         } else {
-            CMINVOKECOMMANDINFOEX info = {};
-            info.cbSize = sizeof(info);
+            CMINVOKECOMMANDINFOEX info = {sizeof(info)};
             // TODO must set a thread reference
             // see https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-icontextmenu-invokecommand
             info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE

@@ -50,8 +50,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     if (!checkHR(OleInitialize(0))) // needed for drag/drop
         return 0;
 
-    INITCOMMONCONTROLSEX controls = {};
-    controls.dwSize = sizeof(controls);
+    INITCOMMONCONTROLSEX controls = {sizeof(controls)};
     controls.dwICC = ICC_STANDARD_CLASSES | ICC_BAR_CLASSES;
     InitCommonControlsEx(&controls);
 
