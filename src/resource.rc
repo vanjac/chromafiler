@@ -31,24 +31,24 @@ IDD_SETTINGS_GENERAL    DIALOGEX
         STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
         CAPTION "General"
         FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
-    GROUPBOX "Starting folder", -1, 7, 7, 213, 35
+    GROUPBOX "&Starting folder", -1, 7, 7, 213, 35
     COMBOBOX IDC_START_FOLDER_PATH, 14, 21, 136, 14, WS_TABSTOP | CBS_DROPDOWN | CBS_AUTOHSCROLL
-    PUSHBUTTON "Browse...", IDC_START_FOLDER_BROWSE, 157, 21, 56, 14
+    PUSHBUTTON "&Browse...", IDC_START_FOLDER_BROWSE, 157, 21, 56, 14
     GROUPBOX "Default window sizes", -1, 7, 49, 213, 49
-    RTEXT "Folder", -1, 14, 66, 70, 8
+    RTEXT "&Folder", -1, 14, 66, 70, 8
     EDITTEXT IDC_FOLDER_WINDOW_WIDTH, 91, 63, 21, 14, ES_NUMBER
     CTEXT "x", -1, 112, 66, 14, 8
     EDITTEXT IDC_FOLDER_WINDOW_HEIGHT, 126, 63, 21, 14, ES_NUMBER
-    RTEXT "File preview", -1, 14, 80, 70, 8
+    RTEXT "File &preview", -1, 14, 80, 70, 8
     EDITTEXT IDC_ITEM_WINDOW_WIDTH, 91, 77, 21, 14, ES_NUMBER
     CTEXT "x", -1, 112, 80, 14, 8
     EDITTEXT IDC_ITEM_WINDOW_HEIGHT, 126, 77, 21, 14, ES_NUMBER
     GROUPBOX "Previews", -1, 7, 105, 213, 49
-    AUTOCHECKBOX "Use Preview Handlers", IDC_PREVIEWS_ENABLED, 21, 119, 98, 14
-    AUTOCHECKBOX "Enable text editor", IDC_TEXT_EDITOR_ENABLED, 21, 133, 98, 14
+    AUTOCHECKBOX "Use Preview &Handlers", IDC_PREVIEWS_ENABLED, 21, 119, 98, 14
+    AUTOCHECKBOX "Enable &text editor", IDC_TEXT_EDITOR_ENABLED, 21, 133, 98, 14
     GROUPBOX "File Explorer options", -1, 7, 161, 213, 35
     LTEXT "Some File Explorer options also affect chromabrowse folder windows.", -1, 14, 175, 136, 16
-    PUSHBUTTON "Options...", IDC_EXPLORER_SETTINGS, 157, 175, 56, 14
+    PUSHBUTTON "&Options...", IDC_EXPLORER_SETTINGS, 157, 175, 56, 14
 }
 
 
