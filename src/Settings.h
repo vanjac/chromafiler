@@ -4,7 +4,8 @@
 #include <windows.h>
 #include <atlbase.h>
 
-namespace chromabrowse::settings {
+namespace chromabrowse {
+namespace settings {
 
 enum TrayDirection : DWORD { TRAY_UP, TRAY_DOWN, TRAY_RIGHT };
 
@@ -46,4 +47,4 @@ void setTraySize(SIZE value);
 TrayDirection getTrayDirection();
 void setTrayDirection(TrayDirection value);
 
-} // namespace
+}} // namespace

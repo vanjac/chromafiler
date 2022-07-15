@@ -24,7 +24,6 @@
 				"/MTd",     // debug only
 				"/D", "CHROMABROWSE_DEBUG", // debug only
 				"/nologo",
-				"/std:c++17",
 				"/W4",
 				"/Fe:",
 				"${workspaceFolder}\\build\\chromabrowse.exe",
@@ -57,7 +56,6 @@
 				"/GL",      // release only
 				"/O2",      // release only
 				"/nologo",
-				"/std:c++17",
 				"/W4",
 				"/Fe:",
 				"${workspaceFolder}\\build\\chromabrowse.exe",

@@ -1,7 +1,8 @@
 #include "Settings.h"
 #include <strsafe.h>
 
-namespace chromabrowse::settings {
+namespace chromabrowse {
+namespace settings {
 
 const wchar_t KEY_SETTINGS[]            = L"Software\\chromabrowse";
 
@@ -167,4 +168,4 @@ void setTrayDirection(TrayDirection value) {
     setSettingsValue(VAL_TRAY_DIRECTION, REG_DWORD, &value, sizeof(value));
 }
 
-} // namespace
+}} // namespace
