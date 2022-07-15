@@ -38,3 +38,5 @@
 
 #define IDS_SETTINGS_CAPTION    200
 #define IDS_SETTINGS_COMMAND    201
+#define IDS_ERROR_CAPTION       202
+#define IDS_CANT_FIND_ITEM      203

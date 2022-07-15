@@ -86,12 +86,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             path = pathAlloc;
         }
 
-        CComPtr<IShellItem> startItem;
-        // parse name vs display name https://stackoverflow.com/q/42966489
-        if (FAILED(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&startItem)))) {
-            debugPrintf(L"Unable to locate item at path %s\n", path);
+        CComPtr<IShellItem> startItem = itemFromPath(path);
+        if (!startItem)
             return 0;
-        }
         startItem = resolveLink(nullptr, startItem);
 
         CComPtr<ItemWindow> initialWindow;

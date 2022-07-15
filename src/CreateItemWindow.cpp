@@ -4,8 +4,10 @@
 #include "PreviewWindow.h"
 #include "TextWindow.h"
 #include "Settings.h"
+#include "resource.h"
 #include <Shlguid.h>
 #include <shlobj.h>
+#include <strsafe.h>
 
 namespace chromabrowse {
 
@@ -78,6 +80,28 @@ CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem) {
         }
     }
     return linkItem;
+}
+
+CComPtr<IShellItem> itemFromPath(wchar_t *path) {
+    CComPtr<IShellItem> item;
+    while (1) {
+        // parse name vs display name https://stackoverflow.com/q/42966489
+        if (checkHR(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&item))))
+            break;
+        wchar_t caption[64], message[MAX_PATH + 64];
+        LoadString(GetModuleHandle(nullptr), IDS_ERROR_CAPTION, caption, _countof(caption));
+        LoadString(GetModuleHandle(nullptr), IDS_CANT_FIND_ITEM, message, _countof(message));
+        StringCchCat(message, _countof(message), path);
+        int result = MessageBox(nullptr, message, caption, MB_CANCELTRYCONTINUE | MB_ICONERROR);
+        if (result == IDCANCEL) {
+            return nullptr;
+        } else if (result == IDCONTINUE) {
+            if (checkHR(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
+                    IID_PPV_ARGS(&item))))
+                break;
+        } // else retry
+    }
+    return item;
 }
 
 } // namespace

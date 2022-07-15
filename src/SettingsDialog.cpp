@@ -1,6 +1,7 @@
 #include "SettingsDialog.h"
 #include "Settings.h"
 #include "TrayWindow.h"
+#include "CreateItemWindow.h"
 #include "resource.h"
 #include <atlbase.h>
 #include <prsht.h>
@@ -116,8 +117,8 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 }
 
 void openTray(wchar_t *path) {
-    CComPtr<IShellItem> item;
-    if (!checkHR(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&item))))
+    CComPtr<IShellItem> item = itemFromPath(path);
+    if (!item)
         return;
     CComPtr<TrayWindow> tray;
     tray.Attach(new TrayWindow(nullptr, item));

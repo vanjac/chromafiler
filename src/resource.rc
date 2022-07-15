@@ -71,4 +71,6 @@ IDD_SETTINGS_TRAY       DIALOGEX
 STRINGTABLE {
     IDS_SETTINGS_CAPTION,   "chromabrowse Settings"
     IDS_SETTINGS_COMMAND,   "Settings"
+    IDS_ERROR_CAPTION,      "Error"
+    IDS_CANT_FIND_ITEM,     "Unable to find item at path: "
 }
