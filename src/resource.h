@@ -37,3 +37,4 @@
 #define IDC_TRAY_DIR_RIGHT          1007
 
 #define IDS_SETTINGS_CAPTION    200
+#define IDS_SETTINGS_COMMAND    201

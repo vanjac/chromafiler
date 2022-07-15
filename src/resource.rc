@@ -70,4 +70,5 @@ IDD_SETTINGS_TRAY       DIALOGEX
 
 STRINGTABLE {
     IDS_SETTINGS_CAPTION,   "chromabrowse Settings"
+    IDS_SETTINGS_COMMAND,   "Settings"
 }

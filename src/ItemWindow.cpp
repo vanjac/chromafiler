@@ -30,6 +30,8 @@ const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
 
 static HANDLE symbolFontHandle = 0;
 static HFONT captionFont = 0, symbolFont = 0;
+// string resources
+static wchar_t STR_SETTINGS_COMMAND[64] = {0};
 
 // ItemWindow.h
 long numOpenWindows;
@@ -67,6 +69,9 @@ void ItemWindow::init() {
     symbolFont = CreateFont(SYMBOL_FONT_HEIGHT, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
         ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
+
+    LoadString(hInstance, IDS_SETTINGS_COMMAND,
+        STR_SETTINGS_COMMAND, _countof(STR_SETTINGS_COMMAND));
 
     accelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ITEM_ACCEL));
 }
@@ -433,6 +438,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     return 0;
             }
             break;
+        case WM_SYSCOMMAND:
+            if (LOWORD(wParam) == ID_SETTINGS) {
+                openSettingsDialog(nullptr);
+                return 0;
+            }
+            break;
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -469,6 +480,10 @@ void ItemWindow::onCreate() {
             checkHR(link->SetIDList(idList));
         }
     }
+
+    HMENU systemMenu = GetSystemMenu(hwnd, FALSE);
+    AppendMenu(systemMenu, MF_SEPARATOR, 0, nullptr);
+    AppendMenu(systemMenu, MF_STRING, ID_SETTINGS, STR_SETTINGS_COMMAND);
 
     if (!useCustomFrame())
         return; // !!
