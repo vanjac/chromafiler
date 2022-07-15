@@ -23,7 +23,7 @@ void TrayWindow::init() {
 }
 
 TrayWindow::TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
-        : FolderWindow(parent, item) {}
+        : FolderWindow(parent, item, propertyBag()) {}
 
 const wchar_t * TrayWindow::className() {
     return TRAY_WINDOW_CLASS;

@@ -10,7 +10,8 @@ class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlg
 public:
     static void init();
 
-    FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
+    FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item,
+        const wchar_t *propBagOverride = nullptr);
 
     bool preserveSize() const override;
     SIZE requestedSize() const override;

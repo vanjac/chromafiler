@@ -19,7 +19,7 @@ const wchar_t PROP_CHILD_SIZE[] = L"chromabrowse.childsize";
 
 // local property bags can be found at:
 // HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags
-CComPtr<IPropertyBag> getItemPropertyBag(CComPtr<IShellItem> item, wchar_t *name) {
+CComPtr<IPropertyBag> getItemPropertyBag(CComPtr<IShellItem> item, const wchar_t *name) {
     CComPtr<IPropertyBag> propBag;
     CComHeapPtr<ITEMIDLIST> idList;
     if (checkHR(SHGetIDListFromObject(item, &idList))) {
@@ -34,9 +34,11 @@ void FolderWindow::init() {
     RegisterClass(&wndClass);
 }
 
-FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
+FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item,
+        const wchar_t *propBagOverride)
         : ItemWindow(parent, item) {
-    propBag = getItemPropertyBag(item, propertyBag());
+    // can't call virtual method in constructor!
+    propBag = getItemPropertyBag(item, propBagOverride ? propBagOverride : propertyBag());
     if (propBag) {
         VARIANT sizeVar = {};
         sizeVar.vt = VT_UI4;
