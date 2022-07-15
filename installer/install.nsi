@@ -108,6 +108,7 @@ SectionEnd
 Function un.CleanupUser
 	Pop $0
 	DeleteRegKey HKU "$0\Software\chromabrowse"
+	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "chromabrowse"
 FunctionEnd
 
 LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
