@@ -66,6 +66,9 @@ IDD_SETTINGS_TRAY       DIALOGEX
     AUTORADIOBUTTON "Abo&ve", IDC_TRAY_DIR_ABOVE, 70, 84, 42, 14
     AUTORADIOBUTTON "Belo&w", IDC_TRAY_DIR_BELOW, 112, 84, 42, 14
     AUTORADIOBUTTON "&Right", IDC_TRAY_DIR_RIGHT, 154, 84, 42, 14
+    ICON IDI_INFORMATION, -1, 14, 114, 0, 0
+    LTEXT "Drag the upper-left corner of the tray to move. Drag the lower-right corner to resize. To close the tray, right click the upper-left corner and choose Close.", -1, 42, 112, 175, 24
+    PUSHBUTTON "R&eset tray position", IDC_RESET_TRAY_POSITION, 42, 140, 70, 14
 }
 
 STRINGTABLE {

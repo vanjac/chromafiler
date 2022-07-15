@@ -35,6 +35,7 @@
 #define IDC_TRAY_DIR_ABOVE          1005
 #define IDC_TRAY_DIR_BELOW          1006
 #define IDC_TRAY_DIR_RIGHT          1007
+#define IDC_RESET_TRAY_POSITION     1008
 
 #define IDS_SETTINGS_CAPTION    200
 #define IDS_SETTINGS_COMMAND    201

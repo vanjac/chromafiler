@@ -3,17 +3,6 @@
 
 namespace chromabrowse::settings {
 
-// http://smallvoid.com/article/winnt-shell-keyword.html
-const wchar_t   DEFAULT_STARTING_FOLDER[]   = L"shell:Desktop";
-const SIZE      DEFAULT_ITEM_WINDOW_SIZE    = {450, 450};
-const SIZE      DEFAULT_FOLDER_WINDOW_SIZE  = {231, 450}; // just wide enough for scrollbar tooltips
-const bool      DEFAULT_PREVIEWS_ENABLED    = true;
-const bool      DEFAULT_TEXT_EDITOR_ENABLED = false;
-const wchar_t   DEFAULT_TRAY_FOLDER[]       = L"shell:Links";
-const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
-const SIZE      DEFAULT_TRAY_SIZE           = {600, 48};
-const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
-
 const wchar_t KEY_SETTINGS[]            = L"Software\\chromabrowse";
 
 const wchar_t VAL_STARTING_FOLDER[]     = L"StartingFolder";
