@@ -1,6 +1,29 @@
 #include <windows.h>
 #include "resource.h"
 
+LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
+
+1 VERSIONINFO
+    FILEVERSION     CHROMABROWSE_VERSION
+    PRODUCTVERSION  CHROMABROWSE_VERSION
+    FILEOS          VOS_NT_WINDOWS32
+    FILETYPE        VFT_APP
+{
+    BLOCK "StringFileInfo" {
+        BLOCK "040904B0" {
+            VALUE "CompanyName", "chroma zone\0"
+            VALUE "FileDescription", "chromabrowse\0"
+            VALUE "FileVersion", CHROMABROWSE_VERSION_STRING
+            VALUE "LegalCopyright", "Copyright (c) J. van't Hoog\0"
+            VALUE "ProductName", "chromabrowse\0"
+            VALUE "ProductVersion", CHROMABROWSE_VERSION_STRING
+        }
+    }
+    BLOCK "VarFileInfo" {
+        VALUE "Translation", 0x0409, 0x04B0
+    }
+}
+
 IDR_RT_MANIFEST1 RT_MANIFEST "res\\chromabrowse.exe.manifest"
 
 IDR_APP_ICON    ICON    "res\\folder.ico"

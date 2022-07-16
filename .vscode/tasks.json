@@ -5,6 +5,8 @@
 			"label": "Build resources",
 			"command": "rc.exe",
 			"args": [
+				"/D", "_UNICODE",
+				"/D", "UNICODE",
 				"/fo",
 				"${workspaceFolder}\\build\\resource.res",
 				"${workspaceFolder}\\src\\resource.rc",

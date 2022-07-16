@@ -1,3 +1,6 @@
+#define CHROMABROWSE_VERSION        0,0,1,0
+#define CHROMABROWSE_VERSION_STRING "0.0.1\0"
+
 #define IDR_RT_MANIFEST1 1 // must be 1 for an exe
 
 #define IDR_APP_ICON    101
