@@ -1,6 +1,7 @@
 #include "ItemWindow.h"
 #include "CreateItemWindow.h"
 #include "RectUtils.h"
+#include "GDIUtils.h"
 #include "Settings.h"
 #include "SettingsDialog.h"
 #include "resource.h"
@@ -639,13 +640,8 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     int height = CAPTION_HEIGHT;
 
     // bitmap buffer for drawing caption
-    BITMAPINFO bitmapInfo = {};
-    bitmapInfo.bmiHeader.biSize         = sizeof(BITMAPINFOHEADER);
-    bitmapInfo.bmiHeader.biWidth        = width;
-    bitmapInfo.bmiHeader.biHeight       = -height; // top-to-bottom order for DrawThemeTextEx()
-    bitmapInfo.bmiHeader.biPlanes       = 1;
-    bitmapInfo.bmiHeader.biBitCount     = 32;
-    bitmapInfo.bmiHeader.biCompression  = BI_RGB;
+    // top-to-bottom order for DrawThemeTextEx()
+    BITMAPINFO bitmapInfo = {{sizeof(BITMAPINFOHEADER), width, -height, 1, 32, BI_RGB}};
     HBITMAP bitmap = CreateDIBSection(paint.hdc, &bitmapInfo, DIB_RGB_COLORS,
                                       nullptr, nullptr, 0);
     if (!bitmap) {
@@ -892,24 +888,9 @@ void ItemWindow::openParentMenu(POINT point) {
         if (itemIcon) {
             // http://shellrevealed.com:80/blogs/shellblog/archive/2007/02/06/Vista-Style-Menus_2C00_-Part-1-_2D00_-Adding-icons-to-standard-menus.aspx
             // icon must have alpha channel; GetIconInfo doesn't do this
-            HDC hdcMem = CreateCompatibleDC(nullptr);
-            BITMAPINFO bitmapInfo = {};
-            bitmapInfo.bmiHeader.biSize         = sizeof(BITMAPINFOHEADER);
-            bitmapInfo.bmiHeader.biWidth        = iconSize;
-            bitmapInfo.bmiHeader.biHeight       = -iconSize; // top-to-bottom
-            bitmapInfo.bmiHeader.biPlanes       = 1;
-            bitmapInfo.bmiHeader.biBitCount     = 32;
-            bitmapInfo.bmiHeader.biCompression  = BI_RGB;
-            HBITMAP bitmap = CreateDIBSection(hdcMem, &bitmapInfo, DIB_RGB_COLORS,
-                                              nullptr, nullptr, 0);
-            SelectBitmap(hdcMem, bitmap);
-            DrawIconEx(hdcMem, 0, 0, itemIcon, iconSize, iconSize, 0, nullptr, DI_NORMAL);
-            // TODO convert to premultiplied alpha?
-            DeleteDC(hdcMem);
-
             MENUITEMINFO itemInfo = {sizeof(itemInfo)};
             itemInfo.fMask = MIIM_BITMAP;
-            itemInfo.hbmpItem = bitmap;
+            itemInfo.hbmpItem = iconToPARGB32Bitmap(itemIcon, iconSize, iconSize);
             SetMenuItemInfo(menu, id, FALSE, &itemInfo);
         }
     }
@@ -1215,23 +1196,6 @@ STDMETHODIMP ItemWindow::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt
     return S_OK;
 }
 
-
-void makeBitmapOpaque(HDC hdc, const RECT &rect) {
-    // https://devblogs.microsoft.com/oldnewthing/20210915-00/?p=105687
-    // thank you Raymond Chen :)
-    BITMAPINFO bi = {};
-    bi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-    bi.bmiHeader.biWidth       = 1;
-    bi.bmiHeader.biHeight      = 1;
-    bi.bmiHeader.biPlanes      = 1;
-    bi.bmiHeader.biBitCount    = 32;
-    bi.bmiHeader.biCompression = BI_RGB;
-
-    RGBQUAD bitmapBits = { 0x00, 0x00, 0x00, 0xFF };
-    StretchDIBits(hdc, rect.left, rect.top, rectWidth(rect), rectHeight(rect),
-                  0, 0, 1, 1, &bitmapBits, &bi,
-                  DIB_RGB_COLORS, SRCPAINT);
-}
 
 LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {

@@ -1,5 +1,6 @@
 #include "ThumbnailWindow.h"
 #include "RectUtils.h"
+#include "GDIUtils.h"
 #include <windowsx.h>
 
 namespace chromabrowse {
@@ -62,24 +63,8 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
         hDest = bodySize.cy;
     }
 
-    if (hasAlpha) {
-        // use alpha channel to composite onto a white background
-        // TODO change color for high contrast themes
-        uint8_t *bitmapBytes = (uint8_t*)bitmap.bmBits;
-        int rowIndex = 0;
-        for (int y = 0; y < bitmap.bmHeight; y++, rowIndex += bitmap.bmWidthBytes) {
-            int i = rowIndex;
-            for (int x = 0; x < bitmap.bmWidth; x++, i += 4) {
-                int alpha = bitmapBytes[i + 3];
-                if (alpha == 255)
-                    continue;
-                int c = 255 - alpha;
-                bitmapBytes[i + 0] = (uint8_t)((int)(bitmapBytes[i + 0]) * alpha / 255 + c);
-                bitmapBytes[i + 1] = (uint8_t)((int)(bitmapBytes[i + 1]) * alpha / 255 + c);
-                bitmapBytes[i + 2] = (uint8_t)((int)(bitmapBytes[i + 2]) * alpha / 255 + c);
-            }
-        }
-    }
+    if (hasAlpha)
+        compositeBackground(bitmap); // TODO change color for high contrast themes
 
     HDC hdcMem = CreateCompatibleDC(paint.hdc);
     HBITMAP oldBitmap = SelectBitmap(hdcMem, hBitmap);
