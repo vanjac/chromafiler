@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(Windows) Launch",
+            "name": "chromabrowse",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}\\build\\chromabrowse.exe",
@@ -14,7 +14,18 @@
             "cwd": "${workspaceFolder}\\build",
             "environment": [],
             "console": "externalTerminal"
-        }
+        },
+        {
+            "name": "Explorer",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "explorer.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\build",
+            "environment": [],
+            "console": "externalTerminal"
+        },
 
     ]
 }
