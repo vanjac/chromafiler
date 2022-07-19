@@ -26,6 +26,7 @@
 				"/MTd",     // debug only
 				"/D", "CHROMABROWSE_DEBUG", // debug only
 				"/nologo",
+				"/MP", // https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/
 				"/W4",
 				"/Fe:",
 				"${workspaceFolder}\\build\\chromabrowse.exe",
@@ -58,6 +59,7 @@
 				"/GL",      // release only
 				"/O2",      // release only
 				"/nologo",
+				"/MP",
 				"/W4",
 				"/Fe:",
 				"${workspaceFolder}\\build\\chromabrowse.exe",
