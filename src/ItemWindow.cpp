@@ -749,9 +749,11 @@ void ItemWindow::openParent() {
     if (SUCCEEDED(item->GetParent(&parentItem))) {
         parent = createItemWindow(nullptr, parentItem);
         parent->child = this;
-        RECT windowRect;
-        GetWindowRect(hwnd, &windowRect);
-        parent->storedChildSize = rectSize(windowRect);
+        if (preserveSize()) {
+            RECT windowRect;
+            GetWindowRect(hwnd, &windowRect);
+            parent->storedChildSize = rectSize(windowRect);
+        }
 
         SIZE size = parent->requestedSize();
         POINT pos = parentPos();
