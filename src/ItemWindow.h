@@ -106,6 +106,8 @@ private:
 
     bool resolveItem();
 
+    void openParentMenu(POINT point);
+
     void invokeProxyDefaultVerb(POINT point);
     void openProxyProperties();
     void openProxyContextMenu(POINT point);
@@ -116,7 +118,7 @@ private:
     bool dropAllowed(POINT point);
 
     // window subclasses
-    static LRESULT CALLBACK captionButtonProc(HWND hwnd, UINT message,
+    static LRESULT CALLBACK parentButtonProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
     static LRESULT CALLBACK renameBoxProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);

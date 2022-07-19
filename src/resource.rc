@@ -43,6 +43,7 @@ IDR_ITEM_ACCEL  ACCELERATORS {
     "N",        ID_IGNORE,          VIRTKEY, CONTROL // suppress browser shortcut
     VK_F10,     ID_PROXY_MENU,      VIRTKEY
     VK_F2,      ID_RENAME_PROXY,    VIRTKEY, SHIFT
+    VK_TAB,     ID_PARENT_MENU,     VIRTKEY, CONTROL, SHIFT
     "N",        ID_NEW_FOLDER,      VIRTKEY, CONTROL, SHIFT
 }
 

@@ -16,6 +16,7 @@
 #define ID_NEW_FOLDER   1007
 #define ID_RENAME_PROXY 1008
 #define ID_SETTINGS     1009
+#define ID_PARENT_MENU  1010
 
 #define IDR_ICON_FONT   103
 

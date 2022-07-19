@@ -428,6 +428,13 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     if (useCustomFrame())
                         beginRename();
                     return 0;
+                case ID_PARENT_MENU:
+                    if (useCustomFrame()) {
+                        POINT menuPos = {0, CAPTION_HEIGHT};
+                        ClientToScreen(hwnd, &menuPos);
+                        openParentMenu(menuPos);
+                    }
+                    return 0;
                 case ID_HELP:
                     ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
                         nullptr, nullptr, SW_SHOWNORMAL);
@@ -452,7 +459,7 @@ bool ItemWindow::handleTopLevelMessage(MSG *msg) {
     return !!TranslateAccelerator(hwnd, accelTable, msg);
 }
 
-void ItemWindow::onCreate() {
+void getItemIcons(CComPtr<IShellItem> item, HICON *iconLarge, HICON *iconSmall) {
     CComPtr<IExtractIcon> extractIcon;
     if (checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
         wchar_t iconFile[MAX_PATH];
@@ -460,14 +467,17 @@ void ItemWindow::onCreate() {
         UINT flags;
         if (extractIcon->GetIconLocation(0, iconFile, _countof(iconFile), &index, &flags) == S_OK) {
             UINT iconSizes = (GetSystemMetrics(SM_CXSMICON) << 16) + GetSystemMetrics(SM_CXICON);
-            if (extractIcon->Extract(iconFile, index, &iconLarge, &iconSmall, iconSizes) != S_OK) {
+            if (extractIcon->Extract(iconFile, index, iconLarge, iconSmall, iconSizes) != S_OK) {
                 debugPrintf(L"IExtractIcon failed\n");
                 // https://devblogs.microsoft.com/oldnewthing/20140501-00/?p=1103
-                checkHR(SHDefExtractIcon(iconFile, index, flags,
-                    &iconLarge, &iconSmall, iconSizes));
+                checkHR(SHDefExtractIcon(iconFile, index, flags, iconLarge, iconSmall, iconSizes));
             }
         }
     }
+}
+
+void ItemWindow::onCreate() {
+    getItemIcons(item, &iconLarge, &iconSmall);
     if (iconLarge)
         PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     if (iconSmall)
@@ -521,11 +531,11 @@ void ItemWindow::onCreate() {
 
     CComPtr<IShellItem> parentItem;
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
-    parentButton = CreateWindow(L"BUTTON", L"\uE96F", // ChevronLeftSmall
+    parentButton = CreateWindow(L"BUTTON", nullptr,
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
         0, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT,
         hwnd, nullptr, instance, nullptr);
-    SetWindowSubclass(parentButton, captionButtonProc, 0, 0);
+    SetWindowSubclass(parentButton, parentButtonProc, 0, (DWORD_PTR)this);
 
     // will be positioned in beginRename
     renameBox = CreateWindow(L"EDIT", nullptr,
@@ -864,6 +874,67 @@ void ItemWindow::onItemChanged() {
 
 void ItemWindow::refresh() {}
 
+void ItemWindow::openParentMenu(POINT point) {
+    int iconSize = GetSystemMetrics(SM_CXSMICON);
+    HMENU menu = CreatePopupMenu();
+    int id = 0;
+    CComPtr<IShellItem> curItem = item, parentItem;
+    while (SUCCEEDED(curItem->GetParent(&parentItem))) {
+        curItem = parentItem;
+        parentItem = nullptr;
+        id++;
+        CComHeapPtr<wchar_t> name;
+        if (!checkHR(curItem->GetDisplayName(SIGDN_NORMALDISPLAY, &name)))
+            continue;
+        AppendMenu(menu, MF_STRING, id, name);
+        HICON itemIcon = nullptr;
+        getItemIcons(curItem, nullptr, &itemIcon);
+        if (itemIcon) {
+            // http://shellrevealed.com:80/blogs/shellblog/archive/2007/02/06/Vista-Style-Menus_2C00_-Part-1-_2D00_-Adding-icons-to-standard-menus.aspx
+            // icon must have alpha channel; GetIconInfo doesn't do this
+            HDC hdcMem = CreateCompatibleDC(nullptr);
+            BITMAPINFO bitmapInfo = {};
+            bitmapInfo.bmiHeader.biSize         = sizeof(BITMAPINFOHEADER);
+            bitmapInfo.bmiHeader.biWidth        = iconSize;
+            bitmapInfo.bmiHeader.biHeight       = -iconSize; // top-to-bottom
+            bitmapInfo.bmiHeader.biPlanes       = 1;
+            bitmapInfo.bmiHeader.biBitCount     = 32;
+            bitmapInfo.bmiHeader.biCompression  = BI_RGB;
+            HBITMAP bitmap = CreateDIBSection(hdcMem, &bitmapInfo, DIB_RGB_COLORS,
+                                              nullptr, nullptr, 0);
+            SelectBitmap(hdcMem, bitmap);
+            DrawIconEx(hdcMem, 0, 0, itemIcon, iconSize, iconSize, 0, nullptr, DI_NORMAL);
+            // TODO convert to premultiplied alpha?
+            DeleteDC(hdcMem);
+
+            MENUITEMINFO itemInfo = {sizeof(itemInfo)};
+            itemInfo.fMask = MIIM_BITMAP;
+            itemInfo.hbmpItem = bitmap;
+            SetMenuItemInfo(menu, id, FALSE, &itemInfo);
+        }
+    }
+    if (id == 0) { // empty
+        DestroyMenu(menu);
+        return;
+    }
+    int cmd = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON,
+        point.x, point.y, hwnd, nullptr);
+    ItemWindow *parentWindow = this;
+    for (int i = 0; i < cmd && parentWindow; i++) {
+        parentWindow->openParent();
+        parentWindow = parentWindow->parent;
+    }
+
+    // destroy bitmaps
+    for (int i = 0, count = GetMenuItemCount(menu); i < count; i++) {
+        MENUITEMINFO itemInfo = {sizeof(itemInfo)};
+        itemInfo.fMask = MIIM_BITMAP;
+        if (GetMenuItemInfo(menu, i, TRUE, &itemInfo) && itemInfo.hbmpItem)
+            DeleteBitmap(itemInfo.hbmpItem);
+    }
+    DestroyMenu(menu);
+}
+
 void ItemWindow::invokeProxyDefaultVerb(POINT point) {
     // https://devblogs.microsoft.com/oldnewthing/20040930-00/?p=37693
     CComPtr<IContextMenu> contextMenu;
@@ -960,6 +1031,7 @@ void ItemWindow::beginProxyDrag(POINT offset) {
 
     if (iconSmall) {
         CComPtr<IDragSourceHelper> dragHelper;
+        // TODO could this reuse the existing helper?
         if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper))) {
             ICONINFO iconInfo = {};
             GetIconInfo(iconSmall, &iconInfo);
@@ -1161,8 +1233,8 @@ void makeBitmapOpaque(HDC hdc, const RECT &rect) {
                   DIB_RGB_COLORS, SRCPAINT);
 }
 
-LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
+LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
     if (message == WM_PAINT) {
         // TODO is there a better way to do this?
         int buttonState = Button_GetState(hwnd);
@@ -1193,12 +1265,11 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
             RECT contentRect;
             if (checkHR(GetThemeBackgroundContentRect(theme, hdc, BP_PUSHBUTTON, 
                     themeState, &buttonRect, &contentRect))) {
-                wchar_t buttonText[32];
-                GetWindowText(hwnd, buttonText, _countof(buttonText));
                 HFONT oldFont = SelectFont(hdc, symbolFont);
                 SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
                 SetBkMode(hdc, TRANSPARENT);
-                DrawText(hdc, buttonText, -1, &contentRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                // ChevronLeftSmall
+                DrawText(hdc, L"\uE96F", -1, &contentRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 SelectFont(hdc, oldFont);
                 makeBitmapOpaque(hdc, ps.rcPaint);
             }
@@ -1207,6 +1278,11 @@ LRESULT CALLBACK ItemWindow::captionButtonProc(HWND hwnd, UINT message,
         }
 
         EndPaint(hwnd, &ps);
+        return 0;
+    } else if (message == WM_RBUTTONUP) {
+        POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        ClientToScreen(hwnd, &cursor);
+        ((ItemWindow *)refData)->openParentMenu(cursor);
         return 0;
     }
 
