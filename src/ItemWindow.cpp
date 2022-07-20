@@ -904,7 +904,8 @@ void ItemWindow::openParentMenu(POINT point) {
         point.x, point.y, hwnd, nullptr);
     ItemWindow *parentWindow = this;
     for (int i = 0; i < cmd && parentWindow; i++) {
-        parentWindow->openParent();
+        if (!parentWindow->parent)
+            parentWindow->openParent();
         parentWindow = parentWindow->parent;
     }
 
