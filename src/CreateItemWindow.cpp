@@ -12,19 +12,25 @@
 namespace chromabrowse {
 
 const wchar_t IPreviewHandlerIID[] = L"{8895b1c6-b41f-4c1c-a562-0d564250836f}";
+const wchar_t CONTROL_PANEL_PATH[] = L"::{26EE0668-A00A-44D7-9371-BEB064C98683}";
 
 bool isTextFile(wchar_t *ext);
 bool previewHandlerCLSID(wchar_t *ext, CLSID *previewID);
 
 CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item) {
+    CComHeapPtr<wchar_t> parsingName;
+    checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEPARSING, &parsingName));
+
     CComPtr<ItemWindow> window;
     SFGAOF attr;
     if (checkHR(item->GetAttributes(SFGAO_FOLDER, &attr)) && (attr & SFGAO_FOLDER)) {
+        if (lstrcmpi(parsingName, CONTROL_PANEL_PATH) == 0) {
+            window.Attach(new ThumbnailWindow(parent, item));
+            return window;
+        }
         window.Attach(new FolderWindow(parent, item));
         return window;
-    }
-    CComHeapPtr<wchar_t> parsingName;
-    if (checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEPARSING, &parsingName))) {
+    } else if (parsingName) {
         wchar_t *ext = PathFindExtension(parsingName);
         if (ext) {
             if (settings::getTextEditorEnabled() && isTextFile(ext)) {
