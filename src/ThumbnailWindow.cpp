@@ -17,37 +17,64 @@ void ThumbnailWindow::init() {
 ThumbnailWindow::ThumbnailWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
     : ItemWindow(parent, item) {}
 
+ThumbnailWindow::~ThumbnailWindow() {
+    if (thumbnailBitmap)
+        DeleteBitmap(thumbnailBitmap);
+}
+
 const wchar_t * ThumbnailWindow::className() {
     return THUMBNAIL_WINDOW_CLASS;
+}
+
+void ThumbnailWindow::onCreate() {
+    ItemWindow::onCreate();
+    thumbnailThread = new ThumbnailThread(item, hwnd);
+}
+
+void ThumbnailWindow::onDestroy() {
+    ItemWindow::onDestroy();
+    thumbnailThread->stop();
+}
+
+void ThumbnailWindow::onSize(int width, int height) {
+    ItemWindow::onSize(width, height);
+    RECT bodyRect = windowBody();
+    SIZE bodySize = rectSize(bodyRect);
+    thumbnailThread->requestThumbnail(bodySize);
+}
+
+void ThumbnailWindow::onItemChanged() {
+    ItemWindow::onItemChanged();
+    thumbnailThread->stop();
+    thumbnailThread = new ThumbnailThread(item, hwnd);
+}
+
+void ThumbnailWindow::refresh() {
+    RECT bodyRect = windowBody();
+    SIZE bodySize = rectSize(bodyRect);
+    thumbnailThread->requestThumbnail(bodySize);
+}
+
+LRESULT ThumbnailWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == MSG_SET_THUMBNAIL_BITMAP) {
+        if (thumbnailBitmap)
+            DeleteBitmap(thumbnailBitmap);
+        thumbnailBitmap = (HBITMAP)lParam;
+        InvalidateRect(hwnd, nullptr, FALSE);
+    }
+    return ItemWindow::handleMessage(message, wParam, lParam);
 }
 
 void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
     ItemWindow::onPaint(paint);
 
-    CComQIPtr<IShellItemImageFactory> imageFactory(item);
-    if (!imageFactory)
+    if (!thumbnailBitmap)
         return;
     RECT bodyRect = windowBody();
     SIZE bodySize = rectSize(bodyRect);
-    HBITMAP hBitmap;
-    bool hasAlpha = true;
-    // TODO this should be done asynchronously!!
-    // and also the resulting bitmap should maybe be cached
-    if (FAILED(imageFactory->GetImage(bodySize,
-            SIIGBF_BIGGERSIZEOK | SIIGBF_THUMBNAILONLY, &hBitmap))) {
-        // no thumbnail, fallback to icon
-        hasAlpha = false;
-        int minDim = min(bodySize.cx, bodySize.cy);
-        // SIIGBF_ICONBACKGROUND is much faster, but only works with a square rect
-        // (requires Windows 8!)
-        if (!checkHR(imageFactory->GetImage({minDim, minDim},
-                SIIGBF_BIGGERSIZEOK | SIIGBF_ICONONLY | SIIGBF_ICONBACKGROUND, &hBitmap)))
-            return;
-    }
+
     BITMAP bitmap;
-    GetObject(hBitmap, sizeof(bitmap), &bitmap);
-    debugPrintf(L"Scale thumbnail from %dx%d to %dx%d\n",
-        bitmap.bmWidth, bitmap.bmHeight, bodySize.cx, bodySize.cy);
+    GetObject(thumbnailBitmap, sizeof(bitmap), &bitmap);
     int xDest, yDest, wDest, hDest;
     float wScale = (float)bodySize.cx / bitmap.bmWidth;
     float hScale = (float)bodySize.cy / bitmap.bmHeight;
@@ -63,17 +90,90 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
         hDest = bodySize.cy;
     }
 
-    if (hasAlpha)
-        compositeBackground(bitmap); // TODO change color for high contrast themes
-
     HDC hdcMem = CreateCompatibleDC(paint.hdc);
-    HBITMAP oldBitmap = SelectBitmap(hdcMem, hBitmap);
+    HBITMAP oldBitmap = SelectBitmap(hdcMem, thumbnailBitmap);
     SetStretchBltMode(paint.hdc, HALFTONE);
     StretchBlt(paint.hdc, xDest, yDest, wDest, hDest,
         hdcMem, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
     SelectBitmap(hdcMem, oldBitmap);
     DeleteDC(hdcMem);
-    DeleteBitmap(hBitmap);
+}
+
+ThumbnailWindow::ThumbnailThread::ThumbnailThread(CComPtr<IShellItem> item, HWND callbackWindow)
+        : callbackWindow(callbackWindow) {
+    checkHR(SHGetIDListFromObject(item, &itemIDList));
+    requestThumbnailEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    stopEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    InitializeCriticalSectionAndSpinCount(&requestThumbnailSection, 4000);
+    InitializeCriticalSectionAndSpinCount(&stopSection, 4000);
+    SHCreateThreadWithHandle(thumbnailThreadProc, this, CTF_COINIT_STA, nullptr, &thread);
+}
+
+ThumbnailWindow::ThumbnailThread::~ThumbnailThread() {
+    CloseHandle(thread);
+    CloseHandle(requestThumbnailEvent);
+    CloseHandle(stopEvent);
+    DeleteCriticalSection(&requestThumbnailSection);
+    DeleteCriticalSection(&stopSection);
+}
+
+void ThumbnailWindow::ThumbnailThread::requestThumbnail(SIZE size) {
+    EnterCriticalSection(&requestThumbnailSection);
+    requestedSize = size;
+    SetEvent(requestThumbnailEvent);
+    LeaveCriticalSection(&requestThumbnailSection);
+}
+
+void ThumbnailWindow::ThumbnailThread::stop() {
+    EnterCriticalSection(&stopSection);
+    SetEvent(stopEvent);
+    LeaveCriticalSection(&stopSection);
+}
+
+DWORD WINAPI ThumbnailWindow::ThumbnailThread::thumbnailThreadProc(void *data) {
+    ThumbnailThread *self = (ThumbnailThread *)data;
+    self->run();
+    self->Release();
+    return 0;
+}
+
+void ThumbnailWindow::ThumbnailThread::run() {
+    CComPtr<IShellItemImageFactory> imageFactory;
+    if (!itemIDList || !checkHR(SHCreateItemFromIDList(itemIDList, IID_PPV_ARGS(&imageFactory))))
+        return;
+    itemIDList.Free();
+    
+    HANDLE waitObjects[] = {requestThumbnailEvent, stopEvent};
+    int event;
+    while ((event = WaitForMultipleObjects(
+            _countof(waitObjects), waitObjects, FALSE, INFINITE)) != WAIT_FAILED) {
+        if (event == WAIT_OBJECT_0) {
+            SIZE size;
+            EnterCriticalSection(&requestThumbnailSection);
+            size = requestedSize;
+            ResetEvent(requestThumbnailEvent);
+            LeaveCriticalSection(&requestThumbnailSection);
+
+            HBITMAP hBitmap;
+            if (!checkHR(imageFactory->GetImage(size, SIIGBF_BIGGERSIZEOK, &hBitmap)))
+                return;
+            BITMAP bitmap;
+            GetObject(hBitmap, sizeof(bitmap), &bitmap);
+            compositeBackground(bitmap); // TODO change color for high contrast themes
+
+            // ensure the window is not closed before the message is posted
+            EnterCriticalSection(&stopSection);
+            if (WaitForSingleObject(stopEvent, 0) == WAIT_OBJECT_0) {
+                DeleteBitmap(hBitmap);
+            } else {
+                PostMessage(callbackWindow, MSG_SET_THUMBNAIL_BITMAP, 0, (LPARAM)hBitmap);
+            }
+            LeaveCriticalSection(&stopSection);
+        } else if (event == WAIT_OBJECT_0 + 1) {
+            return;
+        }
+    }
+    return;
 }
 
 } // namespace
