@@ -63,6 +63,8 @@ protected:
 
     virtual void onCreate();
     virtual void onDestroy();
+    virtual bool onCommand(WORD command);
+    virtual bool onControlCommand(HWND controlHwnd, WORD notif);
     virtual void onActivate(WORD state, HWND prevWindow);
     virtual void onSize(int width, int height);
     virtual void onPaint(PAINTSTRUCT paint);

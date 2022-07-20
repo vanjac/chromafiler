@@ -73,19 +73,6 @@ wchar_t * FolderWindow::propertyBag() const {
     return L"chromabrowse";
 }
 
-LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
-    switch (message) {
-        case WM_COMMAND:
-            switch (LOWORD(wParam)) {
-                case ID_NEW_FOLDER:
-                    newFolder();
-                    return 0;
-            }
-            break;
-    }
-    return ItemWindow::handleMessage(message, wParam, lParam);
-}
-
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
     if (ItemWindow::handleTopLevelMessage(msg))
         return true;
@@ -162,6 +149,15 @@ void FolderWindow::onDestroy() {
         checkHR(IUnknown_SetSite(browser, nullptr));
         checkHR(browser->Destroy());
     }
+}
+
+bool FolderWindow::onCommand(WORD command) {
+    switch (command) {
+        case IDM_NEW_FOLDER:
+            newFolder();
+            return true;
+    }
+    return ItemWindow::onCommand(command);
 }
 
 void FolderWindow::onActivate(WORD state, HWND prevWindow) {

@@ -31,20 +31,20 @@ IDR_APP_ICON    ICON    "res\\folder.ico"
 IDR_ICON_FONT   FONT    "res\\SegMDL2-subset.ttf"
 
 IDR_ITEM_ACCEL  ACCELERATORS {
-    VK_TAB,     ID_NEXT_WINDOW,     VIRTKEY
-    VK_DOWN,    ID_NEXT_WINDOW,     VIRTKEY, ALT
-    VK_TAB,     ID_PREV_WINDOW,     VIRTKEY, SHIFT
-    VK_UP,      ID_PREV_WINDOW,     VIRTKEY, ALT
-    "W",        ID_CLOSE_WINDOW,    VIRTKEY, CONTROL
-    VK_F5,      ID_REFRESH,         VIRTKEY
-    "R",        ID_REFRESH,         VIRTKEY, CONTROL
-    VK_F1,      ID_HELP,            VIRTKEY
-    VK_OEM_COMMA, ID_SETTINGS,      VIRTKEY, CONTROL
-    "N",        ID_IGNORE,          VIRTKEY, CONTROL // suppress browser shortcut
-    VK_F10,     ID_PROXY_MENU,      VIRTKEY
-    VK_F2,      ID_RENAME_PROXY,    VIRTKEY, SHIFT
-    VK_TAB,     ID_PARENT_MENU,     VIRTKEY, CONTROL, SHIFT
-    "N",        ID_NEW_FOLDER,      VIRTKEY, CONTROL, SHIFT
+    VK_TAB,         IDM_NEXT_WINDOW,    VIRTKEY
+    VK_DOWN,        IDM_NEXT_WINDOW,    VIRTKEY, ALT
+    VK_TAB,         IDM_PREV_WINDOW,    VIRTKEY, SHIFT
+    VK_UP,          IDM_PREV_WINDOW,    VIRTKEY, ALT
+    "W",            IDM_CLOSE_WINDOW,   VIRTKEY, CONTROL
+    VK_F5,          IDM_REFRESH,        VIRTKEY
+    "R",            IDM_REFRESH,        VIRTKEY, CONTROL
+    VK_F1,          IDM_HELP,           VIRTKEY
+    VK_OEM_COMMA,   IDM_SETTINGS,       VIRTKEY, CONTROL
+    "N",            -1,                 VIRTKEY, CONTROL // suppress browser shortcut
+    VK_F10,         IDM_PROXY_MENU,     VIRTKEY
+    VK_F2,          IDM_RENAME_PROXY,   VIRTKEY, SHIFT
+    VK_TAB,         IDM_PARENT_MENU,    VIRTKEY, CONTROL, SHIFT
+    "N",            IDM_NEW_FOLDER,     VIRTKEY, CONTROL, SHIFT
 }
 
 // Dialog boxes are designed using RisohEditor.

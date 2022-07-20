@@ -35,10 +35,9 @@ public:
     STDMETHODIMP OnViewCreated(IShellView *shellView) override;
 
 protected:
-    LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
-
     void onCreate() override;
     void onDestroy() override;
+    bool onCommand(WORD command) override;
     void onActivate(WORD state, HWND prevWindow) override;
     void onSize(int width, int height) override;
 

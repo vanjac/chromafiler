@@ -392,61 +392,20 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             break;
         }
         case WM_COMMAND:
-            if (parentButton && (HWND)lParam == parentButton && HIWORD(wParam) == BN_CLICKED) {
-                openParent();
-                return 0;
-            } else if (renameBox && (HWND)lParam == renameBox && HIWORD(wParam) == EN_KILLFOCUS) {
-                if (IsWindowVisible(renameBox))
-                    completeRename();
-                return 0;
-            }
-            switch (LOWORD(wParam)) {
-                case ID_NEXT_WINDOW:
-                    if (child)
-                        child->activate();
+            if (lParam) {
+                if (HIWORD(wParam) == 0 && LOWORD(wParam) != 0) { // special case for buttons, etc
+                    if (onCommand(LOWORD(wParam)))
+                        return 0;
+                }
+                if (onControlCommand((HWND)lParam, HIWORD(wParam)))
                     return 0;
-                case ID_PREV_WINDOW:
-                    if (parent)
-                        parent->activate();
-                    else if (useCustomFrame())
-                        openParent();
-                    return 0;
-                case ID_CLOSE_WINDOW:
-                    close();
-                    return 0;
-                case ID_REFRESH:
-                    if (resolveItem())
-                        refresh();
-                    return 0;
-                case ID_PROXY_MENU:
-                    if (useCustomFrame()) {
-                        POINT menuPos = {proxyRect.right, proxyRect.top};
-                        ClientToScreen(hwnd, &menuPos);
-                        openProxyContextMenu(menuPos);
-                    }
-                    return 0;
-                case ID_RENAME_PROXY:
-                    if (useCustomFrame())
-                        beginRename();
-                    return 0;
-                case ID_PARENT_MENU:
-                    if (useCustomFrame()) {
-                        POINT menuPos = {0, CAPTION_HEIGHT};
-                        ClientToScreen(hwnd, &menuPos);
-                        openParentMenu(menuPos);
-                    }
-                    return 0;
-                case ID_HELP:
-                    ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
-                        nullptr, nullptr, SW_SHOWNORMAL);
-                    return 0;
-                case ID_SETTINGS:
-                    openSettingsDialog();
+            } else {
+                if (onCommand(LOWORD(wParam)))
                     return 0;
             }
             break;
         case WM_SYSCOMMAND:
-            if (LOWORD(wParam) == ID_SETTINGS) {
+            if (LOWORD(wParam) == IDM_SETTINGS) {
                 openSettingsDialog();
                 return 0;
             }
@@ -493,7 +452,7 @@ void ItemWindow::onCreate() {
 
     HMENU systemMenu = GetSystemMenu(hwnd, FALSE);
     AppendMenu(systemMenu, MF_SEPARATOR, 0, nullptr);
-    AppendMenu(systemMenu, MF_STRING, ID_SETTINGS, STR_SETTINGS_COMMAND);
+    AppendMenu(systemMenu, MF_STRING, IDM_SETTINGS, STR_SETTINGS_COMMAND);
 
     if (!useCustomFrame())
         return; // !!
@@ -535,7 +494,7 @@ void ItemWindow::onCreate() {
     parentButton = CreateWindow(L"BUTTON", nullptr,
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
         0, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT,
-        hwnd, nullptr, instance, nullptr);
+        hwnd, (HMENU)IDM_PREV_WINDOW, instance, nullptr);
     SetWindowSubclass(parentButton, parentButtonProc, 0, (DWORD_PTR)this);
 
     // will be positioned in beginRename
@@ -562,6 +521,63 @@ void ItemWindow::onDestroy() {
 
     if (itemDropTarget)
         RevokeDragDrop(hwnd);
+}
+
+bool ItemWindow::onCommand(WORD command) {
+    switch (command) {
+        case IDM_NEXT_WINDOW:
+            if (child)
+                child->activate();
+            return true;
+        case IDM_PREV_WINDOW:
+            if (parent)
+                parent->activate();
+            else if (useCustomFrame())
+                openParent();
+            return true;
+        case IDM_CLOSE_WINDOW:
+            close();
+            return true;
+        case IDM_REFRESH:
+            if (resolveItem())
+                refresh();
+            return true;
+        case IDM_PROXY_MENU:
+            if (useCustomFrame()) {
+                POINT menuPos = {proxyRect.right, proxyRect.top};
+                ClientToScreen(hwnd, &menuPos);
+                openProxyContextMenu(menuPos);
+            }
+            return true;
+        case IDM_RENAME_PROXY:
+            if (useCustomFrame())
+                beginRename();
+            return true;
+        case IDM_PARENT_MENU:
+            if (useCustomFrame()) {
+                POINT menuPos = {0, CAPTION_HEIGHT};
+                ClientToScreen(hwnd, &menuPos);
+                openParentMenu(menuPos);
+            }
+            return true;
+        case IDM_HELP:
+            ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
+                nullptr, nullptr, SW_SHOWNORMAL);
+            return true;
+        case IDM_SETTINGS:
+            openSettingsDialog();
+            return true;
+    }
+    return false;
+}
+
+bool ItemWindow::onControlCommand(HWND controlHwnd, WORD notif) {
+    if (controlHwnd == renameBox && notif == EN_KILLFOCUS) {
+        if (IsWindowVisible(renameBox))
+            completeRename();
+        return true;
+    }
+    return false;
 }
 
 void ItemWindow::onActivate(WORD state, HWND) {
