@@ -69,6 +69,9 @@ protected:
     virtual void onSize(int width, int height);
     virtual void onPaint(PAINTSTRUCT paint);
 
+    TBBUTTON makeToolbarButton(const wchar_t *text, WORD command);
+    virtual void addToolbarButtons(HWND tb);
+
     void openChild(CComPtr<IShellItem> childItem);
     void closeChild();
     virtual void onChildDetached();
@@ -130,6 +133,7 @@ private:
     HICON iconLarge = nullptr, iconSmall = nullptr;
 
     HWND tooltip = nullptr, parentButton = nullptr, renameBox = nullptr;
+    HWND toolbar = nullptr;
     RECT proxyRect{}, titleRect{}, iconRect{};
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;

@@ -9,7 +9,6 @@ const wchar_t THUMBNAIL_WINDOW_CLASS[] = L"Thumbnail Window";
 
 void ThumbnailWindow::init() {
     WNDCLASS wndClass = createWindowClass(THUMBNAIL_WINDOW_CLASS);
-    wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wndClass.style |= CS_HREDRAW | CS_VREDRAW; // redraw whenever size changes
     RegisterClass(&wndClass);
 }

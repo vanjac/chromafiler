@@ -22,6 +22,7 @@ const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int WINDOW_ICON_PADDING = 4;
 const int RENAME_BOX_PADDING = 2; // with border
+const int TOOLBAR_HEIGHT = 24;
 const int SYMBOL_FONT_HEIGHT = 12;
 const int SNAP_DISTANCE = 32;
 // colors
@@ -92,6 +93,7 @@ WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
     wndClass.hInstance = GetModuleHandle(nullptr);
     wndClass.lpszClassName = name;
     wndClass.style = CS_HREDRAW; // ensure caption gets redrawn if width changes
+    wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); // for toolbar
     return wndClass;
 }
 
@@ -229,8 +231,8 @@ void ItemWindow::move(int x, int y) {
 RECT ItemWindow::windowBody() {
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    return useCustomFrame() ? RECT {0, CAPTION_HEIGHT, clientRect.right, clientRect.bottom}
-        : clientRect;
+    return useCustomFrame() ?
+        RECT {0, CAPTION_HEIGHT + TOOLBAR_HEIGHT, clientRect.right, clientRect.bottom} : clientRect;
 }
 
 LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -505,6 +507,32 @@ void ItemWindow::onCreate() {
     SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
     if (captionFont)
         SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
+
+    toolbar = CreateWindowEx(
+        TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
+        WS_VISIBLE | WS_CHILD | TBSTYLE_FLAT | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER,
+        0, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
+        hwnd, nullptr, instance, nullptr);
+    SendMessage(toolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
+    SendMessage(toolbar, TB_SETBUTTONWIDTH, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
+    SendMessage(toolbar, TB_SETBITMAPSIZE, 0, 0);
+    if (symbolFont)
+        SendMessage(toolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
+    addToolbarButtons(toolbar);
+    SendMessage(toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
+    ShowWindow(toolbar, TRUE);
+}
+
+TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command) {
+    return {I_IMAGENONE, command, TBSTATE_ENABLED, BTNS_SHOWTEXT, {}, 0, (INT_PTR)text};
+}
+
+void ItemWindow::addToolbarButtons(HWND tb) {
+    TBBUTTON buttons[] = {
+        makeToolbarButton(L"\uE72C", IDM_REFRESH),  // Refresh
+        makeToolbarButton(L"\uF8B0", IDM_SETTINGS), // SettingsSolid
+    };
+    SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
 }
 
 void ItemWindow::onDestroy() {
@@ -602,8 +630,12 @@ void ItemWindow::onActivate(WORD state, HWND) {
     }
 }
 
-void ItemWindow::onSize(int, int) {
+void ItemWindow::onSize(int width, int) {
     windowRectChanged();
+    if (useCustomFrame()) {
+        SetWindowPos(toolbar, nullptr, 0, 0, width, TOOLBAR_HEIGHT,
+            SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+    }
     if (parent && preserveSize()) {
         RECT rect;
         GetWindowRect(hwnd, &rect);
