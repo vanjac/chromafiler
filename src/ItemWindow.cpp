@@ -380,19 +380,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break; // pass to DefWindowProc
         }
-        case WM_NOTIFY: {
-            NMHDR *notif = (NMHDR *)lParam;
-            if (notif->hwndFrom == tooltip && notif->code == TTN_SHOW) {
-                // position tooltip on top of title
-                RECT tooltipRect = titleRect;
-                MapWindowRect(hwnd, nullptr, &tooltipRect);
-                SendMessage(tooltip, TTM_ADJUSTRECT, TRUE, (LPARAM)&tooltipRect);
-                SetWindowPos(tooltip, nullptr, tooltipRect.left, tooltipRect.top, 0, 0,
-                    SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-                return TRUE;
-            }
-            break;
-        }
+        case WM_NOTIFY:
+            return onNotify((NMHDR *)lParam);
         case WM_COMMAND:
             if (lParam) {
                 if (HIWORD(wParam) == 0 && LOWORD(wParam) != 0) { // special case for buttons, etc
@@ -606,6 +595,19 @@ bool ItemWindow::onControlCommand(HWND controlHwnd, WORD notif) {
         return true;
     }
     return false;
+}
+
+LRESULT ItemWindow::onNotify(NMHDR *nmhdr) {
+    if (nmhdr->hwndFrom == tooltip && nmhdr->code == TTN_SHOW) {
+        // position tooltip on top of title
+        RECT tooltipRect = titleRect;
+        MapWindowRect(hwnd, nullptr, &tooltipRect);
+        SendMessage(tooltip, TTM_ADJUSTRECT, TRUE, (LPARAM)&tooltipRect);
+        SetWindowPos(tooltip, nullptr, tooltipRect.left, tooltipRect.top, 0, 0,
+            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+        return TRUE;
+    }
+    return 0;
 }
 
 void ItemWindow::onActivate(WORD state, HWND) {
