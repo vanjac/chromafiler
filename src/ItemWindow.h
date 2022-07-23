@@ -65,12 +65,12 @@ protected:
     virtual void onDestroy();
     virtual bool onCommand(WORD command);
     virtual bool onControlCommand(HWND controlHwnd, WORD notif);
-    virtual LRESULT onNotify(NMHDR *nmhdr);
+    virtual LRESULT onNotify(NMHDR *nmHdr);
     virtual void onActivate(WORD state, HWND prevWindow);
     virtual void onSize(int width, int height);
     virtual void onPaint(PAINTSTRUCT paint);
 
-    TBBUTTON makeToolbarButton(const wchar_t *text, WORD command);
+    TBBUTTON makeToolbarButton(const wchar_t *text, WORD command, BYTE style);
     virtual void addToolbarButtons(HWND tb);
 
     void openChild(CComPtr<IShellItem> childItem);
@@ -81,6 +81,8 @@ protected:
 
     virtual void onItemChanged();
     virtual void refresh();
+
+    void invokeContextMenuCommand(CComPtr<IContextMenu> contextMenu, int cmd, POINT point);
 
     HWND hwnd;
     CComHeapPtr<wchar_t> title;

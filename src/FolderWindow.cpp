@@ -4,6 +4,7 @@
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
+#include <shellapi.h>
 #include <Propvarutil.h>
 
 // Example of how to host an IExplorerBrowser:
@@ -116,6 +117,15 @@ void FolderWindow::onCreate() {
     }
 }
 
+void FolderWindow::addToolbarButtons(HWND tb) {
+    TBBUTTON buttons[] = {
+        makeToolbarButton(MDL2_ADD_BOLD, IDM_NEW_ITEM_MENU, BTNS_WHOLEDROPDOWN),
+        makeToolbarButton(MDL2_VIEW, IDM_VIEW_MENU, BTNS_WHOLEDROPDOWN),
+    };
+    SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
+    ItemWindow::addToolbarButtons(tb);
+}
+
 void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     // FVM_SMALLICON only seems to work if it's also specified with an icon size
     // TODO should this be the shell small icon size?
@@ -158,6 +168,20 @@ bool FolderWindow::onCommand(WORD command) {
             return true;
     }
     return ItemWindow::onCommand(command);
+}
+
+LRESULT FolderWindow::onNotify(NMHDR *nmHdr) {
+    if (nmHdr->code == TBN_DROPDOWN) {
+        NMTOOLBAR *nmToolbar = (NMTOOLBAR *)nmHdr;
+        POINT menuPos = {nmToolbar->rcButton.left, nmToolbar->rcButton.bottom};
+        ClientToScreen(nmHdr->hwndFrom, &menuPos);
+        if (nmToolbar->iItem == IDM_NEW_ITEM_MENU) {
+            openNewItemMenu(menuPos);
+        } else if (nmToolbar->iItem == IDM_VIEW_MENU) {
+            openViewMenu(menuPos);
+        }
+    }
+    return ItemWindow::onNotify(nmHdr);
 }
 
 void FolderWindow::onActivate(WORD state, HWND prevWindow) {
@@ -232,29 +256,120 @@ void FolderWindow::refresh() {
     }
 }
 
-void FolderWindow::newFolder() {
+CComPtr<IContextMenu> FolderWindow::queryBackgroundMenu(HMENU *popupMenu) {
     if (!shellView)
-        return;
+        return nullptr;
     CComPtr<IContextMenu> contextMenu;
     if (!checkHR(shellView->GetItemObject(SVGIO_BACKGROUND, IID_PPV_ARGS(&contextMenu))))
+        return nullptr;
+    if ((*popupMenu = CreatePopupMenu()) == nullptr)
+        return nullptr;
+    if (!checkHR(contextMenu->QueryContextMenu(*popupMenu, 0, 1, 0x7FFF, CMF_OPTIMIZEFORINVOKE))) {
+        DestroyMenu(*popupMenu);
+        return nullptr;
+    }
+    return contextMenu;
+}
+
+void FolderWindow::newFolder() {
+    HMENU popupMenu;
+    CComPtr<IContextMenu> contextMenu = queryBackgroundMenu(&popupMenu);
+    if (!contextMenu)
         return;
-    HMENU popupMenu = CreatePopupMenu();
-    if (!popupMenu)
-        return;
-    if (checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_OPTIMIZEFORINVOKE))) {
-        CMINVOKECOMMANDINFO info = {sizeof(info)};
-        info.hwnd = hwnd;
-        info.lpVerb = CMDSTR_NEWFOLDERA;
-        CComPtr<IFolderView2> folderView;
-        if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
-            // https://stackoverflow.com/q/40497455
-            // allow command to select new folder for renaming. not documented of course :/
-            checkHR(IUnknown_SetSite(contextMenu, folderView));
+    CMINVOKECOMMANDINFO info = {sizeof(info)};
+    info.hwnd = hwnd;
+    info.lpVerb = CMDSTR_NEWFOLDERA;
+    CComPtr<IFolderView2> folderView;
+    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
+        // https://stackoverflow.com/q/40497455
+        // allow command to select new folder for renaming. not documented of course :/
+        checkHR(IUnknown_SetSite(contextMenu, folderView));
+    }
+    checkHR(contextMenu->InvokeCommand(&info));
+    checkHR(IUnknown_SetSite(contextMenu, nullptr));
+
+    DestroyMenu(popupMenu);
+}
+
+HMENU findNewItemMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
+    // search for the submenu that contains NewFolder verb as the first item (TODO: jank)
+    CComQIPtr<IContextMenu3> contextMenu3(contextMenu);
+    for (int i = 0, count = GetMenuItemCount(popupMenu); i < count; i++) {
+        MENUITEMINFO itemInfo = {sizeof(itemInfo)};
+        itemInfo.fMask = MIIM_SUBMENU;
+        if (!GetMenuItemInfo(popupMenu, i, TRUE, &itemInfo))
+            continue;
+        if (!itemInfo.hSubMenu || GetMenuItemCount(itemInfo.hSubMenu) == 0)
+            continue;
+        if (contextMenu3) {
+            contextMenu3->HandleMenuMsg2(WM_INITMENUPOPUP,
+                (WPARAM)itemInfo.hSubMenu, i, nullptr);
         }
-        checkHR(contextMenu->InvokeCommand(&info));
+        MENUITEMINFO subItemInfo = {sizeof(subItemInfo)};
+        subItemInfo.fMask = MIIM_ID;
+        if (!GetMenuItemInfo(itemInfo.hSubMenu, 0, TRUE, &subItemInfo) || (int)subItemInfo.wID <= 0)
+            continue;
+        wchar_t verb[64];
+        verb[0] = 0;
+        if (SUCCEEDED(contextMenu->GetCommandString(subItemInfo.wID - 1, GCS_VERBW, nullptr,
+                (char*)verb, _countof(verb))) && lstrcmpi(verb, CMDSTR_NEWFOLDERW) == 0) {
+            return itemInfo.hSubMenu;
+        }
+    }
+    return nullptr;
+}
+
+void FolderWindow::openNewItemMenu(POINT point) {
+    HMENU popupMenu;
+    CComPtr<IContextMenu> contextMenu = queryBackgroundMenu(&popupMenu);
+    if (!contextMenu)
+        return;
+    HMENU newItemMenu = findNewItemMenu(contextMenu, popupMenu);
+    if (newItemMenu)
+        openBackgroundSubMenu(contextMenu, newItemMenu, point);
+    DestroyMenu(popupMenu);
+}
+
+HMENU findViewMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
+    for (int i = 0, count = GetMenuItemCount(popupMenu); i < count; i++) {
+        MENUITEMINFO itemInfo = {sizeof(itemInfo)};
+        itemInfo.fMask = MIIM_ID | MIIM_SUBMENU;
+        if (!GetMenuItemInfo(popupMenu, i, TRUE, &itemInfo))
+            continue;
+        if (!itemInfo.hSubMenu || itemInfo.wID <= 0)
+            continue;
+        wchar_t verb[64];
+        verb[0] = 0;
+        if (SUCCEEDED(contextMenu->GetCommandString(itemInfo.wID - 1, GCS_VERBW, nullptr,
+                (char*)verb, _countof(verb))) && lstrcmpi(verb, L"view") == 0) {
+            return itemInfo.hSubMenu;
+        }
+    }
+    return nullptr;
+}
+
+void FolderWindow::openViewMenu(POINT point) {
+    HMENU popupMenu;
+    CComPtr<IContextMenu> contextMenu = queryBackgroundMenu(&popupMenu);
+    if (!contextMenu)
+        return;
+    HMENU viewMenu = findViewMenu(contextMenu, popupMenu);
+    if (viewMenu)
+        openBackgroundSubMenu(contextMenu, viewMenu, point);
+    DestroyMenu(popupMenu);
+}
+
+void FolderWindow::openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu,
+        POINT point) {
+    int cmd = TrackPopupMenuEx(subMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON,
+        point.x, point.y, hwnd, nullptr);
+    if (cmd > 0) {
+        CComPtr<IFolderView2> folderView;
+        if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+            checkHR(IUnknown_SetSite(contextMenu, folderView));
+        invokeContextMenuCommand(contextMenu, cmd - 1, point);
         checkHR(IUnknown_SetSite(contextMenu, nullptr));
     }
-    DestroyMenu(popupMenu);
 }
 
 /* IUnknown */

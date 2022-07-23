@@ -512,14 +512,15 @@ void ItemWindow::onCreate() {
     ShowWindow(toolbar, TRUE);
 }
 
-TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command) {
-    return {I_IMAGENONE, command, TBSTATE_ENABLED, BTNS_SHOWTEXT, {}, 0, (INT_PTR)text};
+TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command, BYTE style) {
+    return {I_IMAGENONE, command, TBSTATE_ENABLED,
+        (BYTE)(BTNS_SHOWTEXT | style), {}, 0, (INT_PTR)text};
 }
 
 void ItemWindow::addToolbarButtons(HWND tb) {
     TBBUTTON buttons[] = {
-        makeToolbarButton(L"\uE72C", IDM_REFRESH),  // Refresh
-        makeToolbarButton(L"\uF8B0", IDM_SETTINGS), // SettingsSolid
+        makeToolbarButton(MDL2_REFRESH, IDM_REFRESH, 0),
+        makeToolbarButton(MDL2_SETTINGS_SOLID, IDM_SETTINGS, 0),
     };
     SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
 }
@@ -597,8 +598,8 @@ bool ItemWindow::onControlCommand(HWND controlHwnd, WORD notif) {
     return false;
 }
 
-LRESULT ItemWindow::onNotify(NMHDR *nmhdr) {
-    if (nmhdr->hwndFrom == tooltip && nmhdr->code == TTN_SHOW) {
+LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
+    if (nmHdr->hwndFrom == tooltip && nmHdr->code == TTN_SHOW) {
         // position tooltip on top of title
         RECT tooltipRect = titleRect;
         MapWindowRect(hwnd, nullptr, &tooltipRect);
@@ -979,17 +980,8 @@ void ItemWindow::invokeProxyDefaultVerb(POINT point) {
         return;
     if (checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_DEFAULTONLY))) {
         UINT id = GetMenuDefaultItem(popupMenu, FALSE, 0);
-        if (id != (UINT)-1) {
-            CMINVOKECOMMANDINFOEX info = {sizeof(info)};
-            info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE
-                | CMIC_MASK_ASYNCOK | CMIC_MASK_FLAG_LOG_USAGE;
-            info.hwnd = hwnd;
-            info.lpVerb = MAKEINTRESOURCEA(id - 1);
-            info.lpVerbW = MAKEINTRESOURCEW(id - 1);
-            info.nShow = SW_SHOWNORMAL;
-            info.ptInvoke = point;
-            checkHR(contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info));
-        }
+        if (id != (UINT)-1)
+            invokeContextMenuCommand(contextMenu, id - 1, point);
     }
     DestroyMenu(popupMenu);
 }
@@ -1029,7 +1021,6 @@ void ItemWindow::openProxyContextMenu(POINT point) {
     contextMenu3 = nullptr;
     if (cmd > 0) {
         cmd -= 1; // idCmdFirst
-
         // https://groups.google.com/g/microsoft.public.win32.programmer.ui/c/PhXQcfhYPHQ
         wchar_t verb[64];
         verb[0] = 0; // some handlers may return S_OK without touching the buffer
@@ -1037,24 +1028,28 @@ void ItemWindow::openProxyContextMenu(POINT point) {
                 (char*)verb, _countof(verb))) && lstrcmpi(verb, L"rename") == 0) {
             beginRename();
         } else {
-            CMINVOKECOMMANDINFOEX info = {sizeof(info)};
-            // TODO must set a thread reference
-            // see https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-icontextmenu-invokecommand
-            info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE
-                | CMIC_MASK_ASYNCOK | CMIC_MASK_FLAG_LOG_USAGE;
-            if (GetKeyState(VK_CONTROL) < 0)
-                info.fMask |= CMIC_MASK_CONTROL_DOWN;
-            if (GetKeyState(VK_SHIFT) < 0)
-                info.fMask |= CMIC_MASK_SHIFT_DOWN;
-            info.hwnd = hwnd;
-            info.lpVerb = MAKEINTRESOURCEA(cmd);
-            info.lpVerbW = MAKEINTRESOURCEW(cmd);
-            info.nShow = SW_SHOWNORMAL;
-            info.ptInvoke = point;
-            checkHR(contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info));
+            invokeContextMenuCommand(contextMenu, cmd, point);
         }
     }
     DestroyMenu(popupMenu);
+}
+
+void ItemWindow::invokeContextMenuCommand(CComPtr<IContextMenu> contextMenu, int cmd, POINT point) {
+    CMINVOKECOMMANDINFOEX info = {sizeof(info)};
+    // TODO must set a thread reference
+    // see https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-icontextmenu-invokecommand
+    info.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE
+        | CMIC_MASK_ASYNCOK | CMIC_MASK_FLAG_LOG_USAGE;
+    if (GetKeyState(VK_CONTROL) < 0)
+        info.fMask |= CMIC_MASK_CONTROL_DOWN;
+    if (GetKeyState(VK_SHIFT) < 0)
+        info.fMask |= CMIC_MASK_SHIFT_DOWN;
+    info.hwnd = hwnd;
+    info.lpVerb = MAKEINTRESOURCEA(cmd);
+    info.lpVerbW = MAKEINTRESOURCEW(cmd);
+    info.nShow = SW_SHOWNORMAL;
+    info.ptInvoke = point;
+    checkHR(contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info));
 }
 
 void ItemWindow::beginProxyDrag(POINT offset) {
@@ -1285,8 +1280,8 @@ LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
                 HFONT oldFont = SelectFont(hdc, symbolFont);
                 SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
                 SetBkMode(hdc, TRANSPARENT);
-                // ChevronLeftSmall
-                DrawText(hdc, L"\uE96F", -1, &contentRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                DrawText(hdc, MDL2_CHEVRON_LEFT_SMALL, -1, &contentRect,
+                    DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 SelectFont(hdc, oldFont);
                 makeBitmapOpaque(hdc, ps.rcPaint);
             }

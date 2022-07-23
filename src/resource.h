@@ -5,19 +5,27 @@
 
 #define IDR_APP_ICON    101
 
-#define IDR_ITEM_ACCEL  102
-#define IDM_NEXT_WINDOW  1001
-#define IDM_PREV_WINDOW  1002
-#define IDM_CLOSE_WINDOW 1003
-#define IDM_REFRESH      1004
-#define IDM_HELP         1005
-#define IDM_PROXY_MENU   1006
-#define IDM_NEW_FOLDER   1007
-#define IDM_RENAME_PROXY 1008
-#define IDM_SETTINGS     1009
-#define IDM_PARENT_MENU  1010
+#define IDR_ITEM_ACCEL      102
+#define IDM_NEXT_WINDOW     1001
+#define IDM_PREV_WINDOW     1002
+#define IDM_CLOSE_WINDOW    1003
+#define IDM_REFRESH         1004
+#define IDM_HELP            1005
+#define IDM_PROXY_MENU      1006
+#define IDM_NEW_FOLDER      1007
+#define IDM_RENAME_PROXY    1008
+#define IDM_SETTINGS        1009
+#define IDM_PARENT_MENU     1010
+#define IDM_NEW_ITEM_MENU   1011
+#define IDM_VIEW_MENU       1012
 
 #define IDR_ICON_FONT   103
+// https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
+#define MDL2_CHEVRON_LEFT_SMALL     L"\uE96F"
+#define MDL2_REFRESH                L"\uE72C"
+#define MDL2_SETTINGS_SOLID         L"\uF8B0"
+#define MDL2_ADD_BOLD               L"\uF8AA"
+#define MDL2_VIEW                   L"\uE890"
 
 #define IDD_SETTINGS_GENERAL        104
 #define IDC_START_FOLDER_PATH       1001

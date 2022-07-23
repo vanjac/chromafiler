@@ -38,8 +38,11 @@ protected:
     void onCreate() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
+    LRESULT onNotify(NMHDR *nmHdr) override;
     void onActivate(WORD state, HWND prevWindow) override;
     void onSize(int width, int height) override;
+
+    void addToolbarButtons(HWND tb) override;
 
     void onChildDetached() override;
 
@@ -53,7 +56,12 @@ private:
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
 
     void selectionChanged();
+
+    CComPtr<IContextMenu> queryBackgroundMenu(HMENU *popupMenu);
     void newFolder();
+    void openNewItemMenu(POINT point);
+    void openViewMenu(POINT point);
+    void openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu, POINT point);
 
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
     CComPtr<IShellView> shellView;
