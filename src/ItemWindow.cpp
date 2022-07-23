@@ -484,7 +484,7 @@ void ItemWindow::onCreate() {
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
     parentButton = CreateWindow(L"BUTTON", nullptr,
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
-        0, 0, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT,
+        0, 1, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT - 2,
         hwnd, (HMENU)IDM_PREV_WINDOW, instance, nullptr);
     SetWindowSubclass(parentButton, parentButtonProc, 0, (DWORD_PTR)this);
 
