@@ -119,7 +119,7 @@ void FolderWindow::onCreate() {
 
 void FolderWindow::addToolbarButtons(HWND tb) {
     TBBUTTON buttons[] = {
-        makeToolbarButton(MDL2_ADD_BOLD, IDM_NEW_ITEM_MENU, BTNS_WHOLEDROPDOWN),
+        makeToolbarButton(MDL2_CALCULATOR_ADDITION, IDM_NEW_ITEM_MENU, BTNS_WHOLEDROPDOWN),
         makeToolbarButton(MDL2_VIEW, IDM_VIEW_MENU, BTNS_WHOLEDROPDOWN),
     };
     SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);

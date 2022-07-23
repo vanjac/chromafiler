@@ -23,7 +23,7 @@ const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int WINDOW_ICON_PADDING = 4;
 const int RENAME_BOX_PADDING = 2; // with border
 const int TOOLBAR_HEIGHT = 24;
-const int SYMBOL_FONT_HEIGHT = 12;
+const int SYMBOL_FONT_HEIGHT = 14;
 const int SNAP_DISTANCE = 32;
 // colors
 // this is the color used in every high-contrast theme
@@ -524,7 +524,7 @@ TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command, BYTE s
 void ItemWindow::addToolbarButtons(HWND tb) {
     TBBUTTON buttons[] = {
         makeToolbarButton(MDL2_REFRESH, IDM_REFRESH, 0),
-        makeToolbarButton(MDL2_SETTINGS_SOLID, IDM_SETTINGS, 0),
+        makeToolbarButton(MDL2_SETTING, IDM_SETTINGS, 0),
     };
     SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
 }
@@ -1293,7 +1293,7 @@ LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
             GetClientRect(hwnd, &buttonRect);
             InflateRect(&buttonRect, 1, 1);
             if (themeState == PBS_NORMAL) {
-                FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_BTNFACE));
+                FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
                 makeBitmapOpaque(hdc, ps.rcPaint);
             } else {
                 checkHR(DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect,
@@ -1306,7 +1306,7 @@ LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
                 HFONT oldFont = SelectFont(hdc, symbolFont);
                 SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
                 SetBkMode(hdc, TRANSPARENT);
-                DrawText(hdc, MDL2_CHEVRON_LEFT_SMALL, -1, &contentRect,
+                DrawText(hdc, MDL2_CHEVRON_LEFT_MED, -1, &contentRect,
                     DT_CENTER | DT_VCENTER | DT_SINGLELINE);
                 SelectFont(hdc, oldFont);
                 makeBitmapOpaque(hdc, ps.rcPaint);

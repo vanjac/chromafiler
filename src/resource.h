@@ -21,10 +21,10 @@
 
 #define IDR_ICON_FONT   103
 // https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
-#define MDL2_CHEVRON_LEFT_SMALL     L"\uE96F"
+#define MDL2_CHEVRON_LEFT_MED       L"\uE973"
 #define MDL2_REFRESH                L"\uE72C"
-#define MDL2_SETTINGS_SOLID         L"\uF8B0"
-#define MDL2_ADD_BOLD               L"\uF8AA"
+#define MDL2_SETTING                L"\uE713"
+#define MDL2_CALCULATOR_ADDITION    L"\uE948"
 #define MDL2_VIEW                   L"\uE890"
 
 #define IDD_SETTINGS_GENERAL        104
