@@ -509,7 +509,10 @@ void ItemWindow::onCreate() {
         SendMessage(toolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
     addToolbarButtons(toolbar);
     SendMessage(toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
-    ShowWindow(toolbar, TRUE);
+    SIZE ideal;
+    SendMessage(toolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
+    SetWindowPos(toolbar, nullptr, 0, 0, ideal.cx, TOOLBAR_HEIGHT,
+        SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
 }
 
 TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command, BYTE style) {
@@ -636,8 +639,10 @@ void ItemWindow::onActivate(WORD state, HWND) {
 void ItemWindow::onSize(int width, int) {
     windowRectChanged();
     if (useCustomFrame()) {
-        SetWindowPos(toolbar, nullptr, 0, 0, width, TOOLBAR_HEIGHT,
-            SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+        RECT toolbarRect;
+        GetClientRect(toolbar, &toolbarRect);
+        SetWindowPos(toolbar, nullptr, width - rectWidth(toolbarRect), CAPTION_HEIGHT, 0, 0,
+            SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
     if (parent && preserveSize()) {
         RECT rect;
