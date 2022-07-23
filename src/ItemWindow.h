@@ -72,6 +72,7 @@ protected:
 
     TBBUTTON makeToolbarButton(const wchar_t *text, WORD command, BYTE style);
     virtual void addToolbarButtons(HWND tb);
+    virtual int getToolbarTooltip(WORD command);
 
     void openChild(CComPtr<IShellItem> childItem);
     void closeChild();

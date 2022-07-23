@@ -126,6 +126,16 @@ void FolderWindow::addToolbarButtons(HWND tb) {
     ItemWindow::addToolbarButtons(tb);
 }
 
+int FolderWindow::getToolbarTooltip(WORD command) {
+    switch (command) {
+        case IDM_NEW_ITEM_MENU:
+            return IDS_NEW_ITEM_COMMAND;
+        case IDM_VIEW_MENU:
+            return IDS_VIEW_COMMAND;
+    }
+    return ItemWindow::getToolbarTooltip(command);
+}
+
 void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     // FVM_SMALLICON only seems to work if it's also specified with an icon size
     // TODO should this be the shell small icon size?

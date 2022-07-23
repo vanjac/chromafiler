@@ -499,7 +499,8 @@ void ItemWindow::onCreate() {
 
     toolbar = CreateWindowEx(
         TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
-        WS_VISIBLE | WS_CHILD | TBSTYLE_FLAT | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER,
+        TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
+            | WS_VISIBLE | WS_CHILD,
         0, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
         hwnd, nullptr, instance, nullptr);
     SendMessage(toolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
@@ -526,6 +527,16 @@ void ItemWindow::addToolbarButtons(HWND tb) {
         makeToolbarButton(MDL2_SETTINGS_SOLID, IDM_SETTINGS, 0),
     };
     SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
+}
+
+int ItemWindow::getToolbarTooltip(WORD command) {
+    switch (command) {
+        case IDM_REFRESH:
+            return IDS_REFRESH_COMMAND;
+        case IDM_SETTINGS:
+            return IDS_SETTINGS_COMMAND;
+    }
+    return 0;
 }
 
 void ItemWindow::onDestroy() {
@@ -610,6 +621,16 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         SetWindowPos(tooltip, nullptr, tooltipRect.left, tooltipRect.top, 0, 0,
             SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
         return TRUE;
+    } else if (nmHdr->code == TTN_GETDISPINFO) {
+        NMTTDISPINFO *dispInfo = (NMTTDISPINFO *)nmHdr;
+        if (!(dispInfo->uFlags & TTF_IDISHWND)) {
+            int res = getToolbarTooltip((WORD)dispInfo->hdr.idFrom);
+            if (res) {
+                dispInfo->hinst = GetModuleHandle(nullptr);
+                dispInfo->lpszText = MAKEINTRESOURCE(res);
+                dispInfo->uFlags |= TTF_DI_SETITEM;
+            }
+        }
     }
     return 0;
 }

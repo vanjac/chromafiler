@@ -52,3 +52,6 @@
 #define IDS_SETTINGS_COMMAND    201
 #define IDS_ERROR_CAPTION       202
 #define IDS_CANT_FIND_ITEM      203
+#define IDS_REFRESH_COMMAND     204
+#define IDS_NEW_ITEM_COMMAND    205
+#define IDS_VIEW_COMMAND        206
