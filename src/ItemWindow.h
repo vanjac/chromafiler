@@ -54,6 +54,7 @@ public:
 protected:
     enum UserMessage {
         MSG_APPBAR_CALLBACK = WM_USER,
+        MSG_SET_STATUS_TEXT,
         MSG_LAST
     };
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -137,7 +138,7 @@ private:
     HICON iconLarge = nullptr, iconSmall = nullptr;
 
     HWND tooltip = nullptr, parentButton = nullptr, renameBox = nullptr;
-    HWND toolbar = nullptr;
+    HWND statusText = nullptr, toolbar = nullptr;
     RECT proxyRect{}, titleRect{}, iconRect{};
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;
@@ -149,6 +150,17 @@ private:
     // drop target state
     IDataObject *dropDataObject;
     bool overDropTarget = false;
+
+    class StatusTextThread : public StoppableThread {
+    public:
+        StatusTextThread(CComPtr<IShellItem> item, HWND callbackWindow);
+    protected:
+        void run() override;
+    private:
+        CComHeapPtr<ITEMIDLIST> itemIDList;
+        const HWND callbackWindow;
+    };
+    CComPtr<StatusTextThread> statusTextThread;
 };
 
 } // namespace

@@ -260,6 +260,7 @@ void FolderWindow::onItemChanged() {
 }
 
 void FolderWindow::refresh() {
+    ItemWindow::refresh();
     if (shellView) {
         checkHR(shellView->Refresh());
         ignoreNextSelection = true; // fix crash

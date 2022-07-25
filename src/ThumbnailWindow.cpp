@@ -51,6 +51,7 @@ void ThumbnailWindow::onItemChanged() {
 }
 
 void ThumbnailWindow::refresh() {
+    ItemWindow::refresh();
     RECT bodyRect = windowBody();
     SIZE bodySize = rectSize(bodyRect);
     thumbnailThread->requestThumbnail(bodySize);

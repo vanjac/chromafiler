@@ -31,7 +31,7 @@ const int SNAP_DISTANCE = 32;
 const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
 
 static HANDLE symbolFontHandle = 0;
-static HFONT captionFont = 0, symbolFont = 0;
+static HFONT captionFont = 0, statusFont = 0, symbolFont = 0;
 // string resources
 static wchar_t STR_SETTINGS_COMMAND[64] = {0};
 
@@ -55,11 +55,14 @@ void ItemWindow::init() {
     AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
     CAPTION_HEIGHT = -adjustedRect.top; // = 31
 
+    // TODO: alternatively use SystemParametersInfo with SPI_GETNONCLIENTMETRICS
     HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME);
     if (theme) {
         LOGFONT logFont;
         if (checkHR(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont)))
             captionFont = CreateFontIndirect(&logFont);
+        if (checkHR(GetThemeSysFont(theme, TMT_STATUSFONT, &logFont)))
+            statusFont = CreateFontIndirect(&logFont);
         checkHR(CloseThemeData(theme));
     }
 
@@ -295,6 +298,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             EndPaint(hwnd, &paint);
             return 0;
         }
+        case WM_CTLCOLORSTATIC:
+            return COLOR_WINDOW + 1;
         case WM_ENTERSIZEMOVE:
             moveAccum = {0, 0};
             return 0;
@@ -401,6 +406,13 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 return 0;
             }
             break;
+        case MSG_SET_STATUS_TEXT: {
+            CComHeapPtr<wchar_t> text;
+            text.Attach((wchar_t *)lParam);
+            if (statusText)
+                SetWindowText(statusText, text);
+            return 0;
+        }
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -497,6 +509,15 @@ void ItemWindow::onCreate() {
     if (captionFont)
         SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
 
+    statusText = CreateWindow(L"STATIC", nullptr,
+        WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE,
+        0, CAPTION_HEIGHT, 100, TOOLBAR_HEIGHT,
+        hwnd, nullptr, instance, nullptr);
+    if (statusFont)
+        SendMessage(statusText, WM_SETFONT, (WPARAM)statusFont, FALSE);
+    statusTextThread.Attach(new StatusTextThread(item, hwnd));
+    statusTextThread->start();
+
     toolbar = CreateWindowEx(
         TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
         TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
@@ -553,6 +574,9 @@ void ItemWindow::onDestroy() {
 
     if (itemDropTarget)
         RevokeDragDrop(hwnd);
+
+    if (statusTextThread)
+        statusTextThread->stop();
 }
 
 bool ItemWindow::onCommand(WORD command) {
@@ -664,6 +688,8 @@ void ItemWindow::onSize(int width, int) {
         GetClientRect(toolbar, &toolbarRect);
         SetWindowPos(toolbar, nullptr, width - rectWidth(toolbarRect), CAPTION_HEIGHT, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+        SetWindowPos(statusText, nullptr, 0, 0, width - rectWidth(toolbarRect), TOOLBAR_HEIGHT,
+            SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
     if (parent && preserveSize()) {
         RECT rect;
@@ -947,7 +973,14 @@ void ItemWindow::onItemChanged() {
     }
 }
 
-void ItemWindow::refresh() {}
+void ItemWindow::refresh() {
+    if (statusText) {
+        if (statusTextThread)
+            statusTextThread->stop();
+        statusTextThread.Attach(new StatusTextThread(item, hwnd));
+        statusTextThread->start();
+    }
+}
 
 void ItemWindow::openParentMenu(POINT point) {
     int iconSize = GetSystemMetrics(SM_CXSMICON);
@@ -1340,6 +1373,35 @@ LRESULT CALLBACK ItemWindow::renameBoxProc(HWND hwnd, UINT message,
         return 0;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
+ItemWindow::StatusTextThread::StatusTextThread(CComPtr<IShellItem> item, HWND callbackWindow)
+        : callbackWindow(callbackWindow) {
+    checkHR(SHGetIDListFromObject(item, &itemIDList));
+}
+
+void ItemWindow::StatusTextThread::run() {
+    CComPtr<IShellItem> localItem;
+    if (!itemIDList || !checkHR(SHCreateItemFromIDList(itemIDList, IID_PPV_ARGS(&localItem))))
+        return;
+    itemIDList.Free();
+
+    CComPtr<IQueryInfo> queryInfo;
+    if (!checkHR(localItem->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&queryInfo))))
+        return;
+    
+    CComHeapPtr<wchar_t> text;
+    if (!checkHR(queryInfo->GetInfoTip(QITIPF_USESLOWTIP, &text)))
+        return;
+    for (wchar_t *c = text; *c; c++) {
+        if (*c == '\n')
+            *c = '\t';
+    }
+
+    EnterCriticalSection(&stopSection);
+    if (!isStopped())
+        PostMessage(callbackWindow, MSG_SET_STATUS_TEXT, 0, (LPARAM)text.Detach());
+    LeaveCriticalSection(&stopSection);
 }
 
 } // namespace

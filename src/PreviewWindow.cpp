@@ -139,6 +139,7 @@ void PreviewWindow::destroyPreview() {
 }
 
 void PreviewWindow::refresh() {
+    ItemWindow::refresh();
     destroyPreview();
     initRequest->cancel();
     initRequest = new InitPreviewRequest(item, previewID, hwnd, container);
