@@ -27,7 +27,7 @@ const wchar_t * ThumbnailWindow::className() {
 
 void ThumbnailWindow::onCreate() {
     ItemWindow::onCreate();
-    thumbnailThread = new ThumbnailThread(item, hwnd);
+    thumbnailThread.Attach(new ThumbnailThread(item, hwnd));
     thumbnailThread->start();
 }
 
@@ -46,7 +46,7 @@ void ThumbnailWindow::onSize(int width, int height) {
 void ThumbnailWindow::onItemChanged() {
     ItemWindow::onItemChanged();
     thumbnailThread->stop();
-    thumbnailThread = new ThumbnailThread(item, hwnd);
+    thumbnailThread.Attach(new ThumbnailThread(item, hwnd));
     thumbnailThread->start();
 }
 
