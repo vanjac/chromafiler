@@ -32,21 +32,19 @@ private:
 
     HBITMAP thumbnailBitmap = 0;
 
-    class ThumbnailThread : public IUnknownImpl {
+    class ThumbnailThread : public StoppableThread {
     public:
         ThumbnailThread(CComPtr<IShellItem> item, HWND callbackWindow);
         ~ThumbnailThread();
         void requestThumbnail(SIZE size);
-        void stop();
+    protected:
+        void run() override;
     private:
-        HANDLE thread;
         CComHeapPtr<ITEMIDLIST> itemIDList;
         const HWND callbackWindow;
-        HANDLE requestThumbnailEvent, stopEvent;
-        CRITICAL_SECTION requestThumbnailSection, stopSection;
+        HANDLE requestThumbnailEvent;
+        CRITICAL_SECTION requestThumbnailSection;
         SIZE requestedSize;
-        static DWORD WINAPI thumbnailThreadProc(void *);
-        void run();
     };
 
     CComPtr<ThumbnailThread> thumbnailThread;

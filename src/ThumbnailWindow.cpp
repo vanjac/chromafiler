@@ -28,6 +28,7 @@ const wchar_t * ThumbnailWindow::className() {
 void ThumbnailWindow::onCreate() {
     ItemWindow::onCreate();
     thumbnailThread = new ThumbnailThread(item, hwnd);
+    thumbnailThread->start();
 }
 
 void ThumbnailWindow::onDestroy() {
@@ -46,6 +47,7 @@ void ThumbnailWindow::onItemChanged() {
     ItemWindow::onItemChanged();
     thumbnailThread->stop();
     thumbnailThread = new ThumbnailThread(item, hwnd);
+    thumbnailThread->start();
 }
 
 void ThumbnailWindow::refresh() {
@@ -102,18 +104,12 @@ ThumbnailWindow::ThumbnailThread::ThumbnailThread(CComPtr<IShellItem> item, HWND
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
     requestThumbnailEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-    stopEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
     InitializeCriticalSectionAndSpinCount(&requestThumbnailSection, 4000);
-    InitializeCriticalSectionAndSpinCount(&stopSection, 4000);
-    SHCreateThreadWithHandle(thumbnailThreadProc, this, CTF_COINIT_STA, nullptr, &thread);
 }
 
 ThumbnailWindow::ThumbnailThread::~ThumbnailThread() {
-    CloseHandle(thread);
     CloseHandle(requestThumbnailEvent);
-    CloseHandle(stopEvent);
     DeleteCriticalSection(&requestThumbnailSection);
-    DeleteCriticalSection(&stopSection);
 }
 
 void ThumbnailWindow::ThumbnailThread::requestThumbnail(SIZE size) {
@@ -123,25 +119,12 @@ void ThumbnailWindow::ThumbnailThread::requestThumbnail(SIZE size) {
     LeaveCriticalSection(&requestThumbnailSection);
 }
 
-void ThumbnailWindow::ThumbnailThread::stop() {
-    EnterCriticalSection(&stopSection);
-    SetEvent(stopEvent);
-    LeaveCriticalSection(&stopSection);
-}
-
-DWORD WINAPI ThumbnailWindow::ThumbnailThread::thumbnailThreadProc(void *data) {
-    ThumbnailThread *self = (ThumbnailThread *)data;
-    self->run();
-    self->Release();
-    return 0;
-}
-
 void ThumbnailWindow::ThumbnailThread::run() {
     CComPtr<IShellItemImageFactory> imageFactory;
     if (!itemIDList || !checkHR(SHCreateItemFromIDList(itemIDList, IID_PPV_ARGS(&imageFactory))))
         return;
     itemIDList.Free();
-    
+
     HANDLE waitObjects[] = {requestThumbnailEvent, stopEvent};
     int event;
     while ((event = WaitForMultipleObjects(
@@ -162,14 +145,14 @@ void ThumbnailWindow::ThumbnailThread::run() {
 
             // ensure the window is not closed before the message is posted
             EnterCriticalSection(&stopSection);
-            if (WaitForSingleObject(stopEvent, 0) == WAIT_OBJECT_0) {
+            if (isStopped()) {
                 DeleteBitmap(hBitmap);
             } else {
                 PostMessage(callbackWindow, MSG_SET_THUMBNAIL_BITMAP, 0, (LPARAM)hBitmap);
             }
             LeaveCriticalSection(&stopSection);
         } else if (event == WAIT_OBJECT_0 + 1) {
-            return;
+            return; // stop
         }
     }
     return;

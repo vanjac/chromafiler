@@ -1,4 +1,5 @@
 #include "COMUtils.h"
+#include <shlwapi.h>
 
 namespace chromabrowse {
 
@@ -26,6 +27,39 @@ STDMETHODIMP_(ULONG) IUnknownImpl::Release() {
         delete this;
     }
     return r;
+}
+
+
+StoppableThread::StoppableThread() {
+    stopEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    InitializeCriticalSectionAndSpinCount(&stopSection, 4000);
+}
+
+StoppableThread::~StoppableThread() {
+    CloseHandle(thread);
+    CloseHandle(stopEvent);
+    DeleteCriticalSection(&stopSection);
+}
+
+void StoppableThread::start() {
+    SHCreateThreadWithHandle(threadProc, this, CTF_COINIT_STA, nullptr, &thread);
+}
+
+void StoppableThread::stop() {
+    EnterCriticalSection(&stopSection);
+    SetEvent(stopEvent);
+    LeaveCriticalSection(&stopSection);
+}
+
+bool StoppableThread::isStopped() {
+    return WaitForSingleObject(stopEvent, 0) == WAIT_OBJECT_0;
+}
+
+DWORD WINAPI StoppableThread::threadProc(void *data) {
+    StoppableThread *self = (StoppableThread *)data;
+    self->run();
+    self->Release();
+    return 0;
 }
 
 } // namespace
