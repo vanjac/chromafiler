@@ -67,9 +67,12 @@ IDD_SETTINGS_GENERAL    DIALOGEX
     EDITTEXT IDC_ITEM_WINDOW_WIDTH, 91, 77, 21, 14, ES_NUMBER
     CTEXT "x", -1, 113, 80, 12, 8
     EDITTEXT IDC_ITEM_WINDOW_HEIGHT, 126, 77, 21, 14, ES_NUMBER
-    GROUPBOX "Previews", -1, 7, 105, 213, 49
-    AUTOCHECKBOX "Use Preview &Handlers", IDC_PREVIEWS_ENABLED, 21, 119, 98, 14
-    AUTOCHECKBOX "Enable &text editor", IDC_TEXT_EDITOR_ENABLED, 21, 133, 98, 14
+    GROUPBOX "Toolbar", -1, 7, 105, 103, 49
+    AUTOCHECKBOX "Show i&nfo text", IDC_STATUS_TEXT_ENABLED, 14, 119, 89, 14
+    AUTOCHECKBOX "Show &toolbar", IDC_TOOLBAR_ENABLED, 14, 133, 89, 14
+    GROUPBOX "Previews", -1, 117, 105, 103, 49
+    AUTOCHECKBOX "Use Preview &Handlers", IDC_PREVIEWS_ENABLED, 124, 119, 89, 14
+    AUTOCHECKBOX "Enable text &editor", IDC_TEXT_EDITOR_ENABLED, 124, 133, 89, 14
     GROUPBOX "File Explorer options", -1, 7, 161, 213, 35
     LTEXT "Some File Explorer options also affect chromabrowse folder windows.", -1, 14, 175, 136, 16
     PUSHBUTTON "&Options...", IDC_EXPLORER_SETTINGS, 157, 175, 56, 14

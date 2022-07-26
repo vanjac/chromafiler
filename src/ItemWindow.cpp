@@ -237,8 +237,10 @@ void ItemWindow::move(int x, int y) {
 RECT ItemWindow::windowBody() {
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    return useCustomFrame() ?
-        RECT {0, CAPTION_HEIGHT + TOOLBAR_HEIGHT, clientRect.right, clientRect.bottom} : clientRect;
+    if (!useCustomFrame())
+        return clientRect;
+    int top = (statusText || toolbar) ? (CAPTION_HEIGHT + TOOLBAR_HEIGHT) : CAPTION_HEIGHT;
+    return RECT {0, top, clientRect.right, clientRect.bottom};
 }
 
 LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -509,49 +511,53 @@ void ItemWindow::onCreate() {
     if (captionFont)
         SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
 
-    statusText = CreateWindow(L"STATIC", nullptr,
-        WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE | SS_NOPREFIX
-            | SS_NOTIFY, // allows tooltips to work
-        STATUS_TEXT_MARGIN, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
-        hwnd, nullptr, instance, nullptr);
-    if (statusFont)
-        SendMessage(statusText, WM_SETFONT, (WPARAM)statusFont, FALSE);
-    if (useDefaultStatusText()) {
-        statusTextThread.Attach(new StatusTextThread(item, hwnd));
-        statusTextThread->start();
+    if (settings::getStatusTextEnabled()) {
+        statusText = CreateWindow(L"STATIC", nullptr,
+            WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE | SS_NOPREFIX
+                | SS_NOTIFY, // allows tooltips to work
+            STATUS_TEXT_MARGIN, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
+            hwnd, nullptr, instance, nullptr);
+        if (statusFont)
+            SendMessage(statusText, WM_SETFONT, (WPARAM)statusFont, FALSE);
+        if (useDefaultStatusText()) {
+            statusTextThread.Attach(new StatusTextThread(item, hwnd));
+            statusTextThread->start();
+        }
+
+        statusTooltip = CreateWindow(TOOLTIPS_CLASS, nullptr,
+            WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            hwnd, nullptr, instance, nullptr);
+        if (statusFont)
+            SendMessage(statusTooltip, WM_SETFONT, (WPARAM)statusFont, FALSE);
+        SendMessage(statusTooltip, TTM_SETMAXTIPWIDTH, 0, 0x7fff); // allow tabs
+        toolInfo = {sizeof(toolInfo)};
+        toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS | TTF_TRANSPARENT;
+        toolInfo.hwnd = hwnd;
+        toolInfo.uId = (UINT_PTR)statusText;
+        toolInfo.lpszText = L"";
+        SendMessage(statusTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
     }
 
-    statusTooltip = CreateWindow(TOOLTIPS_CLASS, nullptr,
-        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        hwnd, nullptr, instance, nullptr);
-    if (statusFont)
-        SendMessage(statusTooltip, WM_SETFONT, (WPARAM)statusFont, FALSE);
-    SendMessage(statusTooltip, TTM_SETMAXTIPWIDTH, 0, 0x7fff); // allow tabs
-    toolInfo = {sizeof(toolInfo)};
-    toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS | TTF_TRANSPARENT;
-    toolInfo.hwnd = hwnd;
-    toolInfo.uId = (UINT_PTR)statusText;
-    toolInfo.lpszText = L"";
-    SendMessage(statusTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
-
-    toolbar = CreateWindowEx(
-        TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
-        TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
-            | WS_VISIBLE | WS_CHILD,
-        0, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
-        hwnd, nullptr, instance, nullptr);
-    SendMessage(toolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
-    SendMessage(toolbar, TB_SETBUTTONWIDTH, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
-    SendMessage(toolbar, TB_SETBITMAPSIZE, 0, 0);
-    if (symbolFont)
-        SendMessage(toolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
-    addToolbarButtons(toolbar);
-    SendMessage(toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
-    SIZE ideal;
-    SendMessage(toolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
-    SetWindowPos(toolbar, nullptr, 0, 0, ideal.cx, TOOLBAR_HEIGHT,
-        SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+    if (settings::getToolbarEnabled()) {
+        toolbar = CreateWindowEx(
+            TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
+            TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
+                | WS_VISIBLE | WS_CHILD,
+            0, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
+            hwnd, nullptr, instance, nullptr);
+        SendMessage(toolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
+        SendMessage(toolbar, TB_SETBUTTONWIDTH, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
+        SendMessage(toolbar, TB_SETBITMAPSIZE, 0, 0);
+        if (symbolFont)
+            SendMessage(toolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
+        addToolbarButtons(toolbar);
+        SendMessage(toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
+        SIZE ideal;
+        SendMessage(toolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
+        SetWindowPos(toolbar, nullptr, 0, 0, ideal.cx, TOOLBAR_HEIGHT,
+            SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+    }
 }
 
 bool ItemWindow::hasStatusText() {
@@ -733,15 +739,21 @@ void ItemWindow::onActivate(WORD state, HWND) {
 
 void ItemWindow::onSize(int width, int) {
     windowRectChanged();
-    if (useCustomFrame()) {
+
+    int toolbarLeft = width;
+    if (toolbar) {
         RECT toolbarRect;
         GetClientRect(toolbar, &toolbarRect);
-        SetWindowPos(toolbar, nullptr, width - rectWidth(toolbarRect), CAPTION_HEIGHT, 0, 0,
+        toolbarLeft = width - rectWidth(toolbarRect);
+        SetWindowPos(toolbar, nullptr, toolbarLeft, CAPTION_HEIGHT, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+    if (statusText) {
         SetWindowPos(statusText, nullptr,
-            0, 0, width - rectWidth(toolbarRect) - STATUS_TEXT_MARGIN, TOOLBAR_HEIGHT,
+            0, 0, toolbarLeft - STATUS_TEXT_MARGIN * 2, TOOLBAR_HEIGHT,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
+
     if (parent && preserveSize()) {
         RECT rect;
         GetWindowRect(hwnd, &rect);

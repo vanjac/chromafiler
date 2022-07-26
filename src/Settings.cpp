@@ -11,6 +11,8 @@ const wchar_t VAL_ITEM_WINDOW_W[]       = L"ItemWindowWidth";
 const wchar_t VAL_ITEM_WINDOW_H[]       = L"ItemWindowHeight";
 const wchar_t VAL_FOLDER_WINDOW_W[]     = L"FolderWindowWidth";
 const wchar_t VAL_FOLDER_WINDOW_H[]     = L"FolderWindowHeight";
+const wchar_t VAL_STATUS_TEXT_ENABLED[] = L"StatusTextEnabled";
+const wchar_t VAL_TOOLBAR_ENABLED[]     = L"ToolbarEnabled";
 const wchar_t VAL_PREVIEWS_ENABLED[]    = L"PreviewsEnabled";
 const wchar_t VAL_TEXT_EDITOR_ENABLED[] = L"TextEditorEnabled";
 const wchar_t VAL_TRAY_FOLDER[]         = L"TrayFolder";
@@ -82,6 +84,28 @@ SIZE getFolderWindowSize() {
 void setFolderWindowSize(SIZE value) {
     setSettingsValue(VAL_FOLDER_WINDOW_W, REG_DWORD, &value.cx, sizeof(value.cx));
     setSettingsValue(VAL_FOLDER_WINDOW_H, REG_DWORD, &value.cy, sizeof(value.cy));
+}
+
+bool getStatusTextEnabled() {
+    DWORD value = DEFAULT_STATUS_TEXT_ENABLED;
+    getSettingsValue(VAL_STATUS_TEXT_ENABLED, RRF_RT_DWORD, &value, sizeof(value));
+    return value;
+}
+
+void setStatusTextEnabled(bool value) {
+    DWORD dwValue = value;
+    setSettingsValue(VAL_STATUS_TEXT_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
+}
+
+bool getToolbarEnabled() {
+    DWORD value = DEFAULT_TOOLBAR_ENABLED;
+    getSettingsValue(VAL_TOOLBAR_ENABLED, RRF_RT_DWORD, &value, sizeof(value));
+    return value;
+}
+
+void setToolbarEnabled(bool value) {
+    DWORD dwValue = value;
+    setSettingsValue(VAL_TOOLBAR_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
 }
 
 bool getPreviewsEnabled() {

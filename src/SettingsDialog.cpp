@@ -53,6 +53,10 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
             SIZE itemWindowSize = settings::getItemWindowSize();
             SetDlgItemInt(hwnd, IDC_ITEM_WINDOW_WIDTH, itemWindowSize.cx, TRUE);
             SetDlgItemInt(hwnd, IDC_ITEM_WINDOW_HEIGHT, itemWindowSize.cy, TRUE);
+            CheckDlgButton(hwnd, IDC_STATUS_TEXT_ENABLED,
+                settings::getStatusTextEnabled() ? BST_CHECKED : BST_UNCHECKED);
+            CheckDlgButton(hwnd, IDC_TOOLBAR_ENABLED,
+                settings::getToolbarEnabled() ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hwnd, IDC_PREVIEWS_ENABLED,
                 settings::getPreviewsEnabled() ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hwnd, IDC_TEXT_EDITOR_ENABLED,
@@ -83,6 +87,8 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
                     if (success)
                         settings::setItemWindowSize(size);
                 }
+                settings::setStatusTextEnabled(!!IsDlgButtonChecked(hwnd, IDC_STATUS_TEXT_ENABLED));
+                settings::setToolbarEnabled(!!IsDlgButtonChecked(hwnd, IDC_TOOLBAR_ENABLED));
                 settings::setPreviewsEnabled(!!IsDlgButtonChecked(hwnd, IDC_PREVIEWS_ENABLED));
                 settings::setTextEditorEnabled(!!IsDlgButtonChecked(hwnd, IDC_TEXT_EDITOR_ENABLED));
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
@@ -110,6 +116,8 @@ INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
             } else if (HIWORD(wParam) == EN_CHANGE
                     || LOWORD(wParam) == IDC_START_FOLDER_PATH && HIWORD(wParam) == CBN_EDITCHANGE
                     || LOWORD(wParam) == IDC_START_FOLDER_PATH && HIWORD(wParam) == CBN_SELCHANGE
+                    || LOWORD(wParam) == IDC_STATUS_TEXT_ENABLED && HIWORD(wParam) == BN_CLICKED
+                    || LOWORD(wParam) == IDC_TOOLBAR_ENABLED && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_PREVIEWS_ENABLED && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TEXT_EDITOR_ENABLED && HIWORD(wParam) == BN_CLICKED) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
