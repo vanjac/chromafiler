@@ -115,6 +115,10 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
             return 0;
         checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this));
         checkHR(preview->DoPreview());
+        // required for some preview handlers to render correctly initially (eg. SumatraPDF)
+        RECT containerClientRect;
+        GetClientRect(container, &containerClientRect);
+        checkHR(preview->SetRect(&containerClientRect));
         return 0;
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
