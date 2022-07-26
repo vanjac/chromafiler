@@ -53,8 +53,7 @@ public:
 
 protected:
     enum UserMessage {
-        MSG_APPBAR_CALLBACK = WM_USER,
-        MSG_SET_STATUS_TEXT,
+        MSG_SET_STATUS_TEXT = WM_USER,
         MSG_LAST
     };
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

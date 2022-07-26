@@ -16,6 +16,10 @@ public:
     SIZE requestedSize() const override;
 
 protected:
+    enum UserMessage {
+        MSG_APPBAR_CALLBACK = ItemWindow::MSG_LAST,
+        MSG_LAST
+    };
     enum TimerID {
         TIMER_MAKE_TOPMOST = 1,
         TIMER_LAST
