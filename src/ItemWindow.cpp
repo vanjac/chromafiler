@@ -1010,6 +1010,10 @@ void ItemWindow::onItemChanged() {
     if (checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &newTitle))) {
         title = newTitle;
         SetWindowText(hwnd, title);
+        TOOLINFO toolInfo = {sizeof(toolInfo)};
+        toolInfo.hwnd = hwnd;
+        toolInfo.lpszText = title;
+        SendMessage(proxyTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
     }
     if (useCustomFrame()) {
         // redraw caption
