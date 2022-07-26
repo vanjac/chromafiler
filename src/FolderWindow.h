@@ -53,6 +53,8 @@ protected:
 private:
     const wchar_t * className() override;
 
+    bool useDefaultStatusText() const override;
+
     virtual wchar_t * propertyBag() const;
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
 

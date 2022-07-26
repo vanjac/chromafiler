@@ -13,3 +13,15 @@ SymbolicName=STR_CANT_FIND_ITEM
 Language=English
 Unable to find item at path: %1
 .
+
+MessageId=
+SymbolicName=STR_FOLDER_STATUS
+Language=English
+%1!d! items
+.
+
+MessageId=
+SymbolicName=STR_FOLDER_STATUS_SEL
+Language=english
+%2!d!/%1!d! selected
+.

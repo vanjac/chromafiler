@@ -159,6 +159,10 @@ bool ItemWindow::stickToChild() const {
     return true;
 }
 
+bool ItemWindow::useDefaultStatusText() const {
+    return true;
+}
+
 bool ItemWindow::create(RECT rect, int showCommand) {
     if (!checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         return false;
@@ -407,8 +411,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case MSG_SET_STATUS_TEXT: {
             CComHeapPtr<wchar_t> text;
             text.Attach((wchar_t *)lParam);
-            if (statusText)
-                SetWindowText(statusText, text);
+            setStatusText(text);
             return 0;
         }
     }
@@ -512,8 +515,10 @@ void ItemWindow::onCreate() {
         hwnd, nullptr, instance, nullptr);
     if (statusFont)
         SendMessage(statusText, WM_SETFONT, (WPARAM)statusFont, FALSE);
-    statusTextThread.Attach(new StatusTextThread(item, hwnd));
-    statusTextThread->start();
+    if (useDefaultStatusText()) {
+        statusTextThread.Attach(new StatusTextThread(item, hwnd));
+        statusTextThread->start();
+    }
 
     toolbar = CreateWindowEx(
         TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
@@ -532,6 +537,15 @@ void ItemWindow::onCreate() {
     SendMessage(toolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
     SetWindowPos(toolbar, nullptr, 0, 0, ideal.cx, TOOLBAR_HEIGHT,
         SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+}
+
+bool ItemWindow::hasStatusText() {
+    return statusText != nullptr;
+}
+
+void ItemWindow::setStatusText(wchar_t *text) {
+    if (statusText)
+        SetWindowText(statusText, text);
 }
 
 TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command, BYTE style) {
@@ -974,7 +988,7 @@ void ItemWindow::onItemChanged() {
 }
 
 void ItemWindow::refresh() {
-    if (statusText) {
+    if (hasStatusText() && useDefaultStatusText()) {
         if (statusTextThread)
             statusTextThread->stop();
         statusTextThread.Attach(new StatusTextThread(item, hwnd));

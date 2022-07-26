@@ -1,6 +1,7 @@
 #include "FolderWindow.h"
 #include "RectUtils.h"
 #include "Settings.h"
+#include "UIStrings.h"
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
@@ -56,6 +57,10 @@ const wchar_t * FolderWindow::className() {
 }
 
 bool FolderWindow::preserveSize() const {
+    return false;
+}
+
+bool FolderWindow::useDefaultStatusText() const {
     return false;
 }
 
@@ -437,6 +442,21 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
             }
         }
         ignoreNextSelection = false;
+
+        // TODO: duplicate work in selectionChanged()
+        CComPtr<IFolderView2> folderView;
+        if (hasStatusText() && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
+            int numItems = 0, numSelected = 0;
+            checkHR(folderView->ItemCount(SVGIO_ALLVIEW, &numItems));
+            checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected));
+            LocalHeapPtr<wchar_t> status;
+            if (numSelected == 0) {
+                formatMessage(status, STR_FOLDER_STATUS, numItems);
+            } else {
+                formatMessage(status, STR_FOLDER_STATUS_SEL, numItems, numSelected);
+            }
+            setStatusText(status);
+        }
     }
     return S_OK;
 }

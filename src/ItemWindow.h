@@ -70,6 +70,8 @@ protected:
     virtual void onSize(int width, int height);
     virtual void onPaint(PAINTSTRUCT paint);
 
+    bool hasStatusText();
+    void setStatusText(wchar_t *text);
     TBBUTTON makeToolbarButton(const wchar_t *text, WORD command, BYTE style);
     virtual void addToolbarButtons(HWND tb);
     virtual int getToolbarTooltip(WORD command);
@@ -99,6 +101,8 @@ private:
     virtual bool useCustomFrame() const;
     virtual bool alwaysOnTop() const;
     virtual bool stickToChild() const;
+
+    virtual bool useDefaultStatusText() const;
 
     void close();
     void activate();
