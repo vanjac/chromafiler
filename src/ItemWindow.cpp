@@ -23,6 +23,7 @@ const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int WINDOW_ICON_PADDING = 4;
 const int RENAME_BOX_PADDING = 2; // with border
 const int TOOLBAR_HEIGHT = 24;
+const int STATUS_TEXT_MARGIN = 4;
 const int SYMBOL_FONT_HEIGHT = 14;
 const int SNAP_DISTANCE = 32;
 // colors
@@ -511,7 +512,7 @@ void ItemWindow::onCreate() {
 
     statusText = CreateWindow(L"STATIC", nullptr,
         WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE,
-        0, CAPTION_HEIGHT, 100, TOOLBAR_HEIGHT,
+        STATUS_TEXT_MARGIN, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
         hwnd, nullptr, instance, nullptr);
     if (statusFont)
         SendMessage(statusText, WM_SETFONT, (WPARAM)statusFont, FALSE);
@@ -699,7 +700,8 @@ void ItemWindow::onSize(int width, int) {
         GetClientRect(toolbar, &toolbarRect);
         SetWindowPos(toolbar, nullptr, width - rectWidth(toolbarRect), CAPTION_HEIGHT, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-        SetWindowPos(statusText, nullptr, 0, 0, width - rectWidth(toolbarRect), TOOLBAR_HEIGHT,
+        SetWindowPos(statusText, nullptr,
+            0, 0, width - rectWidth(toolbarRect) - STATUS_TEXT_MARGIN, TOOLBAR_HEIGHT,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
     if (parent && preserveSize()) {
