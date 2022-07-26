@@ -23,5 +23,5 @@ Language=English
 MessageId=
 SymbolicName=STR_FOLDER_STATUS_SEL
 Language=english
-%2!d!/%1!d! selected
+%1!d! items, %2!d! selected
 .
