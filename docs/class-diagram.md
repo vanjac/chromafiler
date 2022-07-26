@@ -25,14 +25,14 @@ classDiagram
     (impl IDropTarget)
   }
   class FolderWindow {
-    IExplorerBrowser *browser
+    -IExplorerBrowser *browser
     (impl IServiceProvider)
     (impl ICommDlgBrowser)
     (impl IExplorerBrowserEvents)
   }
   class PreviewWindow {
-    PreviewWindow(parent, item, CLSID)
-    IPreviewHandler *preview
+    +PreviewWindow(parent, item, CLSID)
+    -IPreviewHandler *preview
     (impl IPreviewHandlerFrame)
   }
   class StoppableThread {
