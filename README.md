@@ -2,7 +2,7 @@
 
 *(working title)*
 
-An experimental file manager for Windows, designed to combine aspects of [Spatial file managers](https://en.wikipedia.org/wiki/Spatial_file_manager) and [Miller columns](https://en.wikipedia.org/wiki/Miller_columns), and taking some inspiration from the [Finder](https://en.wikipedia.org/wiki/Finder_(software)). This is a work in progress.
+An experimental file manager for Windows, designed to combine aspects of [Spatial file managers](https://en.wikipedia.org/wiki/Spatial_file_manager) and [Miller columns](https://en.wikipedia.org/wiki/Miller_columns), and taking some inspiration from the [Finder](https://en.wikipedia.org/wiki/Finder_(software)).
 
 ![Screenshot](https://user-images.githubusercontent.com/8228102/169676491-aa43b0b1-1a0a-48ae-aa62-f28ccf35fe23.png)
 
@@ -10,7 +10,7 @@ chromabrowse works on Windows 8 through 11. Windows 7 support will be added even
 
 ## Download
 
-Check the [Releases](https://github.com/vanjac/chromabrowse/releases) page for the latest alpha build. **May be unstable, use at your own risk!** See [installation instructions](https://github.com/vanjac/chromabrowse/wiki/Installation) for additional information.
+Check the [Releases](https://github.com/vanjac/chromabrowse/releases) page for the latest alpha build. See [installation instructions](https://github.com/vanjac/chromabrowse/wiki/Installation) for additional information.
 
 ## Tutorial
 
