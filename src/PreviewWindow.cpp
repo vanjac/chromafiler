@@ -192,7 +192,7 @@ PreviewWindow::InitPreviewRequest::InitPreviewRequest(CComPtr<IShellItem> item, 
         : previewID(previewID),
           callbackWindow(callbackWindow),
           container(container) {
-    checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IShellItem), item, &itemStream));
+    checkHR(SHGetIDListFromObject(item, &itemIDList));
     cancelEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
     InitializeCriticalSectionAndSpinCount(&cancelSection, 4000);
 }
@@ -231,8 +231,9 @@ DWORD WINAPI PreviewWindow::initPreviewThreadProc(void *) {
 void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
     CComPtr<IShellItem> item;
     // don't call CoGetInterfaceAndReleaseStream since itemStream is a CComPtr
-    if (!checkHR(CoUnmarshalInterface(request->itemStream, IID_PPV_ARGS(&item))))
+    if (!checkHR(SHCreateItemFromIDList(request->itemIDList, IID_PPV_ARGS(&item))))
         return;
+    request->itemIDList.Free();
 
     CComPtr<IClassFactory> factory;
     auto it = previewFactoryCache.find(request->previewID);

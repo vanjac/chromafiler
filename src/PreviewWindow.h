@@ -13,7 +13,7 @@ class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
         ~InitPreviewRequest();
         void cancel(); // ok to call this multiple times
 
-        CComPtr<IStream> itemStream;
+        CComHeapPtr<ITEMIDLIST> itemIDList;
         const CLSID previewID;
         const HWND callbackWindow, container;
         HANDLE cancelEvent;
