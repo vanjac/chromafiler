@@ -134,8 +134,6 @@ private:
 
     CComPtr<IShellLink> link;
 
-    HICON iconLarge = nullptr, iconSmall = nullptr;
-
     HWND tooltip = nullptr, parentButton = nullptr, renameBox = nullptr;
     HWND statusText = nullptr, toolbar = nullptr;
     RECT proxyRect{}, titleRect{}, iconRect{};

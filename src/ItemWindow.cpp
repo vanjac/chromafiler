@@ -131,10 +131,8 @@ ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
 }
 
 ItemWindow::~ItemWindow() {
-    if (iconLarge)
-        DestroyIcon(iconLarge);
-    if (iconSmall)
-        DestroyIcon(iconSmall);
+    DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
+    DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
 }
 
 bool ItemWindow::preserveSize() const {
@@ -440,11 +438,10 @@ void getItemIcons(CComPtr<IShellItem> item, HICON *iconLarge, HICON *iconSmall) 
 }
 
 void ItemWindow::onCreate() {
+    HICON iconLarge, iconSmall;
     getItemIcons(item, &iconLarge, &iconSmall);
-    if (iconLarge)
-        PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
-    if (iconSmall)
-        PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+    PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
+    PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
     CComHeapPtr<ITEMIDLIST> idList;
     if (checkHR(SHGetIDListFromObject(item, &idList))) {
@@ -672,8 +669,8 @@ void ItemWindow::onActivate(WORD state, HWND) {
         activeWindow = this;
         HWND owner = GetWindowOwner(hwnd);
         SetWindowText(owner, title); // update taskbar / alt-tab
-        PostMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
-        PostMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+        PostMessage(owner, WM_SETICON, ICON_BIG, SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
+        PostMessage(owner, WM_SETICON, ICON_SMALL, SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
         if (alwaysOnTop() && child) {
             SetWindowPos(child->hwnd, HWND_TOP, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
@@ -787,8 +784,11 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     iconRect.top = (CAPTION_HEIGHT - iconSize) / 2;
     iconRect.right = iconRect.left + iconSize;
     iconRect.bottom = iconRect.top + iconSize;
-    DrawIconEx(hdcPaint, iconRect.left, iconRect.top, iconSmall,
-               iconSize, iconSize, 0, nullptr, DI_NORMAL);
+    HICON icon = (HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0);
+    if (icon) {
+        DrawIconEx(hdcPaint, iconRect.left, iconRect.top, icon,
+                   iconSize, iconSize, 0, nullptr, DI_NORMAL);
+    }
 
     // the colors won't be right in many cases and it seems like there's no easy way to fix that
     // https://github.com/res2k/Windows10Colors
@@ -1117,12 +1117,13 @@ void ItemWindow::beginProxyDrag(POINT offset) {
     if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&dataObject))))
         return;
 
-    if (iconSmall) {
+    HICON icon = (HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0);
+    if (icon) {
         CComPtr<IDragSourceHelper> dragHelper;
         // TODO could this reuse the existing helper?
         if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper))) {
             ICONINFO iconInfo = {};
-            GetIconInfo(iconSmall, &iconInfo);
+            GetIconInfo(icon, &iconInfo);
             int iconSize = GetSystemMetrics(SM_CXSMICON);
             SHDRAGIMAGE dragImage = {};
             dragImage.sizeDragImage = {iconSize, iconSize};
