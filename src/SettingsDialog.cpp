@@ -252,14 +252,14 @@ void openSettingsDialog() {
 }
 
 bool handleSettingsDialogMessage(MSG *msg) {
-    if (settingsDialog && PropSheet_IsDialogMessage(settingsDialog, msg)) {
-        if (!PropSheet_GetCurrentPageHwnd(settingsDialog)) {
-            DestroyWindow(settingsDialog);
-            settingsDialog = nullptr;
-        }
-        return true;
+    if (!settingsDialog)
+        return false;
+    bool isDialogMessage = !!PropSheet_IsDialogMessage(settingsDialog, msg);
+    if (!PropSheet_GetCurrentPageHwnd(settingsDialog)) {
+        DestroyWindow(settingsDialog);
+        settingsDialog = nullptr;
     }
-    return false;
+    return isDialogMessage;
 }
 
 } // namespace
