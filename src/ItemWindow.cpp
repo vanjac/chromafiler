@@ -479,19 +479,18 @@ void ItemWindow::onCreate() {
     }
 
     HMODULE instance = GetWindowInstance(hwnd);
-    tooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
+    proxyTooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
         WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         hwnd, nullptr, instance, nullptr);
-    SetWindowPos(tooltip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    SetWindowPos(proxyTooltip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     if (captionFont)
-        SendMessage(tooltip, WM_SETFONT, (WPARAM)captionFont, FALSE);
+        SendMessage(proxyTooltip, WM_SETFONT, (WPARAM)captionFont, FALSE);
     TOOLINFO toolInfo = {sizeof(toolInfo)};
     toolInfo.uFlags = TTF_SUBCLASS | TTF_TRANSPARENT;
     toolInfo.hwnd = hwnd;
-    toolInfo.hinst = instance;
     toolInfo.lpszText = title;
-    SendMessage(tooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+    SendMessage(proxyTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
     CComPtr<IShellItem> parentItem;
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
@@ -511,7 +510,8 @@ void ItemWindow::onCreate() {
         SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
 
     statusText = CreateWindow(L"STATIC", nullptr,
-        WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE,
+        WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE | SS_NOPREFIX
+            | SS_NOTIFY, // allows tooltips to work
         STATUS_TEXT_MARGIN, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
         hwnd, nullptr, instance, nullptr);
     if (statusFont)
@@ -520,6 +520,20 @@ void ItemWindow::onCreate() {
         statusTextThread.Attach(new StatusTextThread(item, hwnd));
         statusTextThread->start();
     }
+
+    statusTooltip = CreateWindow(TOOLTIPS_CLASS, nullptr,
+        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+        hwnd, nullptr, instance, nullptr);
+    if (statusFont)
+        SendMessage(statusTooltip, WM_SETFONT, (WPARAM)statusFont, FALSE);
+    SendMessage(statusTooltip, TTM_SETMAXTIPWIDTH, 0, 0x7fff); // allow tabs
+    toolInfo = {sizeof(toolInfo)};
+    toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS | TTF_TRANSPARENT;
+    toolInfo.hwnd = hwnd;
+    toolInfo.uId = (UINT_PTR)statusText;
+    toolInfo.lpszText = L"";
+    SendMessage(statusTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
     toolbar = CreateWindowEx(
         TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
@@ -547,6 +561,13 @@ bool ItemWindow::hasStatusText() {
 void ItemWindow::setStatusText(wchar_t *text) {
     if (statusText)
         SetWindowText(statusText, text);
+    if (statusTooltip) {
+        TOOLINFO toolInfo = {sizeof(toolInfo)};
+        toolInfo.hwnd = hwnd;
+        toolInfo.uId = (UINT_PTR)statusText;
+        toolInfo.lpszText = text;
+        SendMessage(statusTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
+    }
 }
 
 TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command, BYTE style) {
@@ -649,12 +670,29 @@ bool ItemWindow::onControlCommand(HWND controlHwnd, WORD notif) {
 }
 
 LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
-    if (nmHdr->hwndFrom == tooltip && nmHdr->code == TTN_SHOW) {
+    if (nmHdr->hwndFrom == proxyTooltip && nmHdr->code == TTN_SHOW) {
         // position tooltip on top of title
         RECT tooltipRect = titleRect;
         MapWindowRect(hwnd, nullptr, &tooltipRect);
-        SendMessage(tooltip, TTM_ADJUSTRECT, TRUE, (LPARAM)&tooltipRect);
-        SetWindowPos(tooltip, nullptr, tooltipRect.left, tooltipRect.top, 0, 0,
+        SendMessage(proxyTooltip, TTM_ADJUSTRECT, TRUE, (LPARAM)&tooltipRect);
+        SetWindowPos(proxyTooltip, nullptr, tooltipRect.left, tooltipRect.top, 0, 0,
+            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+        return TRUE;
+    } else if (nmHdr->hwndFrom == statusTooltip && nmHdr->code == TTN_SHOW) {
+        RECT tooltipRect, statusRect;
+        GetClientRect(statusTooltip, &tooltipRect);
+        GetWindowRect(statusText, &statusRect);
+
+        if (rectWidth(statusRect) > rectWidth(tooltipRect)) {
+            // text is not truncated so tooltip does not need to be shown. move it offscreen
+            SetWindowPos(statusTooltip, nullptr, -0x8000, -0x8000, 0, 0,
+                SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+            return TRUE;
+        }
+        int topY = statusRect.top + (TOOLBAR_HEIGHT - rectHeight(statusRect)) / 2 + 2;
+        SendMessage(statusTooltip, TTM_ADJUSTRECT, TRUE, (LPARAM)&statusRect);
+        OffsetRect(&statusRect, 0, topY - statusRect.top);
+        SetWindowPos(statusTooltip, nullptr, statusRect.left, statusRect.top, 0, 0,
             SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
         return TRUE;
     } else if (nmHdr->code == TTN_GETDISPINFO) {
@@ -790,10 +828,10 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         TOOLINFO toolInfo = {sizeof(toolInfo)};
         toolInfo.hwnd = hwnd;
         toolInfo.rect = proxyRect;
-        SendMessage(tooltip, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo); // rect to trigger tooltip
-        SendMessage(tooltip, TTM_ACTIVATE, TRUE, 0);
+        SendMessage(proxyTooltip, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo); // rect to trigger tooltip
+        SendMessage(proxyTooltip, TTM_ACTIVATE, TRUE, 0);
     } else {
-        SendMessage(tooltip, TTM_ACTIVATE, FALSE, 0);
+        SendMessage(proxyTooltip, TTM_ACTIVATE, FALSE, 0);
     }
 
     iconRect.left = headerLeft;

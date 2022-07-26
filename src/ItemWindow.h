@@ -138,8 +138,8 @@ private:
 
     CComPtr<IShellLink> link;
 
-    HWND tooltip = nullptr, parentButton = nullptr, renameBox = nullptr;
-    HWND statusText = nullptr, toolbar = nullptr;
+    HWND proxyTooltip = nullptr, parentButton = nullptr, renameBox = nullptr;
+    HWND statusText = nullptr, statusTooltip = nullptr, toolbar = nullptr;
     RECT proxyRect{}, titleRect{}, iconRect{};
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;
