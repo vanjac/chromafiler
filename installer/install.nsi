@@ -80,7 +80,7 @@ Section "Add to folder context menu" SecContext
 	WriteRegStr HKCR Drive\shell\chromabrowse\command "" '$context_menu_command'
 SectionEnd
 
-Section /o "    (DANGER) Make default file browser" SecDefault
+Section /o "    Make default file browser (experimental!)" SecDefault
 	SetRegView 64
 	WriteRegStr HKCR Directory\Shell "" "chromabrowse"
 	WriteRegStr HKCR CompressedFolder\Shell "" "chromabrowse"
@@ -114,7 +114,7 @@ FunctionEnd
 LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
 LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the start menu to launch chromabrowse."
 LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromabrowse' command when right-clicking a folder."
-LangString DESC_SecDefault ${LANG_ENGLISH} "Replace File Explorer as the default program for opening folders. WARNING: Experimental, could cause instability."
+LangString DESC_SecDefault ${LANG_ENGLISH} "Replace File Explorer as the default program for opening folders. Use at your own risk!"
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecBase} $(DESC_SecBase)
