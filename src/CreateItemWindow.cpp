@@ -4,7 +4,7 @@
 #include "PreviewWindow.h"
 #include "TextWindow.h"
 #include "Settings.h"
-#include "resource.h"
+#include "UIStrings.h"
 #include <Shlguid.h>
 #include <shlobj.h>
 #include <strsafe.h>
@@ -94,10 +94,9 @@ CComPtr<IShellItem> itemFromPath(wchar_t *path) {
         // parse name vs display name https://stackoverflow.com/q/42966489
         if (checkHR(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&item))))
             break;
-        wchar_t caption[64], message[MAX_PATH + 64];
-        LoadString(GetModuleHandle(nullptr), IDS_ERROR_CAPTION, caption, _countof(caption));
-        LoadString(GetModuleHandle(nullptr), IDS_CANT_FIND_ITEM, message, _countof(message));
-        StringCchCat(message, _countof(message), path);
+        LocalHeapPtr<wchar_t> caption, message;
+        formatMessage(caption, STR_ERROR_CAPTION);
+        formatMessage(message, STR_CANT_FIND_ITEM, path);
         int result = MessageBox(nullptr, message, caption, MB_CANCELTRYCONTINUE | MB_ICONERROR);
         if (result == IDCANCEL) {
             return nullptr;

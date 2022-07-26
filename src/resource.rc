@@ -101,6 +101,4 @@ STRINGTABLE {
     IDS_REFRESH_COMMAND,    "Refresh"
     IDS_NEW_ITEM_COMMAND,   "New..."
     IDS_VIEW_COMMAND,       "View..."
-    IDS_ERROR_CAPTION,      "Error"
-    IDS_CANT_FIND_ITEM,     "Unable to find item at path: "
 }
