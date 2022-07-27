@@ -213,6 +213,13 @@ INT_PTR trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
             } else if (LOWORD(wParam) == IDC_RESET_TRAY_POSITION && HIWORD(wParam) == BN_CLICKED) {
                 settings::setTrayPosition(settings::DEFAULT_TRAY_POSITION);
                 settings::setTraySize(settings::DEFAULT_TRAY_SIZE);
+                HWND tray = TrayWindow::findTray();
+                if (tray) {
+                    PostMessage(tray, WM_CLOSE, 0, 0);
+                    wchar_t path[MAX_PATH];
+                    if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, path, _countof(path)))
+                        openTray(path);
+                }
             } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_PATH
                     && (HIWORD(wParam) == CBN_EDITCHANGE || HIWORD(wParam) == CBN_SELCHANGE)) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
