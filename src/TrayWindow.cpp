@@ -114,11 +114,6 @@ void TrayWindow::onCreate() {
 void TrayWindow::onDestroy() {
     FolderWindow::onDestroy();
 
-    RECT windowRect;
-    GetWindowRect(hwnd, &windowRect);
-    settings::setTrayPosition({windowRect.left, windowRect.top});
-    settings::setTraySize(rectSize(windowRect));
-
     APPBARDATA abData = {sizeof(abData), hwnd};
     SHAppBarMessage(ABM_REMOVE, &abData);
 }
@@ -171,6 +166,15 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 snapAxis(pos.y, monitorInfo.rcMonitor.bottom, &sizeRect->bottom, &snapDist.y);
                 snapAxis(pos.y, monitorInfo.rcWork.bottom,    &sizeRect->bottom, &snapDist.y);
             }
+            break; // pass to FolderWindow
+        case WM_EXITSIZEMOVE: {
+            // save window position
+            RECT windowRect;
+            GetWindowRect(hwnd, &windowRect);
+            settings::setTrayPosition({windowRect.left, windowRect.top});
+            settings::setTraySize(rectSize(windowRect));
+            return 0;
+        }
     }
     return FolderWindow::handleMessage(message, wParam, lParam);
 }
@@ -227,6 +231,7 @@ LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
         case WM_LBUTTONDOWN:
             SetCapture(hwnd);
             SetWindowLongPtr(hwnd, GWLP_USERDATA, lParam); // cursor offset
+            SendMessage(GetParent(hwnd), WM_ENTERSIZEMOVE, 0, 0);
             break;
         case WM_MOUSEMOVE:
             if (wParam & MK_LBUTTON) {
@@ -244,6 +249,7 @@ LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
             break;
         case WM_LBUTTONUP:
             ReleaseCapture();
+            SendMessage(GetParent(hwnd), WM_EXITSIZEMOVE, 0, 0);
             break;
         case WM_RBUTTONUP:
             PostMessage(GetParent(hwnd), WM_SYSCOMMAND, SC_KEYMENU, ' '); // show system menu
