@@ -4,7 +4,7 @@
 
 An experimental file manager for Windows, designed to combine aspects of [Spatial file managers](https://en.wikipedia.org/wiki/Spatial_file_manager) and [Miller columns](https://en.wikipedia.org/wiki/Miller_columns), and taking some inspiration from the [Finder](https://en.wikipedia.org/wiki/Finder_(software)).
 
-![Screenshot](https://user-images.githubusercontent.com/8228102/169676491-aa43b0b1-1a0a-48ae-aa62-f28ccf35fe23.png)
+![Screenshot](https://user-images.githubusercontent.com/8228102/181127811-944c357c-617e-4868-b20c-63dccfa26ed8.png)
 
 chromabrowse works on Windows 8 through 11. Windows 7 support will be added eventually.
 
