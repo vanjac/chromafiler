@@ -9,6 +9,15 @@ namespace chromabrowse {
 const wchar_t TRAY_WINDOW_CLASS[] = L"Tray";
 const wchar_t MOVE_GRIP_CLASS[] = L"Move Grip";
 
+const int SNAP_DISTANCE = 8;
+
+void snapAxis(LONG value, LONG edge, LONG *snapped, LONG *snapDist) {
+    if (abs(value - edge) <= *snapDist) {
+        *snapDist = abs(value - edge);
+        *snapped = edge;
+    }
+}
+
 void TrayWindow::init() {
     WNDCLASS wndClass = createWindowClass(TRAY_WINDOW_CLASS);
     wndClass.style = 0; // clear redraw style
@@ -144,6 +153,20 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 return 0;
             }
             break;
+        case WM_SIZING:
+            if (wParam == WMSZ_BOTTOMRIGHT) {
+                RECT *sizeRect = (RECT *)lParam;
+                // snap to edges
+                HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+                MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+                GetMonitorInfo(curMonitor, &monitorInfo);
+                POINT pos = {sizeRect->right, sizeRect->bottom};
+                POINT snapDist = {SNAP_DISTANCE, SNAP_DISTANCE};
+                snapAxis(pos.x, monitorInfo.rcMonitor.right,  &sizeRect->right,  &snapDist.x);
+                snapAxis(pos.x, monitorInfo.rcWork.right,     &sizeRect->right,  &snapDist.x);
+                snapAxis(pos.y, monitorInfo.rcMonitor.bottom, &sizeRect->bottom, &snapDist.y);
+                snapAxis(pos.y, monitorInfo.rcWork.bottom,    &sizeRect->bottom, &snapDist.y);
+            }
     }
     return FolderWindow::handleMessage(message, wParam, lParam);
 }
@@ -167,6 +190,34 @@ void TrayWindow::forceTopmost() {
     return;
 }
 
+POINT snapWindowPosition(HWND hwnd, POINT pos) {
+    RECT windowRect;
+    GetWindowRect(hwnd, &windowRect);
+    HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+    GetMonitorInfo(curMonitor, &monitorInfo);
+
+    POINT snapped = pos;
+    POINT snapDist = {SNAP_DISTANCE, SNAP_DISTANCE};
+    // left edge
+    snapAxis(pos.x, monitorInfo.rcMonitor.left, &snapped.x, &snapDist.x);
+    snapAxis(pos.x, monitorInfo.rcWork.left,    &snapped.x, &snapDist.x);
+    if (monitorInfo.rcWork.right < monitorInfo.rcMonitor.right)
+        snapAxis(pos.x, monitorInfo.rcWork.right, &snapped.x, &snapDist.x);
+    // top edge
+    snapAxis(pos.y, monitorInfo.rcMonitor.top,  &snapped.y, &snapDist.y);
+    snapAxis(pos.y, monitorInfo.rcWork.top,     &snapped.y, &snapDist.y);
+    if (monitorInfo.rcWork.bottom < monitorInfo.rcMonitor.bottom)
+        snapAxis(pos.y, monitorInfo.rcWork.bottom, &snapped.y, &snapDist.y);
+    // right edge
+    snapAxis(pos.x, monitorInfo.rcMonitor.right - rectWidth(windowRect),   &snapped.x, &snapDist.x);
+    snapAxis(pos.x, monitorInfo.rcWork.right - rectWidth(windowRect),      &snapped.x, &snapDist.x);
+    // bottom edge
+    snapAxis(pos.y, monitorInfo.rcMonitor.bottom - rectHeight(windowRect), &snapped.y, &snapDist.y);
+    snapAxis(pos.y, monitorInfo.rcWork.bottom - rectHeight(windowRect),    &snapped.y, &snapDist.y);
+    return snapped;
+}
+
 LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_LBUTTONDOWN:
@@ -181,8 +232,10 @@ LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
                 POINT offset = {GET_X_LPARAM(offsetParam), GET_Y_LPARAM(offsetParam)};
                 HWND parent = GetParent(hwnd);
                 MapWindowPoints(hwnd, parent, &offset, 1);
-                SetWindowPos(parent, nullptr, cursor.x - offset.x - 1, cursor.y - offset.y - 1,
-                    0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+                POINT pos = {cursor.x - offset.x - 1, cursor.y - offset.y - 1};
+                pos = snapWindowPosition(parent, pos);
+                SetWindowPos(parent, nullptr, pos.x, pos.y, 0, 0,
+                    SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
             }
             break;
         case WM_LBUTTONUP:
