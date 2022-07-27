@@ -38,6 +38,10 @@ const wchar_t * TrayWindow::className() {
     return TRAY_WINDOW_CLASS;
 }
 
+HWND TrayWindow::findTray() {
+    return FindWindow(TRAY_WINDOW_CLASS, nullptr);
+}
+
 POINT TrayWindow::requestedPosition() {
     return settings::getTrayPosition();
 }

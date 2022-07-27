@@ -40,7 +40,7 @@ IDR_ITEM_ACCEL  ACCELERATORS {
     "R",            IDM_REFRESH,        VIRTKEY, CONTROL
     VK_F1,          IDM_HELP,           VIRTKEY
     VK_OEM_COMMA,   IDM_SETTINGS,       VIRTKEY, CONTROL
-    "N",            -1,                 VIRTKEY, CONTROL // suppress browser shortcut
+    "N",            0,                  VIRTKEY, CONTROL // suppress browser shortcut
     VK_F10,         IDM_PROXY_MENU,     VIRTKEY
     VK_F2,          IDM_RENAME_PROXY,   VIRTKEY, SHIFT
     VK_TAB,         IDM_PARENT_MENU,    VIRTKEY, CONTROL, SHIFT
@@ -83,8 +83,8 @@ IDD_SETTINGS_TRAY       DIALOGEX
         STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
         CAPTION "Tray"
         FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
-    AUTOCHECKBOX "Open tray on &startup", IDC_OPEN_TRAY_ON_STARTUP, 7, 7, 108, 14
-    PUSHBUTTON "Open &tray", IDC_OPEN_TRAY, 150, 7, 70, 14
+    AUTOCHECKBOX "Show &tray", IDC_TRAY_ENABLED, 7, 7, 103, 14
+    AUTOCHECKBOX "Open tray on &startup", IDC_OPEN_TRAY_ON_STARTUP, 117, 7, 103, 14
     GROUPBOX "Tray &folder", -1, 7, 28, 213, 35
     COMBOBOX IDC_TRAY_FOLDER_PATH, 14, 42, 136, 300, CBS_HASSTRINGS | CBS_AUTOHSCROLL | CBS_DROPDOWN | WS_TABSTOP
     PUSHBUTTON "&Browse...", IDC_TRAY_FOLDER_BROWSE, 157, 42, 56, 14
@@ -94,8 +94,8 @@ IDD_SETTINGS_TRAY       DIALOGEX
     AUTORADIOBUTTON "Belo&w", IDC_TRAY_DIR_BELOW, 112, 84, 42, 14
     AUTORADIOBUTTON "&Right", IDC_TRAY_DIR_RIGHT, 154, 84, 42, 14
     ICON IDI_INFORMATION, -1, 14, 114, 0, 0
-    LTEXT "Drag the upper-left corner of the tray to move. Drag the lower-right corner to resize. To close the tray, right click the upper-left corner and choose Close.", -1, 42, 112, 175, 24
-    PUSHBUTTON "R&eset tray position", IDC_RESET_TRAY_POSITION, 42, 140, 70, 14
+    LTEXT "Drag the upper-left corner of the tray to move. Drag the lower-right corner to resize.", -1, 42, 115, 175, 16
+    PUSHBUTTON "R&eset tray position", IDC_RESET_TRAY_POSITION, 42, 135, 70, 14
 }
 
 STRINGTABLE {

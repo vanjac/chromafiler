@@ -41,8 +41,8 @@
 #define IDC_EXPLORER_SETTINGS       1011
 
 #define IDD_SETTINGS_TRAY           105
-#define IDC_OPEN_TRAY_ON_STARTUP    1001
-#define IDC_OPEN_TRAY               1002
+#define IDC_TRAY_ENABLED            1001
+#define IDC_OPEN_TRAY_ON_STARTUP    1002
 #define IDC_TRAY_FOLDER_PATH        1003
 #define IDC_TRAY_FOLDER_BROWSE      1004
 #define IDC_TRAY_DIR_ABOVE          1005

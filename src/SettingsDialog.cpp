@@ -143,6 +143,8 @@ void openTray(wchar_t *path) {
 INT_PTR trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_INITDIALOG: {
+            CheckDlgButton(hwnd, IDC_TRAY_ENABLED,
+                TrayWindow::findTray() ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hwnd, IDC_OPEN_TRAY_ON_STARTUP,
                 settings::getTrayOpenOnStartup() ? BST_CHECKED : BST_UNCHECKED);
             for (int i = 0; i < _countof(SPECIAL_PATHS); i++) {
@@ -192,10 +194,16 @@ INT_PTR trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
             return FALSE;
         }
         case WM_COMMAND:
-            if (LOWORD(wParam) == IDC_OPEN_TRAY && HIWORD(wParam) == BN_CLICKED) {
-                wchar_t path[MAX_PATH];
-                if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, path, _countof(path)))
-                    openTray(path);
+            if (LOWORD(wParam) == IDC_TRAY_ENABLED && HIWORD(wParam) == BN_CLICKED) {
+                bool checked = !!IsDlgButtonChecked(hwnd, IDC_TRAY_ENABLED);
+                HWND tray = TrayWindow::findTray();
+                if (checked && !tray) {
+                    wchar_t path[MAX_PATH];
+                    if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, path, _countof(path)))
+                        openTray(path);
+                } else if (!checked && tray) {
+                    PostMessage(tray, WM_CLOSE, 0, 0);
+                }
             } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_BROWSE && HIWORD(wParam) == BN_CLICKED) {
                 CComHeapPtr<wchar_t> selected;
                 if (chooseFolder(GetParent(hwnd), selected)) {

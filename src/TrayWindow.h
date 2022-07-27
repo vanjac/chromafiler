@@ -10,6 +10,8 @@ class TrayWindow : public FolderWindow {
 public:
     static void init();
 
+    static HWND findTray();
+
     TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
     POINT requestedPosition();
