@@ -19,14 +19,15 @@ const wchar_t CHAIN_OWNER_CLASS[] = L"Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 
 // dimensions
-const int RESIZE_MARGIN = 8; // TODO use some system metric?
 const int WINDOW_ICON_PADDING = 4;
 const int RENAME_BOX_PADDING = 2; // with border
 const int TOOLBAR_HEIGHT = 24;
 const int STATUS_TEXT_MARGIN = 4;
 const int SYMBOL_FONT_HEIGHT = 14;
 const int SNAP_DISTANCE = 32;
-// colors
+
+// these are Windows metrics/colors that are not exposed through the API >:(
+const int WIN10_CXSIZEFRAME = 8;
 // this is the color used in every high-contrast theme
 // regular light mode theme uses #999999
 const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
@@ -42,6 +43,10 @@ CComPtr<ItemWindow> activeWindow;
 
 int ItemWindow::CAPTION_HEIGHT = 0;
 HACCEL ItemWindow::accelTable;
+
+int windowResizeMargin() {
+    return IsThemeActive() ? WIN10_CXSIZEFRAME : GetSystemMetrics(SM_CXSIZEFRAME);
+}
 
 void ItemWindow::init() {
     HINSTANCE hInstance = GetModuleHandle(nullptr);
@@ -283,10 +288,11 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             if (wParam == TRUE && useCustomFrame()) {
                 // allow resizing past the edge of the window by reducing client rect
                 NCCALCSIZE_PARAMS *params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
-                params->rgrc[0].left = params->rgrc[0].left + RESIZE_MARGIN;
+                int resizeMargin = windowResizeMargin();
+                params->rgrc[0].left = params->rgrc[0].left + resizeMargin;
                 params->rgrc[0].top = params->rgrc[0].top;
-                params->rgrc[0].right = params->rgrc[0].right - RESIZE_MARGIN;
-                params->rgrc[0].bottom = params->rgrc[0].bottom - RESIZE_MARGIN;
+                params->rgrc[0].right = params->rgrc[0].right - resizeMargin;
+                params->rgrc[0].bottom = params->rgrc[0].bottom - resizeMargin;
                 return 0;
             }
             break;
@@ -775,11 +781,12 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     GetClientRect(hwnd, &screenRect);
     MapWindowRect(hwnd, nullptr, &screenRect);
 
-    if (cursor.y < screenRect.top + RESIZE_MARGIN && useCustomFrame()) {
+    int resizeMargin = windowResizeMargin();
+    if (cursor.y < screenRect.top + resizeMargin && useCustomFrame()) {
         // TODO window corners are a bit more complex than this
-        if (cursor.x < screenRect.left + RESIZE_MARGIN)
+        if (cursor.x < screenRect.left + resizeMargin)
             return HTTOPLEFT;
-        else if (cursor.x >= screenRect.right - RESIZE_MARGIN)
+        else if (cursor.x >= screenRect.right - resizeMargin)
             return HTTOPRIGHT;
         else
             return HTTOP;
