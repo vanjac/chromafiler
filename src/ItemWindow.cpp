@@ -771,18 +771,15 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-c-hittestnca-function
     // the default window proc handles the left, right, and bottom edges
     // so only need to check top edge and caption
-    RECT windowRect;
-    GetWindowRect(hwnd, &windowRect); // TODO what about the shadow??
+    RECT screenRect;
+    GetClientRect(hwnd, &screenRect);
+    MapWindowRect(hwnd, nullptr, &screenRect);
 
-    if (cursor.x < windowRect.left || cursor.x >= windowRect.right)
-        return HTNOWHERE;
-
-    if (cursor.y < windowRect.top || cursor.y >= windowRect.bottom) {
-        return HTNOWHERE;
-    } else if (cursor.y < windowRect.top + RESIZE_MARGIN && useCustomFrame()) {
-        if (cursor.x < windowRect.left + RESIZE_MARGIN * 2)
+    if (cursor.y < screenRect.top + RESIZE_MARGIN && useCustomFrame()) {
+        // TODO window corners are a bit more complex than this
+        if (cursor.x < screenRect.left + RESIZE_MARGIN)
             return HTTOPLEFT;
-        else if (cursor.x >= windowRect.right - RESIZE_MARGIN * 2)
+        else if (cursor.x >= screenRect.right - RESIZE_MARGIN)
             return HTTOPRIGHT;
         else
             return HTTOP;
