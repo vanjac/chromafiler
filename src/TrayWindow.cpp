@@ -102,7 +102,8 @@ void TrayWindow::onCreate() {
         hwnd, nullptr, instance, nullptr);
     SetWindowSubclass(traySizeGrip, sizeGripProc, 0, 0);
 
-    SetCoalescableTimer(hwnd, TIMER_MAKE_TOPMOST, 500, nullptr, 250);
+    // TODO: SetCoalescableTimer on Windows 8 or later
+    SetTimer(hwnd, TIMER_MAKE_TOPMOST, 500, nullptr);
     // to receive fullscreen notifications:
     APPBARDATA abData = {sizeof(abData), hwnd};
     abData.uCallbackMessage = MSG_APPBAR_CALLBACK;
