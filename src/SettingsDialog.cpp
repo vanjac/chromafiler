@@ -37,7 +37,7 @@ bool chooseFolder(HWND owner, CComHeapPtr<wchar_t> &pathOut) {
     return checkHR(item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &pathOut));
 }
 
-INT_PTR generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_INITDIALOG: {
             for (int i = 0; i < _countof(SPECIAL_PATHS); i++) {
@@ -140,7 +140,7 @@ void openTray(wchar_t *path) {
     tray->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNORMAL);
 }
 
-INT_PTR trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_INITDIALOG: {
             CheckDlgButton(hwnd, IDC_TRAY_ENABLED,
