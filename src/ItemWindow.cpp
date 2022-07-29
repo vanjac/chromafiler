@@ -676,13 +676,17 @@ bool ItemWindow::onCommand(WORD command) {
             if (useCustomFrame())
                 beginRename();
             return true;
-        case IDM_PARENT_MENU:
-            if (useCustomFrame()) {
+        case IDM_PARENT_MENU: {
+            ItemWindow *rootParent = this;
+            while (rootParent->parent)
+                rootParent = rootParent->parent;
+            if (rootParent->useCustomFrame()) {
                 POINT menuPos = {0, CAPTION_HEIGHT};
-                ClientToScreen(hwnd, &menuPos);
-                openParentMenu(menuPos);
+                ClientToScreen(rootParent->hwnd, &menuPos);
+                rootParent->openParentMenu(menuPos);
             }
             return true;
+        }
         case IDM_HELP:
             ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
                 nullptr, nullptr, SW_SHOWNORMAL);
