@@ -45,6 +45,12 @@ CComPtr<ItemWindow> activeWindow;
 int ItemWindow::CAPTION_HEIGHT = 0;
 HACCEL ItemWindow::accelTable;
 
+bool highContrastEnabled() {
+    HIGHCONTRAST highContrast = {sizeof(highContrast)};
+    SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, &highContrast, 0);
+    return highContrast.dwFlags & HCF_HIGHCONTRASTON;
+}
+
 int windowResizeMargin() {
     return IsThemeActive() ? WIN10_CXSIZEFRAME : GetSystemMetrics(SM_CXSIZEFRAME);
 }
@@ -52,9 +58,7 @@ int windowResizeMargin() {
 int windowBorderSize() {
     if (!IsWindows10OrGreater())
         return windowResizeMargin();
-    HIGHCONTRAST highContrast = {sizeof(highContrast)};
-    SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, &highContrast, 0);
-    if (highContrast.dwFlags & HCF_HIGHCONTRASTON) {
+    if (highContrastEnabled()) {
         return WIN10_CXSIZEFRAME;
     } else {
         return 0;
@@ -886,12 +890,14 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     HTHEME windowTheme = OpenThemeData(hwnd, WINDOW_THEME);
     if (windowTheme) {
         DTTOPTS textOpts = {sizeof(textOpts)};
+        bool isActive = GetActiveWindow() == hwnd;
         if (IsWindows10OrGreater()) {
-            bool isActive = GetActiveWindow() == hwnd;
             // COLOR_INACTIVECAPTIONTEXT doesn't work in Windows 10
             // the documentation says COLOR_CAPTIONTEXT isn't supported either but it seems to work
             textOpts.crText = isActive ? GetSysColor(COLOR_CAPTIONTEXT)
                 : WIN10_INACTIVE_CAPTION_COLOR;
+        } else if (!isActive && highContrastEnabled()) {
+            textOpts.crText = GetSysColor(COLOR_INACTIVECAPTIONTEXT);
         } else {
             textOpts.crText = GetSysColor(COLOR_CAPTIONTEXT);
         }
