@@ -975,7 +975,7 @@ void ItemWindow::clearParent() {
 }
 
 void ItemWindow::detachFromParent() {
-    parent->activate(); // focus parent in chain
+    CComPtr<ItemWindow> oldParent = parent;
     if (!parent->alwaysOnTop()) {
         HWND prevOwner = GetWindowOwner(hwnd);
         HWND owner = createChainOwner(SW_SHOWNORMAL);
@@ -993,6 +993,7 @@ void ItemWindow::detachFromParent() {
     CComPtr<IShellItem> parentItem;
     if (SUCCEEDED(item->GetParent(&parentItem)))
         ShowWindow(parentButton, SW_SHOW);
+    oldParent->activate(); // focus parent in chain
     activate(); // bring this chain to front
 }
 
