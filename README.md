@@ -1,6 +1,6 @@
 # chromafile
 
-An experimental file manager for Windows, designed to combine aspects of [Spatial file managers](https://en.wikipedia.org/wiki/Spatial_file_manager) and [Miller columns](https://en.wikipedia.org/wiki/Miller_columns), and taking some inspiration from the [Finder](https://en.wikipedia.org/wiki/Finder_(software)).
+chromafile is an experimental file manager with a unique interface, combining ideas from [Spatial file managers](https://en.wikipedia.org/wiki/Spatial_file_manager) and [Miller column browsers](https://en.wikipedia.org/wiki/Miller_columns).
 
 ![Screenshot](https://user-images.githubusercontent.com/8228102/181127811-944c357c-617e-4868-b20c-63dccfa26ed8.png)
 
