@@ -4,7 +4,7 @@ An experimental file manager for Windows, designed to combine aspects of [Spatia
 
 ![Screenshot](https://user-images.githubusercontent.com/8228102/181127811-944c357c-617e-4868-b20c-63dccfa26ed8.png)
 
-chromafile works on Windows 8 through 11. Windows 7 support will be added eventually.
+chromafile works on Windows 8 through 11. Windows 7 support may be added eventually.
 
 ## Download
 
