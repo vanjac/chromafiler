@@ -382,7 +382,9 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             POINT clientCursor = cursor;
             ScreenToClient(hwnd, &clientCursor);
-            if (wParam == HTCAPTION && PtInRect(&iconRect, clientCursor)) {
+            if (wParam == HTCAPTION && PtInRect(&iconRect, clientCursor) &&
+                    (GetKeyState(VK_SHIFT) < 0 || GetKeyState(VK_CONTROL) < 0
+                    || GetKeyState(VK_MENU) < 0)) {
                 if (DragDetect(hwnd, cursor)) {
                     beginProxyDrag({clientCursor.x - iconRect.left, clientCursor.y - iconRect.top});
                     return 0;
