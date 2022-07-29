@@ -19,6 +19,7 @@ const wchar_t CHAIN_OWNER_CLASS[] = L"Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 
 // dimensions
+const int PARENT_BUTTON_WIDTH = 34; // matches close button width in windows 10
 const int WINDOW_ICON_PADDING = 4;
 const int RENAME_BOX_PADDING = 2; // with border
 const int TOOLBAR_HEIGHT = 24;
@@ -516,7 +517,7 @@ void ItemWindow::onCreate() {
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
     parentButton = CreateWindow(L"BUTTON", nullptr,
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
-        0, 1, GetSystemMetrics(SM_CXSIZE), CAPTION_HEIGHT - 2,
+        0, 1, PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - 2,
         hwnd, (HMENU)IDM_PREV_WINDOW, instance, nullptr);
     SetWindowSubclass(parentButton, parentButtonProc, 0, (DWORD_PTR)this);
 
@@ -833,7 +834,10 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     HBITMAP oldBitmap = SelectBitmap(hdcPaint, bitmap);
 
     int iconSize = GetSystemMetrics(SM_CXSMICON);
-    int buttonWidth = GetSystemMetrics(SM_CXSIZE); // TODO use DWMWA_CAPTION_BUTTON_BOUNDS
+    TITLEBARINFOEX titleBar = {sizeof(titleBar)};
+    SendMessage(hwnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&titleBar);
+    int closeButtonWidth = rectWidth(titleBar.rgrect[5]);
+    int reservedWidth = max(closeButtonWidth, PARENT_BUTTON_WIDTH);
 
     HFONT oldFont = nullptr;
     if (captionFont)
@@ -844,10 +848,10 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     // include padding on the right side of the text; makes it look more centered
     int headerWidth = iconSize + WINDOW_ICON_PADDING * 2 + titleSize.cx;
     int headerLeft = (width - headerWidth) / 2;
-    bool truncateTitle = headerLeft < buttonWidth + WINDOW_ICON_PADDING;
+    bool truncateTitle = headerLeft < reservedWidth + WINDOW_ICON_PADDING;
     if (truncateTitle) {
-        headerLeft = buttonWidth + WINDOW_ICON_PADDING;
-        headerWidth = width - buttonWidth - WINDOW_ICON_PADDING - headerLeft;
+        headerLeft = reservedWidth + WINDOW_ICON_PADDING;
+        headerWidth = width - closeButtonWidth - WINDOW_ICON_PADDING - headerLeft;
     }
     // store for hit testing proxy icon/text
     proxyRect = {headerLeft, 0, headerLeft + headerWidth, CAPTION_HEIGHT};
@@ -890,7 +894,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
 
         titleRect.left = headerLeft + iconSize + WINDOW_ICON_PADDING;
         titleRect.top = (CAPTION_HEIGHT - titleSize.cy) / 2;
-        titleRect.right = clientRect.right - buttonWidth; // close button width
+        titleRect.right = clientRect.right - closeButtonWidth; // close button width
         titleRect.bottom = titleRect.top + titleSize.cy;
         checkHR(DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
                                 DT_LEFT | DT_WORD_ELLIPSIS, &titleRect, &textOpts));
@@ -1238,7 +1242,9 @@ void ItemWindow::beginRename() {
                        (CAPTION_HEIGHT - renameHeight) / 2};
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    int renameWidth = clientRect.right - GetSystemMetrics(SM_CXSIZE) - renamePos.x;
+    TITLEBARINFOEX titleBar = {sizeof(titleBar)};
+    SendMessage(hwnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&titleBar);
+    int renameWidth = clientRect.right - rectWidth(titleBar.rgrect[5]) - renamePos.x;
     ClientToScreen(hwnd, &renamePos);
     MoveWindow(renameBox, renamePos.x, renamePos.y, renameWidth, renameHeight, FALSE);
 
