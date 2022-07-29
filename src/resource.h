@@ -51,6 +51,11 @@
 #define IDC_TRAY_DIR_RIGHT          1007
 #define IDC_RESET_TRAY_POSITION     1008
 
+#define IDD_SETTINGS_ABOUT          106
+#define IDC_UPDATES_LINK            1001
+#define IDC_HELP_LINK               1002
+#define IDC_SOURCE_LINK             1003
+
 #define IDS_SETTINGS_CAPTION    200
 #define IDS_SETTINGS_COMMAND    201
 #define IDS_REFRESH_COMMAND     202

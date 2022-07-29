@@ -108,6 +108,7 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                     SetDlgItemText(hwnd, IDC_START_FOLDER_PATH, selected);
                     PropSheet_Changed(GetParent(hwnd), hwnd);
                 }
+                return TRUE;
             } else if (LOWORD(wParam) == IDC_EXPLORER_SETTINGS && HIWORD(wParam) == BN_CLICKED) {
                 // https://docs.microsoft.com/en-us/windows/win32/shell/executing-control-panel-items#folder-options
                 ShellExecute(nullptr, L"open",
@@ -184,6 +185,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     settings::setTrayDirection(settings::TRAY_DOWN);
                 else if (IsDlgButtonChecked(hwnd, IDC_TRAY_DIR_RIGHT))
                     settings::setTrayDirection(settings::TRAY_RIGHT);
+                SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
                 ShellExecute(nullptr, L"open",
@@ -204,12 +206,14 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 } else if (!checked && tray) {
                     PostMessage(tray, WM_CLOSE, 0, 0);
                 }
+                return TRUE;
             } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_BROWSE && HIWORD(wParam) == BN_CLICKED) {
                 CComHeapPtr<wchar_t> selected;
                 if (chooseFolder(GetParent(hwnd), selected)) {
                     SetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, selected);
                     PropSheet_Changed(GetParent(hwnd), hwnd);
                 }
+                return TRUE;
             } else if (LOWORD(wParam) == IDC_RESET_TRAY_POSITION && HIWORD(wParam) == BN_CLICKED) {
                 settings::setTrayPosition(settings::DEFAULT_TRAY_POSITION);
                 settings::setTraySize(settings::DEFAULT_TRAY_SIZE);
@@ -220,6 +224,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, path, _countof(path)))
                         openTray(path);
                 }
+                return TRUE;
             } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_PATH
                     && (HIWORD(wParam) == CBN_EDITCHANGE || HIWORD(wParam) == CBN_SELCHANGE)) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
@@ -236,13 +241,45 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 }
 
+INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+        case WM_NOTIFY: {
+            NMHDR *notif = (NMHDR *)lParam;
+            if (notif->code == PSN_KILLACTIVE) {
+                SetWindowLongPtr(hwnd, DWLP_MSGRESULT, FALSE);
+                return TRUE;
+            } else if (notif->code == PSN_APPLY) {
+                SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
+                return TRUE;
+            }
+            return FALSE;
+        }
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDC_UPDATES_LINK && HIWORD(wParam) == BN_CLICKED) {
+                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile/releases",
+                    nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
+            } else if (LOWORD(wParam) == IDC_HELP_LINK && HIWORD(wParam) == BN_CLICKED) {
+                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile/wiki",
+                    nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
+            } else if (LOWORD(wParam) == IDC_SOURCE_LINK && HIWORD(wParam) == BN_CLICKED) {
+                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile",
+                    nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
+            }
+            return FALSE;
+    }
+    return FALSE;
+}
+
 void openSettingsDialog() {
     if (settingsDialog) {
         SetActiveWindow(settingsDialog);
         return;
     }
 
-    PROPSHEETPAGE pages[2];
+    PROPSHEETPAGE pages[3];
 
     pages[0] = {sizeof(PROPSHEETPAGE)};
     pages[0].dwFlags = PSP_HASHELP;
@@ -255,6 +292,11 @@ void openSettingsDialog() {
     pages[1].hInstance = GetModuleHandle(nullptr);
     pages[1].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_TRAY);
     pages[1].pfnDlgProc = trayProc;
+
+    pages[2] = {sizeof(PROPSHEETPAGE)};
+    pages[2].hInstance = GetModuleHandle(nullptr);
+    pages[2].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_ABOUT);
+    pages[2].pfnDlgProc = aboutProc;
 
     PROPSHEETHEADER sheet = {sizeof(sheet)};
     sheet.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOCONTEXTHELP | PSH_MODELESS;
