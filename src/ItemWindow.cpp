@@ -48,6 +48,18 @@ int windowResizeMargin() {
     return IsThemeActive() ? WIN10_CXSIZEFRAME : GetSystemMetrics(SM_CXSIZEFRAME);
 }
 
+int windowBorderSize() {
+    if (!IsWindows10OrGreater())
+        return windowResizeMargin();
+    HIGHCONTRAST highContrast = {sizeof(highContrast)};
+    SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, &highContrast, 0);
+    if (highContrast.dwFlags & HCF_HIGHCONTRASTON) {
+        return WIN10_CXSIZEFRAME;
+    } else {
+        return 0;
+    }
+}
+
 void ItemWindow::init() {
     HINSTANCE hInstance = GetModuleHandle(nullptr);
 
@@ -973,7 +985,7 @@ POINT ItemWindow::childPos(SIZE) {
     // GetWindowRect includes the drop shadow! (why??)
     GetWindowRect(hwnd, &windowRect);
     GetClientRect(hwnd, &clientRect);
-    return {windowRect.left + clientRect.right, windowRect.top};
+    return {windowRect.left + clientRect.right + windowBorderSize() * 2, windowRect.top};
 }
 
 POINT ItemWindow::parentPos() {
@@ -981,7 +993,7 @@ POINT ItemWindow::parentPos() {
     GetWindowRect(hwnd, &windowRect);
     POINT shadow = {windowRect.left, windowRect.top};
     ScreenToClient(hwnd, &shadow); // determine size of drop shadow
-    return {windowRect.left - shadow.x * 2, windowRect.top};
+    return {windowRect.left - shadow.x * 2 - windowBorderSize() * 2, windowRect.top};
 }
 
 bool ItemWindow::resolveItem() {
