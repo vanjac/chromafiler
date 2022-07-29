@@ -5,7 +5,7 @@
 #include <Richedit.h>
 #include <VersionHelpers.h>
 
-namespace chromabrowse {
+namespace chromafile {
 
 const wchar_t TEXT_WINDOW_CLASS[] = L"Text Window";
 

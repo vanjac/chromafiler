@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-namespace chromabrowse {
+namespace chromafile {
 
 void makeBitmapOpaque(HDC hdc, const RECT &rect);
 HBITMAP iconToPARGB32Bitmap(HICON icon, int width, int height);

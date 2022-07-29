@@ -15,7 +15,7 @@
 #pragma comment(lib, "UxTheme.lib")
 #pragma comment(lib, "Comctl32.lib")
 
-using namespace chromabrowse;
+using namespace chromafile;
 
 const wchar_t APP_ID[] = L"chroma.browse";
 

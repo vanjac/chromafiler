@@ -3,7 +3,7 @@
 #include "GDIUtils.h"
 #include <windowsx.h>
 
-namespace chromabrowse {
+namespace chromafile {
 
 const wchar_t THUMBNAIL_WINDOW_CLASS[] = L"Thumbnail Window";
 

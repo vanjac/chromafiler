@@ -3,7 +3,7 @@
 
 #include "ItemWindow.h"
 
-namespace chromabrowse {
+namespace chromafile {
 
 class ThumbnailWindow : public ItemWindow {
 public:

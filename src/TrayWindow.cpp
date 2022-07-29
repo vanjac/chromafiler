@@ -4,7 +4,7 @@
 #include <windowsx.h>
 #include <shellapi.h>
 
-namespace chromabrowse {
+namespace chromafile {
 
 const wchar_t TRAY_WINDOW_CLASS[] = L"Tray";
 const wchar_t MOVE_GRIP_CLASS[] = L"Move Grip";

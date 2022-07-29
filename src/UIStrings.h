@@ -5,7 +5,7 @@
 #include <windows.h>
 #include <atlmem.h>
 
-namespace chromabrowse {
+namespace chromafile {
 
 class LocalAllocator {
 public:

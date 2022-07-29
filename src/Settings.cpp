@@ -1,7 +1,7 @@
 #include "Settings.h"
 #include <strsafe.h>
 
-namespace chromabrowse {
+namespace chromafile {
 namespace settings {
 
 const wchar_t KEY_SETTINGS[]            = L"Software\\chromabrowse";

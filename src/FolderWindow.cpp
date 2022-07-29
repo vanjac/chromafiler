@@ -11,7 +11,7 @@
 // Example of how to host an IExplorerBrowser:
 // https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/shell/appplatform/ExplorerBrowserCustomContents
 
-namespace chromabrowse {
+namespace chromafile {
 
 const wchar_t FOLDER_WINDOW_CLASS[] = L"Folder Window";
 

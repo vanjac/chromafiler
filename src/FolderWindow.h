@@ -3,7 +3,7 @@
 
 #include "ItemWindow.h"
 
-namespace chromabrowse {
+namespace chromafile {
 
 class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlgBrowser,
         public IExplorerBrowserEvents {

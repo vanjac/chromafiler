@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-namespace chromabrowse {
+namespace chromafile {
 
 void openSettingsDialog();
 bool handleSettingsDialogMessage(MSG *msg);

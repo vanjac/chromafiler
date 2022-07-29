@@ -20,7 +20,7 @@ struct std::hash<CLSID> {
 
 // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-2-interop/
 
-namespace chromabrowse {
+namespace chromafile {
 
 const wchar_t PREVIEW_WINDOW_CLASS[] = L"Preview Window";
 const wchar_t PREVIEW_CONTAINER_CLASS[] = L"Preview Container";

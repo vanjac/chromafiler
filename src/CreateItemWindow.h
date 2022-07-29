@@ -3,7 +3,7 @@
 
 #include "ItemWindow.h"
 
-namespace chromabrowse {
+namespace chromafile {
 
 CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem);

@@ -8,7 +8,7 @@
 #include <shellapi.h>
 #include <shobjidl_core.h>
 
-namespace chromabrowse {
+namespace chromafile {
 
 const wchar_t *SPECIAL_PATHS[] = {
     L"shell:Desktop",

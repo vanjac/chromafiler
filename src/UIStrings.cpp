@@ -1,6 +1,6 @@
 #include "UIStrings.h"
 
-namespace chromabrowse {
+namespace chromafile {
 
 bool formatMessage(LocalHeapPtr<wchar_t> &message, DWORD messageId, ...) {
     // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessage#examples

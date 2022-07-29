@@ -3,7 +3,7 @@
 
 #include <Unknwn.h>
 
-namespace chromabrowse {
+namespace chromafile {
 
 class IUnknownImpl : public IUnknown {
 public:

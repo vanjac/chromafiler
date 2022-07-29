@@ -13,7 +13,7 @@
 #include <strsafe.h>
 #include <VersionHelpers.h>
 
-namespace chromabrowse {
+namespace chromafile {
 
 const wchar_t CHAIN_OWNER_CLASS[] = L"Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
