@@ -1000,8 +1000,8 @@ void ItemWindow::detachFromParent() {
 void ItemWindow::onChildDetached() {}
 
 void ItemWindow::detachAndMove() {
-    ItemWindow *rootParent = parent;
-    while (rootParent->parent)
+    ItemWindow *rootParent = this;
+    while (rootParent->parent && !rootParent->parent->alwaysOnTop())
         rootParent = rootParent->parent;
     detachFromParent();
 
