@@ -72,7 +72,7 @@ IDD_SETTINGS_GENERAL    DIALOGEX
     AUTOCHECKBOX "Show &toolbar", IDC_TOOLBAR_ENABLED, 14, 133, 89, 14
     GROUPBOX "Previews", -1, 117, 105, 103, 49
     AUTOCHECKBOX "Use Preview &Handlers", IDC_PREVIEWS_ENABLED, 124, 119, 89, 14
-    AUTOCHECKBOX "Enable text &editor", IDC_TEXT_EDITOR_ENABLED, 124, 133, 89, 14
+    AUTOCHECKBOX "Enable te&xt preview", IDC_TEXT_EDITOR_ENABLED, 124, 133, 89, 14
     GROUPBOX "File Explorer options", -1, 7, 161, 213, 35
     LTEXT "Some File Explorer options also affect chromabrowse folder windows.", -1, 14, 175, 136, 16
     PUSHBUTTON "&Options...", IDC_EXPLORER_SETTINGS, 157, 175, 56, 14
