@@ -18,6 +18,7 @@
 #define IDM_PARENT_MENU     1010
 #define IDM_NEW_ITEM_MENU   1011
 #define IDM_VIEW_MENU       1012
+#define IDM_DETACH          1013
 
 #define IDR_ICON_FONT   103
 // https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font

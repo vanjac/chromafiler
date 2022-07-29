@@ -662,6 +662,10 @@ bool ItemWindow::onCommand(WORD command) {
             else if (useCustomFrame())
                 openParent();
             return true;
+        case IDM_DETACH:
+            if (parent)
+                detachAndMove();
+            return true;
         case IDM_CLOSE_WINDOW:
             close();
             return true;
@@ -993,6 +997,26 @@ void ItemWindow::detachFromParent() {
 }
 
 void ItemWindow::onChildDetached() {}
+
+void ItemWindow::detachAndMove() {
+    ItemWindow *rootParent = parent;
+    while (rootParent->parent)
+        rootParent = rootParent->parent;
+    detachFromParent();
+
+    RECT rootRect;
+    GetWindowRect(rootParent->hwnd, &rootRect);
+    POINT pos = {rootRect.left + CAPTION_HEIGHT, rootRect.top + CAPTION_HEIGHT};
+
+    HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+    GetMonitorInfo(curMonitor, &monitorInfo);
+    if (pos.x + CAPTION_HEIGHT > monitorInfo.rcWork.right)
+        pos.x = monitorInfo.rcWork.left;
+    if (pos.y + CAPTION_HEIGHT > monitorInfo.rcWork.bottom)
+        pos.y = monitorInfo.rcWork.top;
+    setPos(pos);
+}
 
 POINT ItemWindow::childPos(SIZE) {
     RECT windowRect = {}, clientRect = {};

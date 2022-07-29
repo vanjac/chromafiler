@@ -116,6 +116,7 @@ private:
     void openParent();
     void clearParent();
     void detachFromParent(); // updates UI state
+    void detachAndMove();
 
     bool resolveItem();
 
