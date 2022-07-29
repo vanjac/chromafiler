@@ -8,11 +8,11 @@ chromafile works on Windows 8 through 11. Windows 7 support will be added eventu
 
 ## Download
 
-Check the [Releases](https://github.com/vanjac/chromabrowse/releases) page for the latest alpha build. See [installation instructions](https://github.com/vanjac/chromabrowse/wiki/Installation) for additional information.
+Check the [Releases](https://github.com/vanjac/chromafile/releases) page for the latest alpha build. See [installation instructions](https://github.com/vanjac/chromafile/wiki/Installation) for additional information.
 
 ## Tutorial
 
-See the [wiki](https://github.com/vanjac/chromabrowse/wiki/Tutorial) for an introduction to the app.
+See the [wiki](https://github.com/vanjac/chromafile/wiki/Tutorial) for an introduction to the app.
 
 ## Building
 

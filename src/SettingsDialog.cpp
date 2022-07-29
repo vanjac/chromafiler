@@ -95,7 +95,7 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
                 ShellExecute(nullptr, L"open",
-                    L"https://github.com/vanjac/chromabrowse/wiki/Settings#general",
+                    L"https://github.com/vanjac/chromafile/wiki/Settings#general",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             }
@@ -187,7 +187,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
                 ShellExecute(nullptr, L"open",
-                    L"https://github.com/vanjac/chromabrowse/wiki/Settings#tray",
+                    L"https://github.com/vanjac/chromafile/wiki/Settings#tray",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             }

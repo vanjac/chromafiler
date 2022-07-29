@@ -696,7 +696,7 @@ bool ItemWindow::onCommand(WORD command) {
             return true;
         }
         case IDM_HELP:
-            ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromabrowse/wiki",
+            ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile/wiki",
                 nullptr, nullptr, SW_SHOWNORMAL);
             return true;
         case IDM_SETTINGS:
