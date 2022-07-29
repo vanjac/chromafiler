@@ -261,11 +261,12 @@ LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
             RECT rect;
             GetClientRect(hwnd, &rect);
             InflateRect(&rect, -4, -4);
-            HBRUSH oldBrush = SelectBrush(paint.hdc, GetStockBrush(NULL_BRUSH));
-            HPEN oldPen = SelectPen(paint.hdc, GetStockPen(BLACK_PEN));
-            Rectangle(paint.hdc, rect.left, rect.top, rect.right, rect.bottom);
-            SelectBrush(paint.hdc, oldBrush);
-            SelectPen(paint.hdc, oldPen);
+            HBRUSH brush = GetSysColorBrush(COLOR_BTNTEXT);
+            HDC hdc = paint.hdc;
+            RECT f = {rect.left, rect.top, rect.right, rect.top + 1};   FillRect(hdc, &f, brush);
+            f = {rect.left, rect.bottom - 1, rect.right, rect.bottom};  FillRect(hdc, &f, brush);
+            f = {rect.left, rect.top, rect.left + 1, rect.bottom};      FillRect(hdc, &f, brush);
+            f = {rect.right - 1, rect.top, rect.right, rect.bottom};    FillRect(hdc, &f, brush);
             EndPaint(hwnd, &paint);
             break;
         }
