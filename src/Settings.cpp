@@ -4,7 +4,7 @@
 namespace chromafile {
 namespace settings {
 
-const wchar_t KEY_SETTINGS[]            = L"Software\\chromabrowse";
+const wchar_t KEY_SETTINGS[]            = L"Software\\chromafile";
 
 const wchar_t VAL_STARTING_FOLDER[]     = L"StartingFolder";
 const wchar_t VAL_ITEM_WINDOW_W[]       = L"ItemWindowWidth";
@@ -23,7 +23,7 @@ const wchar_t VAL_TRAY_H[]              = L"TrayHeight";
 const wchar_t VAL_TRAY_DIRECTION[]      = L"TrayDirection";
 
 const wchar_t KEY_STARTUP[]             = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
-const wchar_t VAL_STARTUP[]             = L"chromabrowse";
+const wchar_t VAL_STARTUP[]             = L"chromafile";
 
 // type should be a RRF_RT_* constant
 // data should already contain default value

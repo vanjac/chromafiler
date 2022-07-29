@@ -15,9 +15,9 @@ namespace chromafile {
 
 const wchar_t FOLDER_WINDOW_CLASS[] = L"Folder Window";
 
-const wchar_t PROP_VISITED[] = L"chromabrowse.visited";
-const wchar_t PROP_SIZE[] = L"chromabrowse.size";
-const wchar_t PROP_CHILD_SIZE[] = L"chromabrowse.childsize";
+const wchar_t PROP_VISITED[] = L"Visited";
+const wchar_t PROP_SIZE[] = L"Size";
+const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
 
 // local property bags can be found at:
 // HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags
@@ -76,7 +76,7 @@ SIZE FolderWindow::requestedSize() const {
 }
 
 wchar_t * FolderWindow::propertyBag() const {
-    return L"chromabrowse";
+    return L"chromafile";
 }
 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {

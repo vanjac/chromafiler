@@ -1,5 +1,5 @@
-Name "chromabrowse"
-OutFile "..\build\chromabrowse-install.exe"
+Name "chromafile"
+OutFile "..\build\chromafile-install.exe"
 RequestExecutionLevel admin
 Unicode True
 SetCompressor LZMA
@@ -8,8 +8,8 @@ SetCompressor LZMA
 !include EnumUsersReg.nsh
 !include "nsis-shortcut-properties\shortcut-properties.nsh"
 
-!define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\chromabrowse"
-!define CONTEXT_MENU_TEXT "Open in chromabrowse"
+!define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\chromafile"
+!define CONTEXT_MENU_TEXT "Open in chromafile"
 
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
@@ -27,33 +27,30 @@ Function .onInit
 	; InstallDirRegKey doesn't work with 64-bit view
 	SetRegView 64
 	ClearErrors
-	ReadRegStr $INSTDIR HKLM "Software\chromabrowse" "Install_Dir"
+	ReadRegStr $INSTDIR HKLM "Software\chromafile" "Install_Dir"
 	${If} ${Errors}
-		StrCpy $INSTDIR "$PROGRAMFILES64\chromabrowse"
+		StrCpy $INSTDIR "$PROGRAMFILES64\chromafile"
 	${EndIf}
 FunctionEnd
 
-Section "chromabrowse" SecBase
+Section "chromafile" SecBase
 	SectionIn RO
 	SetOutPath $INSTDIR
 	WriteUninstaller "$INSTDIR\uninstall.exe"
 	SetRegView 64
-	WriteRegStr HKLM Software\chromabrowse "Install_Dir" "$INSTDIR"
-	WriteRegStr HKLM "${REG_UNINST_KEY}" "DisplayName" "chromabrowse"
-	WriteRegStr HKLM "${REG_UNINST_KEY}" "DisplayIcon" "$INSTDIR\chromabrowse.exe,0"
+	WriteRegStr HKLM Software\chromafile "Install_Dir" "$INSTDIR"
+	WriteRegStr HKLM "${REG_UNINST_KEY}" "DisplayName" "chromafile"
+	WriteRegStr HKLM "${REG_UNINST_KEY}" "DisplayIcon" "$INSTDIR\chromafile.exe,0"
 	WriteRegStr HKLM "${REG_UNINST_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
 	WriteRegStr HKLM "${REG_UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
 	WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoModify" 1
 	WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoRepair" 1
-	File ..\build\chromabrowse.exe
-
-	; Clean up previous versions
-	DeleteRegValue HKLM SOFTWARE\Microsoft\Windows\CurrentVersion\Run "chromabrowse"
+	File ..\build\chromafile.exe
 SectionEnd
 
 Section "Start Menu Shortcut" SecStart
-	CreateShortcut /NoWorkingDir "$SMPROGRAMS\chromabrowse.lnk" "$INSTDIR\chromabrowse.exe"
-	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\chromabrowse.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.browse"
+	CreateShortcut /NoWorkingDir "$SMPROGRAMS\chromafile.lnk" "$INSTDIR\chromafile.exe"
+	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\chromafile.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.file"
 SectionEnd
 
 Section "Add to folder context menu" SecContext
@@ -62,29 +59,29 @@ Section "Add to folder context menu" SecContext
 	WriteRegStr HKCR CompressedFolder\Shell "" "none"
 	WriteRegStr HKCR Drive\Shell "" "none"
 
-	WriteRegStr HKCR Directory\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
-	WriteRegStr HKCR Directory\Background\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
-	WriteRegStr HKCR CompressedFolder\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
-	WriteRegStr HKCR Drive\shell\chromabrowse "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKCR Directory\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKCR Directory\Background\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKCR CompressedFolder\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKCR Drive\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
 
-	WriteRegStr HKCR Directory\shell\chromabrowse "Icon" "$INSTDIR\chromabrowse.exe"
-	WriteRegStr HKCR Directory\Background\shell\chromabrowse "Icon" "$INSTDIR\chromabrowse.exe"
-	WriteRegStr HKCR CompressedFolder\shell\chromabrowse "Icon" "$INSTDIR\chromabrowse.exe"
-	WriteRegStr HKCR Drive\shell\chromabrowse "Icon" "$INSTDIR\chromabrowse.exe"
+	WriteRegStr HKCR Directory\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
+	WriteRegStr HKCR Directory\Background\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
+	WriteRegStr HKCR CompressedFolder\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
+	WriteRegStr HKCR Drive\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
 
 	Var /GLOBAL context_menu_command
-	StrCpy $context_menu_command '"$INSTDIR\chromabrowse.exe" "%v"'
-	WriteRegStr HKCR Directory\shell\chromabrowse\command "" '$context_menu_command'
-	WriteRegStr HKCR Directory\Background\shell\chromabrowse\command "" '$context_menu_command'
-	WriteRegStr HKCR CompressedFolder\shell\chromabrowse\command "" '$context_menu_command'
-	WriteRegStr HKCR Drive\shell\chromabrowse\command "" '$context_menu_command'
+	StrCpy $context_menu_command '"$INSTDIR\chromafile.exe" "%v"'
+	WriteRegStr HKCR Directory\shell\chromafile\command "" '$context_menu_command'
+	WriteRegStr HKCR Directory\Background\shell\chromafile\command "" '$context_menu_command'
+	WriteRegStr HKCR CompressedFolder\shell\chromafile\command "" '$context_menu_command'
+	WriteRegStr HKCR Drive\shell\chromafile\command "" '$context_menu_command'
 SectionEnd
 
 Section /o "    Make default file browser (experimental!)" SecDefault
 	SetRegView 64
-	WriteRegStr HKCR Directory\Shell "" "chromabrowse"
-	WriteRegStr HKCR CompressedFolder\Shell "" "chromabrowse"
-	WriteRegStr HKCR Drive\Shell "" "chromabrowse"
+	WriteRegStr HKCR Directory\Shell "" "chromafile"
+	WriteRegStr HKCR CompressedFolder\Shell "" "chromafile"
+	WriteRegStr HKCR Drive\Shell "" "chromafile"
 SectionEnd
 
 Section "un.Uninstall"
@@ -95,25 +92,25 @@ Section "un.Uninstall"
 	WriteRegStr HKCR CompressedFolder\Shell "" "none"
 	WriteRegStr HKCR Drive\Shell "" "none"
 	DeleteRegKey HKLM "${REG_UNINST_KEY}"
-	DeleteRegKey HKLM Software\chromabrowse
-	DeleteRegKey HKCR Directory\shell\chromabrowse
-	DeleteRegKey HKCR Directory\Background\shell\chromabrowse
-	DeleteRegKey HKCR CompressedFolder\shell\chromabrowse
-	DeleteRegKey HKCR Drive\shell\chromabrowse
-	Delete $SMPROGRAMS\chromabrowse.lnk
+	DeleteRegKey HKLM Software\chromafile
+	DeleteRegKey HKCR Directory\shell\chromafile
+	DeleteRegKey HKCR Directory\Background\shell\chromafile
+	DeleteRegKey HKCR CompressedFolder\shell\chromafile
+	DeleteRegKey HKCR Drive\shell\chromafile
+	Delete $SMPROGRAMS\chromafile.lnk
 
-	${un.EnumUsersReg} un.CleanupUser chromabrowse.temp
+	${un.EnumUsersReg} un.CleanupUser chromafile.temp
 SectionEnd
 
 Function un.CleanupUser
 	Pop $0
-	DeleteRegKey HKU "$0\Software\chromabrowse"
-	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "chromabrowse"
+	DeleteRegKey HKU "$0\Software\chromafile"
+	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "chromafile"
 FunctionEnd
 
 LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
-LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the start menu to launch chromabrowse."
-LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromabrowse' command when right-clicking a folder."
+LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the start menu to launch chromafile."
+LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromafile' command when right-clicking a folder."
 LangString DESC_SecDefault ${LANG_ENGLISH} "Replace File Explorer as the default program for opening folders. Use at your own risk!"
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN

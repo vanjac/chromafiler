@@ -12,10 +12,10 @@ LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
     BLOCK "StringFileInfo" {
         BLOCK "040904B0" {
             VALUE "CompanyName", "chroma zone\0"
-            VALUE "FileDescription", "chromabrowse\0"
+            VALUE "FileDescription", "chromafile\0"
             VALUE "FileVersion", CHROMAFILE_VERSION_STRING
             VALUE "LegalCopyright", "Copyright (c) J. van't Hoog\0"
-            VALUE "ProductName", "chromabrowse\0"
+            VALUE "ProductName", "chromafile\0"
             VALUE "ProductVersion", CHROMAFILE_VERSION_STRING
         }
     }
@@ -24,7 +24,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
     }
 }
 
-IDR_RT_MANIFEST1 RT_MANIFEST "res\\chromabrowse.exe.manifest"
+IDR_RT_MANIFEST1 RT_MANIFEST "res\\chromafile.exe.manifest"
 
 IDR_APP_ICON    ICON    "res\\folder.ico"
 
@@ -75,7 +75,7 @@ IDD_SETTINGS_GENERAL    DIALOGEX
     AUTOCHECKBOX "Use Preview &Handlers", IDC_PREVIEWS_ENABLED, 124, 119, 89, 14
     AUTOCHECKBOX "Enable te&xt preview", IDC_TEXT_EDITOR_ENABLED, 124, 133, 89, 14
     GROUPBOX "File Explorer options", -1, 7, 161, 213, 35
-    LTEXT "Some File Explorer options also affect chromabrowse folder windows.", -1, 14, 175, 136, 16
+    LTEXT "Some File Explorer options also affect chromafile folder windows.", -1, 14, 175, 136, 16
     PUSHBUTTON "&Options...", IDC_EXPLORER_SETTINGS, 157, 175, 56, 14
 }
 
@@ -100,7 +100,7 @@ IDD_SETTINGS_TRAY       DIALOGEX
 }
 
 STRINGTABLE {
-    IDS_SETTINGS_CAPTION,   "chromabrowse Settings"
+    IDS_SETTINGS_CAPTION,   "chromafile Settings"
     IDS_SETTINGS_COMMAND,   "Settings"
     IDS_REFRESH_COMMAND,    "Refresh"
     IDS_NEW_ITEM_COMMAND,   "New..."

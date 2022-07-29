@@ -17,7 +17,7 @@
 
 using namespace chromafile;
 
-const wchar_t APP_ID[] = L"chroma.browse";
+const wchar_t APP_ID[] = L"chroma.file";
 
 #ifdef CHROMAFILE_DEBUG
 int main(int, char**) {

@@ -80,7 +80,7 @@ POINT TrayWindow::childPos(SIZE size) {
 }
 
 wchar_t * TrayWindow::propertyBag() const {
-    return L"chromabrowse.tray";
+    return L"chromafile.tray";
 }
 
 void TrayWindow::initDefaultView(CComPtr<IFolderView2> folderView) {

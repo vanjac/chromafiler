@@ -55,7 +55,7 @@
 				"/nologo",
 				"/MP", // https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/
 				"/W4",
-				"/Fe:", "${workspaceFolder}\\build\\chromabrowse.exe",
+				"/Fe:", "${workspaceFolder}\\build\\chromafile.exe",
 				"/I", "${workspaceFolder}\\src",
 				"/I", "${workspaceFolder}\\build",	// for message.h
 				"${workspaceFolder}\\src\\*.cpp",
@@ -88,7 +88,7 @@
 				"/nologo",
 				"/MP",
 				"/W4",
-				"/Fe:", "${workspaceFolder}\\build\\chromabrowse.exe",
+				"/Fe:", "${workspaceFolder}\\build\\chromafile.exe",
 				"/I", "${workspaceFolder}\\src",
 				"/I", "${workspaceFolder}\\build",
 				"${workspaceFolder}\\src\\*.cpp",

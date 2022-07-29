@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "chromabrowse",
+            "name": "chromafile",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}\\build\\chromabrowse.exe",
+            "program": "${workspaceFolder}\\build\\chromafile.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}\\build",
