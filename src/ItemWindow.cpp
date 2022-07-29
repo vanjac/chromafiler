@@ -293,10 +293,17 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 PostQuitMessage(0);
             Release(); // allow window to be deleted
             return 0;
-        case WM_ACTIVATE: {
+        case WM_ACTIVATE:
             onActivate(LOWORD(wParam), (HWND)lParam);
             return 0;
-        }
+        case WM_NCACTIVATE:
+            if (useCustomFrame()) {
+                RECT captionRect;
+                GetClientRect(hwnd, &captionRect);
+                captionRect.bottom = CAPTION_HEIGHT;
+                InvalidateRect(hwnd, &captionRect, FALSE);
+            }
+            break; // pass to DefWindowProc
         case WM_NCCALCSIZE:
             if (wParam == TRUE && useCustomFrame()) {
                 // allow resizing past the edge of the window by reducing client rect
@@ -735,14 +742,6 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
 }
 
 void ItemWindow::onActivate(WORD state, HWND) {
-    if (useCustomFrame()) {
-        // TODO handle this in WM_NCACTIVATE instead
-        RECT captionRect;
-        GetClientRect(hwnd, &captionRect);
-        captionRect.bottom = CAPTION_HEIGHT;
-        InvalidateRect(hwnd, &captionRect, FALSE); // make sure to update caption text color
-    }
-
     if (state != WA_INACTIVE) {
         activeWindow = this;
         HWND owner = GetWindowOwner(hwnd);
@@ -881,8 +880,8 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     HTHEME windowTheme = OpenThemeData(hwnd, WINDOW_THEME);
     if (windowTheme) {
         DTTOPTS textOpts = {sizeof(textOpts)};
-        bool isActive = GetActiveWindow() == hwnd;
         if (IsWindows10OrGreater()) {
+            bool isActive = GetActiveWindow() == hwnd;
             // COLOR_INACTIVECAPTIONTEXT doesn't work in Windows 10
             // the documentation says COLOR_CAPTIONTEXT isn't supported either but it seems to work
             textOpts.crText = isActive ? GetSysColor(COLOR_CAPTIONTEXT)
