@@ -480,7 +480,7 @@ STDMETHODIMP FolderWindow::OnNavigationFailed(PCIDLIST_ABSOLUTE) {
 }
 
 STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
-    bool visited = false; // folder has been visited by chromabrowse before
+    bool visited = false; // folder has been visited before
     if (propBag) {
         VARIANT var = {};
         var.vt = VT_BOOL;

@@ -4,8 +4,8 @@
 LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
 
 1 VERSIONINFO
-    FILEVERSION     CHROMABROWSE_VERSION
-    PRODUCTVERSION  CHROMABROWSE_VERSION
+    FILEVERSION     CHROMAFILE_VERSION
+    PRODUCTVERSION  CHROMAFILE_VERSION
     FILEOS          VOS_NT_WINDOWS32
     FILETYPE        VFT_APP
 {
@@ -13,10 +13,10 @@ LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
         BLOCK "040904B0" {
             VALUE "CompanyName", "chroma zone\0"
             VALUE "FileDescription", "chromabrowse\0"
-            VALUE "FileVersion", CHROMABROWSE_VERSION_STRING
+            VALUE "FileVersion", CHROMAFILE_VERSION_STRING
             VALUE "LegalCopyright", "Copyright (c) J. van't Hoog\0"
             VALUE "ProductName", "chromabrowse\0"
-            VALUE "ProductVersion", CHROMABROWSE_VERSION_STRING
+            VALUE "ProductVersion", CHROMAFILE_VERSION_STRING
         }
     }
     BLOCK "VarFileInfo" {

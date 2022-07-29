@@ -50,7 +50,8 @@
 				"/Zi",      // debug only
 				"/EHsc",    // debug only
 				"/MTd",     // debug only
-				"/D", "CHROMABROWSE_DEBUG", // debug only
+				"/D", "CHROMAFILE_DEBUG", // debug only
+				// "/D", "CHROMAFILE_MEMLEAKS", // debug only
 				"/nologo",
 				"/MP", // https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/
 				"/W4",

@@ -19,7 +19,7 @@ using namespace chromafile;
 
 const wchar_t APP_ID[] = L"chroma.browse";
 
-#ifdef CHROMABROWSE_DEBUG
+#ifdef CHROMAFILE_DEBUG
 int main(int, char**) {
     return wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
 }
@@ -39,7 +39,7 @@ DWORD WINAPI updateJumpList(void *);
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     debugPrintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
 
-#ifdef CHROMABROWSE_MEMLEAKS
+#ifdef CHROMAFILE_MEMLEAKS
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     debugPrintf(L"Compiled with memory leak detection\n");
 #endif

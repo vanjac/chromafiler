@@ -12,7 +12,7 @@
 #define _WIN32_WINNT 0x0601
 
 
-#ifdef CHROMABROWSE_DEBUG
+#ifdef CHROMAFILE_DEBUG
 #define debugPrintf wprintf
 // use checkHR instead of SUCCEEDED when you expect the call to succeed
 #define checkHR(hr) logHRESULT(hr, __FILE__, __LINE__, #hr)
@@ -22,7 +22,7 @@ bool logHRESULT(long hr, const char *file, int line, const char *expr);
 #define checkHR SUCCEEDED
 #endif
 
-#ifdef CHROMABROWSE_MEMLEAKS
+#ifdef CHROMAFILE_MEMLEAKS
 // https://docs.microsoft.com/en-us/visualstudio/debugger/finding-memory-leaks-using-the-crt-library
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
