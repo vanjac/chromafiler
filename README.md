@@ -2,7 +2,7 @@
 
 chromafile is an experimental file manager with a unique interface, combining ideas from [Spatial file managers](https://en.wikipedia.org/wiki/Spatial_file_manager) and [Miller column browsers](https://en.wikipedia.org/wiki/Miller_columns).
 
-![Screenshot](https://user-images.githubusercontent.com/8228102/181127811-944c357c-617e-4868-b20c-63dccfa26ed8.png)
+![Screenshot showing a series of chromafile windows](https://user-images.githubusercontent.com/8228102/181705394-48504968-4526-4e73-a4f1-d4924e41ec00.png)
 
 chromafile works on Windows 8 through 11. Windows 7 support may be added eventually.
 
