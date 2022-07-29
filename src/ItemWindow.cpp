@@ -1321,6 +1321,9 @@ void ItemWindow::completeRename() {
     if (!checkHR(operation->RenameItem(item, newName, nullptr)))
         return;
     checkHR(operation->PerformOperations());
+
+    // TODO: remove this once there's an automatic system for tracking files
+    resolveItem();
 }
 
 void ItemWindow::cancelRename() {
