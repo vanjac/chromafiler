@@ -236,13 +236,21 @@ void FolderWindow::selectionChanged() {
             int index;
             // GetSelectedItem seems to ignore the iStart parameter!
             if (folderView->GetSelectedItem(-1, &index) == S_OK) {
-                CComPtr<IShellItem> selected;
-                if (checkHR(folderView->GetItem(index, IID_PPV_ARGS(&selected)))) {
-                    openChild(selected);
+                CComPtr<IShellItem> newSelected;
+                if (checkHR(folderView->GetItem(index, IID_PPV_ARGS(&newSelected)))) {
+                    int compare = 1;
+                    if (selected)
+                        checkHR(newSelected->Compare(selected, SICHINT_CANONICAL, &compare));
+                    selected = newSelected;
+                    // openChild() could cause a "Problem with Shortcut" error dialog to appear,
+                    // so don't call it more than necessary!
+                    if (compare)
+                        openChild(selected);
                 }
             }
         } else {
             // 0 or more than 1 item selected
+            selected = nullptr;
             closeChild();
         }
     }

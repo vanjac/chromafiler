@@ -71,6 +71,8 @@ private:
     CComPtr<IPropertyBag> propBag;
     DWORD eventsCookie = 0;
 
+    CComPtr<IShellItem> selected;
+
     SIZE lastSize = {-1, -1};
     bool sizeChanged = false;
     SIZE oldStoredChildSize;
