@@ -933,8 +933,9 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
 void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     childItem = resolveLink(hwnd, childItem);
     if (child) {
+        const int compareFlags = SICHINT_CANONICAL | SICHINT_TEST_FILESYSPATH_IF_NOT_EQUAL;
         int compare;
-        if (checkHR(child->item->Compare(childItem, SICHINT_CANONICAL, &compare)) && compare == 0)
+        if (checkHR(child->item->Compare(childItem, compareFlags, &compare)) && compare == 0)
             return; // already open
         closeChild();
     }
