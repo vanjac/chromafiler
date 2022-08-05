@@ -966,7 +966,8 @@ void ItemWindow::openParent() {
         SIZE size = parent->requestedSize();
         POINT pos = parentPos();
         parent->create({pos.x - size.cx, pos.y, pos.x, pos.y + size.cy}, SW_SHOWNORMAL);
-        ShowWindow(parentButton, SW_HIDE);
+        if (parentButton)
+            ShowWindow(parentButton, SW_HIDE);
     }
 }
 
@@ -995,7 +996,7 @@ void ItemWindow::detachFromParent(bool closeParent) {
     clearParent();
 
     CComPtr<IShellItem> parentItem;
-    if (SUCCEEDED(item->GetParent(&parentItem)))
+    if (parentButton && SUCCEEDED(item->GetParent(&parentItem)))
         ShowWindow(parentButton, SW_SHOW);
     if (closeParent) {
         ItemWindow *rootParent = oldParent;
