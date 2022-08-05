@@ -463,6 +463,20 @@ STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *) {
 
 STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
     if (change == CDBOSC_SELCHANGE) {
+        int numItems = 0;
+        CComPtr<IFolderView2> folderView;
+        if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+            checkHR(folderView->ItemCount(SVGIO_ALLVIEW, &numItems));
+        if (firstSelectionEvent && numItems == 1) {
+            debugPrintf(L"Auto-expanding single item\n");
+            firstSelectionEvent = false;
+            // will immediately trigger another selection event
+            folderView->SelectItem(0, SVSI_SELECT | SVSI_FOCUSED | SVSI_NOTAKEFOCUS);
+            if (checkHR(folderView->GetItem(0, IID_PPV_ARGS(&selected))))
+                openChild(selected);
+            return S_OK;
+        }
+
         if (!ignoreNextSelection) {
             if (GetActiveWindow() != hwnd) {
                 // this could happen when dragging a file. don't try to create any windows yet
@@ -475,10 +489,8 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
         ignoreNextSelection = false;
 
         // TODO: duplicate work in selectionChanged()
-        CComPtr<IFolderView2> folderView;
-        if (hasStatusText() && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
-            int numItems = 0, numSelected = 0;
-            checkHR(folderView->ItemCount(SVGIO_ALLVIEW, &numItems));
+        if (folderView && hasStatusText()) {
+            int numSelected = 0;
             checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected));
             LocalHeapPtr<wchar_t> status;
             if (numSelected == 0) {
@@ -532,6 +544,7 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
             ->GetParentAndItem(nullptr, nullptr, &childID));
         checkHR(view->SelectItem(childID,
             SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
+        firstSelectionEvent = false;
     }
 
     shellView = view;

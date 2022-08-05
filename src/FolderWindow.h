@@ -78,6 +78,7 @@ private:
     SIZE oldStoredChildSize;
 
     // jank flags
+    bool firstSelectionEvent = true;
     bool ignoreNextSelection = false;
     bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;
