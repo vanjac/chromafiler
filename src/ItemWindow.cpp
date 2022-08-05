@@ -348,7 +348,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 moveAccum.y += desiredRect->top - curRect.top;
                 int moveAmount = max(abs(moveAccum.x), abs(moveAccum.y));
                 if (moveAmount > SNAP_DISTANCE) {
-                    detachFromParent();
+                    detachFromParent(GetKeyState(VK_SHIFT) < 0);
                     OffsetRect(desiredRect, moveAccum.x, moveAccum.y);
                 } else {
                     *desiredRect = curRect;
@@ -664,7 +664,11 @@ bool ItemWindow::onCommand(WORD command) {
             return true;
         case IDM_DETACH:
             if (parent)
-                detachAndMove();
+                detachAndMove(false);
+            return true;
+        case IDM_CLOSE_PARENT:
+            if (parent)
+                detachAndMove(true);
             return true;
         case IDM_CLOSE_WINDOW:
             close();
@@ -974,7 +978,7 @@ void ItemWindow::clearParent() {
     parent = nullptr;
 }
 
-void ItemWindow::detachFromParent() {
+void ItemWindow::detachFromParent(bool closeParent) {
     CComPtr<ItemWindow> oldParent = parent;
     if (!parent->alwaysOnTop()) {
         HWND prevOwner = GetWindowOwner(hwnd);
@@ -993,30 +997,43 @@ void ItemWindow::detachFromParent() {
     CComPtr<IShellItem> parentItem;
     if (SUCCEEDED(item->GetParent(&parentItem)))
         ShowWindow(parentButton, SW_SHOW);
-    oldParent->activate(); // focus parent in chain
+    if (closeParent) {
+        ItemWindow *rootParent = oldParent;
+        while (rootParent->parent && !rootParent->parent->alwaysOnTop())
+            rootParent = rootParent->parent;
+        if (!rootParent->alwaysOnTop())
+            rootParent->close();
+    } else {
+        oldParent->activate(); // focus parent in chain
+    }
     activate(); // bring this chain to front
 }
 
 void ItemWindow::onChildDetached() {}
 
-void ItemWindow::detachAndMove() {
+void ItemWindow::detachAndMove(bool closeParent) {
     ItemWindow *rootParent = this;
     while (rootParent->parent && !rootParent->parent->alwaysOnTop())
         rootParent = rootParent->parent;
-    detachFromParent();
-
     RECT rootRect;
     GetWindowRect(rootParent->hwnd, &rootRect);
-    POINT pos = {rootRect.left + CAPTION_HEIGHT, rootRect.top + CAPTION_HEIGHT};
 
-    HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
-    GetMonitorInfo(curMonitor, &monitorInfo);
-    if (pos.x + CAPTION_HEIGHT > monitorInfo.rcWork.right)
-        pos.x = monitorInfo.rcWork.left;
-    if (pos.y + CAPTION_HEIGHT > monitorInfo.rcWork.bottom)
-        pos.y = monitorInfo.rcWork.top;
-    setPos(pos);
+    detachFromParent(closeParent);
+
+    if (closeParent) {
+        setPos({rootRect.left, rootRect.top});
+    } else {
+        POINT pos = {rootRect.left + CAPTION_HEIGHT, rootRect.top + CAPTION_HEIGHT};
+
+        HMONITOR curMonitor = MonitorFromWindow(rootParent->hwnd, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+        GetMonitorInfo(curMonitor, &monitorInfo);
+        if (pos.x + CAPTION_HEIGHT > monitorInfo.rcWork.right)
+            pos.x = monitorInfo.rcWork.left;
+        if (pos.y + CAPTION_HEIGHT > monitorInfo.rcWork.bottom)
+            pos.y = monitorInfo.rcWork.top;
+        setPos(pos);
+    }
 }
 
 POINT ItemWindow::childPos(SIZE) {
