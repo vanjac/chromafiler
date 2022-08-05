@@ -478,8 +478,8 @@ void getItemIcons(CComPtr<IShellItem> item, HICON *iconLarge, HICON *iconSmall) 
 void ItemWindow::onCreate() {
     HICON iconLarge, iconSmall;
     getItemIcons(item, &iconLarge, &iconSmall);
-    PostMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
-    PostMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+    SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
+    SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
 
     CComHeapPtr<ITEMIDLIST> idList;
     if (checkHR(SHGetIDListFromObject(item, &idList))) {
@@ -764,8 +764,8 @@ void ItemWindow::onActivate(WORD state, HWND) {
         activeWindow = this;
         HWND owner = GetWindowOwner(hwnd);
         SetWindowText(owner, title); // update taskbar / alt-tab
-        PostMessage(owner, WM_SETICON, ICON_BIG, SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
-        PostMessage(owner, WM_SETICON, ICON_SMALL, SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
+        SendMessage(owner, WM_SETICON, ICON_BIG, SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
+        SendMessage(owner, WM_SETICON, ICON_SMALL, SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
         if (alwaysOnTop() && child) {
             SetWindowPos(child->hwnd, HWND_TOP, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
