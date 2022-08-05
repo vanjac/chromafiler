@@ -244,37 +244,37 @@ void FolderWindow::onSize(int width, int height) {
 
 void FolderWindow::selectionChanged() {
     CComPtr<IFolderView2> folderView;
-    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
-        int numSelected;
-        if (checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected)) && numSelected == 1) {
-            int index;
-            // GetSelectedItem seems to ignore the iStart parameter!
-            if (folderView->GetSelectedItem(-1, &index) == S_OK) {
-                CComPtr<IShellItem> newSelected;
-                if (checkHR(folderView->GetItem(index, IID_PPV_ARGS(&newSelected)))) {
-                    int compare = 1;
-                    if (selected)
-                        checkHR(newSelected->Compare(selected, SICHINT_CANONICAL, &compare));
-                    selected = newSelected;
-                    // openChild() could cause a "Problem with Shortcut" error dialog to appear,
-                    // so don't call it more than necessary!
-                    if (compare)
-                        openChild(selected);
-                }
-            }
-        } else {
-            // 0 or more than 1 item selected
-            if (numSelected == 0 && clickActivateRelease && selected) {
-                debugPrintf(L"Blocking deselection\n");
-                CComHeapPtr<ITEMID_CHILD> selectedID;
-                checkHR(CComQIPtr<IParentAndItem>(selected)
-                    ->GetParentAndItem(nullptr, nullptr, &selectedID));
-                checkHR(shellView->SelectItem(selectedID, SVSI_SELECT | SVSI_NOTAKEFOCUS));
-            } else {
-                selected = nullptr;
-                closeChild();
+    if (!checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+        return;
+    int numSelected;
+    if (!checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected)))
+        return;
+    if (numSelected == 1) {
+        int index;
+        // GetSelectedItem seems to ignore the iStart parameter!
+        if (folderView->GetSelectedItem(-1, &index) == S_OK) {
+            CComPtr<IShellItem> newSelected;
+            if (checkHR(folderView->GetItem(index, IID_PPV_ARGS(&newSelected)))) {
+                int compare = 1;
+                if (selected)
+                    checkHR(newSelected->Compare(selected, SICHINT_CANONICAL, &compare));
+                selected = newSelected;
+                // openChild() could cause a "Problem with Shortcut" error dialog to appear,
+                // so don't call it more than necessary!
+                if (compare)
+                    openChild(selected);
             }
         }
+    } else if (numSelected == 0 && clickActivateRelease && selected) {
+        debugPrintf(L"Blocking deselection\n");
+        CComHeapPtr<ITEMID_CHILD> selectedID;
+        checkHR(CComQIPtr<IParentAndItem>(selected)
+            ->GetParentAndItem(nullptr, nullptr, &selectedID));
+        checkHR(shellView->SelectItem(selectedID, SVSI_SELECT | SVSI_NOTAKEFOCUS));
+    } else {
+        // 0 or more than 1 item selected
+        selected = nullptr;
+        closeChild();
     }
 }
 
