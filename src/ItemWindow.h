@@ -125,7 +125,7 @@ private:
     void invokeProxyDefaultVerb(POINT point);
     void openProxyProperties();
     void openProxyContextMenu(POINT point);
-    void beginProxyDrag(POINT offset); // specify offset from icon origin
+    void proxyDrag(POINT offset); // specify offset from icon origin
     void beginRename();
     void completeRename();
     void cancelRename();

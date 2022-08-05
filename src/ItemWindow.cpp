@@ -390,7 +390,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     (GetKeyState(VK_SHIFT) < 0 || GetKeyState(VK_CONTROL) < 0
                     || GetKeyState(VK_MENU) < 0)) {
                 if (DragDetect(hwnd, cursor)) {
-                    beginProxyDrag({clientCursor.x - iconRect.left, clientCursor.y - iconRect.top});
+                    proxyDrag({clientCursor.x - iconRect.left, clientCursor.y - iconRect.top});
                     return 0;
                 }
             }
@@ -1226,11 +1226,17 @@ void ItemWindow::openProxyContextMenu(POINT point) {
         // https://groups.google.com/g/microsoft.public.win32.programmer.ui/c/PhXQcfhYPHQ
         wchar_t verb[64];
         verb[0] = 0; // some handlers may return S_OK without touching the buffer
-        if (checkHR(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr,
-                (char*)verb, _countof(verb))) && lstrcmpi(verb, L"rename") == 0) {
+        bool hasVerb = checkHR(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr,
+            (char*)verb, _countof(verb)));
+        if (hasVerb && lstrcmpi(verb, L"rename") == 0) {
             beginRename();
         } else {
             invokeContextMenuCommand(contextMenu, cmd, point);
+        }
+
+        if (hasVerb && lstrcmpi(verb, L"delete") == 0) {
+            // TODO: remove this once there's an automatic system for tracking files
+            resolveItem();
         }
     }
     DestroyMenu(popupMenu);
@@ -1254,7 +1260,7 @@ void ItemWindow::invokeContextMenuCommand(CComPtr<IContextMenu> contextMenu, int
     checkHR(contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info));
 }
 
-void ItemWindow::beginProxyDrag(POINT offset) {
+void ItemWindow::proxyDrag(POINT offset) {
     // https://devblogs.microsoft.com/oldnewthing/20041206-00/?p=37133 and onward
     CComPtr<IDataObject> dataObject;
     if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&dataObject))))
@@ -1285,6 +1291,9 @@ void ItemWindow::beginProxyDrag(POINT offset) {
     // original, however the only time I could trigger this was moving a file into a ZIP folder,
     // which does successfully delete the original, only with a delay. So handling this as intended
     // would actually break dragging into ZIP folders and cause loss of data!
+
+    // TODO: remove this once there's an automatic system for tracking files
+    resolveItem();
 }
 
 void ItemWindow::beginRename() {
