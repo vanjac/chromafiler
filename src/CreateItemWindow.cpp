@@ -89,11 +89,11 @@ CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem) {
 }
 
 CComPtr<IShellItem> itemFromPath(wchar_t *path) {
-    CComPtr<IShellItem> item;
     while (1) {
+        CComPtr<IShellItem> item;
         // parse name vs display name https://stackoverflow.com/q/42966489
         if (checkHR(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&item))))
-            break;
+            return item;
         LocalHeapPtr<wchar_t> caption, message;
         formatMessage(caption, STR_ERROR_CAPTION);
         formatMessage(message, STR_CANT_FIND_ITEM, path);
@@ -103,10 +103,9 @@ CComPtr<IShellItem> itemFromPath(wchar_t *path) {
         } else if (result == IDCONTINUE) {
             if (checkHR(SHGetKnownFolderItem(FOLDERID_Desktop, KF_FLAG_DEFAULT, nullptr,
                     IID_PPV_ARGS(&item))))
-                break;
+                return item;
         } // else retry
     }
-    return item;
 }
 
 } // namespace
