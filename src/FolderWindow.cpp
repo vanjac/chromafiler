@@ -268,7 +268,8 @@ void FolderWindow::refresh() {
     ItemWindow::refresh();
     if (shellView) {
         checkHR(shellView->Refresh());
-        ignoreNextSelection = true; // fix crash
+        // TODO: this is here to fix a crash (exception code c0000374 STATUS_HEAP_CORRUPTION)
+        ignoreNextSelection = true;
     }
 }
 
