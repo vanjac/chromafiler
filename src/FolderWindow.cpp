@@ -218,7 +218,14 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
             updateSelectionOnActivate = false;
         }
     }
-    clickActivate = (state == WA_CLICKACTIVE);
+    if (state == WA_CLICKACTIVE) {
+        POINT cursor;
+        GetCursorPos(&cursor);
+        ScreenToClient(hwnd, &cursor);
+        RECT body = windowBody();
+        if (PtInRect(&body, cursor))
+            clickActivate = true;
+    }
 }
 
 void FolderWindow::onSize(int width, int height) {
