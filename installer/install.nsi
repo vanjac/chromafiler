@@ -13,6 +13,9 @@ SetCompressor LZMA
 
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
+!define MUI_FINISHPAGE_RUN "$INSTDIR\chromafile.exe"
+!define MUI_FINISHPAGE_RUN_NOTCHECKED
+
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
