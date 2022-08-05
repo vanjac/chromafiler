@@ -90,6 +90,12 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
     }
     if (shellView && shellView->TranslateAccelerator(msg) == S_OK)
         return true;
+    if (clickActivate && msg->message == WM_LBUTTONUP) {
+        clickActivate = false;
+        clickActivateRelease = true;
+    } else {
+        clickActivateRelease = false;
+    }
     return false;
 }
 
@@ -212,6 +218,7 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
             updateSelectionOnActivate = false;
         }
     }
+    clickActivate = (state == WA_CLICKACTIVE);
 }
 
 void FolderWindow::onSize(int width, int height) {
@@ -250,8 +257,16 @@ void FolderWindow::selectionChanged() {
             }
         } else {
             // 0 or more than 1 item selected
-            selected = nullptr;
-            closeChild();
+            if (numSelected == 0 && clickActivateRelease && selected) {
+                debugPrintf(L"Blocking deselection\n");
+                CComHeapPtr<ITEMID_CHILD> selectedID;
+                checkHR(CComQIPtr<IParentAndItem>(selected)
+                    ->GetParentAndItem(nullptr, nullptr, &selectedID));
+                checkHR(shellView->SelectItem(selectedID, SVSI_SELECT | SVSI_NOTAKEFOCUS));
+            } else {
+                selected = nullptr;
+                closeChild();
+            }
         }
     }
 }

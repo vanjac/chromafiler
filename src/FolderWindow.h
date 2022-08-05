@@ -81,6 +81,7 @@ private:
     bool ignoreNextSelection = false;
     bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;
+    bool clickActivate = false, clickActivateRelease = false;
 };
 
 } // namespace
