@@ -29,7 +29,7 @@ Language=english
 MessageId=
 SymbolicName=STR_SAVE_PROMPT_CAPTION
 Language=English
-Save before closing
+Save before closing?
 .
 
 MessageId=
