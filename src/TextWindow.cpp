@@ -61,6 +61,7 @@ void TextWindow::onCreate() {
     SendMessage(edit, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
     if (IsWindows8OrGreater())
         SendMessage(edit, EM_SETEDITSTYLE, SES_MULTISELECT, SES_MULTISELECT);
+    SendMessage(edit, EM_EXLIMITTEXT, 0, 0x7FFFFFFE); // maximum possible limit
 
     if (!loadText())
         SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
