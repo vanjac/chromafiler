@@ -43,7 +43,10 @@ void TextWindow::uninit() {
 }
 
 TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
-    : ItemWindow(parent, item) {}
+        : ItemWindow(parent, item) {
+    findBuffer[0] = 0;
+    replaceBuffer[0] = 0;
+}
 
 const wchar_t * TextWindow::className() {
     return TEXT_WINDOW_CLASS;
@@ -300,9 +303,13 @@ void TextWindow::openFindDialog() {
     findReplace = {sizeof(findReplace)};
     findReplace.hwndOwner = hwnd;
     findReplace.Flags = FR_DOWN;
-    findBuffer[0] = 0;
-    findReplace.lpstrFindWhat = findBuffer;
     findReplace.wFindWhatLen = _countof(findBuffer); // docs are wrong, this is in chars not bytes
+    CHARRANGE sel;
+    SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
+    if (sel.cpMax != sel.cpMin && sel.cpMax - sel.cpMin < _countof(findBuffer) - 1)
+        SendMessage(edit, EM_GETSELTEXT, 0, (LPARAM)findBuffer);
+    // otherwise keep previous
+    findReplace.lpstrFindWhat = findBuffer;
     findReplaceDialog = FindText(&findReplace);
 }
 
