@@ -23,6 +23,7 @@
 
 #define IDR_TEXT_ACCEL      107
 #define IDM_SAVE            1100
+#define IDM_NEW_LINE        1101
 
 #define IDR_ICON_FONT   103
 // https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font

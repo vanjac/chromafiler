@@ -31,6 +31,8 @@ private:
 
     void updateStatus(CHARRANGE range);
 
+    void newLine();
+
     bool loadText();
     bool saveText();
 

@@ -51,6 +51,7 @@ IDR_ITEM_ACCEL  ACCELERATORS {
 
 IDR_TEXT_ACCEL  ACCELERATORS {
     "S",            IDM_SAVE,           VIRTKEY, CONTROL
+    VK_RETURN,      IDM_NEW_LINE,       VIRTKEY
 }
 
 // Dialog boxes are designed using RisohEditor.

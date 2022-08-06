@@ -117,6 +117,9 @@ bool TextWindow::onCommand(WORD command) {
             if (saveText())
                 SendMessage(edit, EM_SETMODIFY, FALSE, 0);
             return true;
+        case IDM_NEW_LINE:
+            newLine();
+            return true;
     }
     return ItemWindow::onCommand(command);
 }
@@ -140,6 +143,21 @@ void TextWindow::updateStatus(CHARRANGE range) {
         formatMessage(status, STR_TEXT_STATUS_SEL, line, col, range.cpMax - range.cpMin);
     }
     setStatusText(status);
+}
+
+void TextWindow::newLine() {
+    ULONG line = (ULONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
+    wchar_t newLineBuffer[1024];
+    newLineBuffer[0] = '\n';
+    newLineBuffer[1] = _countof(newLineBuffer) - 2; // allow room for null
+    LRESULT lineLen = SendMessage(edit, EM_GETLINE, line, (LPARAM)(newLineBuffer + 1));
+    int endIndent = 1;
+    for (; endIndent < lineLen + 1; endIndent++) {
+        if (newLineBuffer[endIndent] != ' ' && newLineBuffer[endIndent] != '\t')
+            break;
+    }
+    newLineBuffer[endIndent] = 0;
+    SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)newLineBuffer);
 }
 
 bool TextWindow::loadText() {
