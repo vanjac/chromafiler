@@ -22,7 +22,7 @@ Language=English
 
 MessageId=
 SymbolicName=STR_FOLDER_STATUS_SEL
-Language=english
+Language=English
 %1!d! items, %2!d! selected
 .
 
@@ -36,4 +36,16 @@ MessageId=
 SymbolicName=STR_SAVE_PROMPT
 Language=English
 Do you want to save changes to %1?
+.
+
+MessageId=
+SymbolicName=STR_TEXT_STATUS
+Language=English
+Ln %1!d!, Col %2!d!
+.
+
+MessageId=
+SymbolicName=STR_TEXT_STATUS_SEL
+Language=English
+Ln %1!d!, Col %2!d! (%3!d! selected)
 .

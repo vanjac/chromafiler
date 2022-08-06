@@ -4,7 +4,6 @@
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
-#include <Richedit.h>
 #include <VersionHelpers.h>
 
 namespace chromafile {
@@ -48,6 +47,10 @@ const wchar_t * TextWindow::className() {
     return TEXT_WINDOW_CLASS;
 }
 
+bool TextWindow::useDefaultStatusText() const {
+    return false;
+}
+
 void TextWindow::onCreate() {
     ItemWindow::onCreate();
     edit = CreateWindow(MSFTEDIT_CLASS, nullptr,
@@ -61,11 +64,14 @@ void TextWindow::onCreate() {
     SendMessage(edit, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
     if (IsWindows8OrGreater())
         SendMessage(edit, EM_SETEDITSTYLE, SES_MULTISELECT, SES_MULTISELECT);
+    SendMessage(edit, EM_SETEVENTMASK, 0, ENM_SELCHANGE);
     SendMessage(edit, EM_EXLIMITTEXT, 0, 0x7FFFFFFE); // maximum possible limit
 
     if (!loadText())
         SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
     SendMessage(edit, EM_SETMODIFY, FALSE, 0);
+    if (hasStatusText())
+        updateStatus({0, 0});
 }
 
 void TextWindow::onActivate(WORD state, HWND prevWindow) {
@@ -113,6 +119,27 @@ bool TextWindow::onCommand(WORD command) {
             return true;
     }
     return ItemWindow::onCommand(command);
+}
+
+LRESULT TextWindow::onNotify(NMHDR *nmHdr) {
+    if (nmHdr->hwndFrom == edit && nmHdr->code == EN_SELCHANGE && hasStatusText()) {
+        updateStatus(((SELCHANGE *)nmHdr)->chrg);
+        return 0;
+    }
+    return ItemWindow::onNotify(nmHdr);
+}
+
+void TextWindow::updateStatus(CHARRANGE range) {
+    ULONG line = 1 + (ULONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
+    ULONG lineIndex = (ULONG)SendMessage(edit, EM_LINEINDEX, (WPARAM)-1, 0);
+    ULONG col = range.cpMin - lineIndex + 1;
+    LocalHeapPtr<wchar_t> status;
+    if (range.cpMin == range.cpMax) {
+        formatMessage(status, STR_TEXT_STATUS, line, col);
+    } else {
+        formatMessage(status, STR_TEXT_STATUS_SEL, line, col, range.cpMax - range.cpMin);
+    }
+    setStatusText(status);
 }
 
 bool TextWindow::loadText() {
