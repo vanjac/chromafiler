@@ -14,6 +14,7 @@
 #pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "UxTheme.lib")
 #pragma comment(lib, "Comctl32.lib")
+#pragma comment(lib, "Comdlg32.lib")
 
 using namespace chromafile;
 

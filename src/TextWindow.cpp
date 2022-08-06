@@ -4,7 +4,6 @@
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
-#include <VersionHelpers.h>
 
 namespace chromafile {
 
@@ -21,6 +20,7 @@ const uint8_t BOM_UTF16BE[] = {0xFE, 0xFF};
 
 static HACCEL textAccelTable;
 static HFONT monoFont = 0;
+static UINT findReplaceMessage;
 
 void TextWindow::init() {
     WNDCLASS wndClass = createWindowClass(TEXT_WINDOW_CLASS);
@@ -33,6 +33,8 @@ void TextWindow::init() {
         DEFAULT_PITCH | FF_DONTCARE, TEXT_FONT_FACE);
 
     textAccelTable = LoadAccelerators(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_ACCEL));
+
+    findReplaceMessage = RegisterWindowMessage(FINDMSGSTRING);
 }
 
 void TextWindow::uninit() {
@@ -62,8 +64,6 @@ void TextWindow::onCreate() {
     if (monoFont)
         SendMessage(edit, WM_SETFONT, (WPARAM)monoFont, FALSE);
     SendMessage(edit, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
-    if (IsWindows8OrGreater())
-        SendMessage(edit, EM_SETEDITSTYLE, SES_MULTISELECT, SES_MULTISELECT);
     SendMessage(edit, EM_SETEVENTMASK, 0, ENM_SELCHANGE);
     SendMessage(edit, EM_EXLIMITTEXT, 0, 0x7FFFFFFE); // maximum possible limit
 
@@ -88,6 +88,9 @@ void TextWindow::onSize(int width, int height) {
 }
 
 bool TextWindow::handleTopLevelMessage(MSG *msg) {
+    // TODO: this will only be handled if the text window is active
+    if (findReplaceDialog && IsDialogMessage(findReplaceDialog, msg))
+        return true;
     if (TranslateAccelerator(hwnd, textAccelTable, msg))
         return true;
     return ItemWindow::handleTopLevelMessage(msg);
@@ -153,6 +156,28 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
     }
+    if (message == findReplaceMessage) {
+        FINDREPLACE *input = (FINDREPLACE *)lParam;
+        if (input->Flags & FR_DIALOGTERM) {
+            findReplaceDialog = nullptr;
+        } else if (input->Flags & FR_FINDNEXT) {
+            FINDTEXTEX findText;
+            findText.lpstrText = input->lpstrFindWhat;
+            CHARRANGE sel;
+            SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
+            if (input->Flags & FR_DOWN) {
+                findText.chrg = {sel.cpMax, -1};
+            } else {
+                findText.chrg = {sel.cpMin, 0};
+            }
+            if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
+                SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
+            } else {
+                MessageBeep(MB_OK);
+            }
+        }
+        return 0;
+    }
     return ItemWindow::handleMessage(message, wParam, lParam);
 }
 
@@ -170,6 +195,9 @@ bool TextWindow::onCommand(WORD command) {
             return true;
         case IDM_UNINDENT:
             indentSelection(-1);
+            return true;
+        case IDM_FIND:
+            openFindDialog();
             return true;
         case IDM_UNDO:
             SendMessage(edit, EM_UNDO, 0, 0);
@@ -282,6 +310,18 @@ void TextWindow::indentSelection(int dir) {
     if (dir == 1)
         sel = {sel.cpMin + 1, sel.cpMax + (endLine - startLine) + 1};
     SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
+}
+
+void TextWindow::openFindDialog() {
+    if (findReplaceDialog)
+        DestroyWindow(findReplaceDialog);
+    findReplace = {sizeof(findReplace)};
+    findReplace.hwndOwner = hwnd;
+    findReplace.Flags = FR_DOWN;
+    findBuffer[0] = 0;
+    findReplace.lpstrFindWhat = findBuffer;
+    findReplace.wFindWhatLen = _countof(findBuffer); // docs are wrong, this is in chars not bytes
+    findReplaceDialog = FindText(&findReplace);
 }
 
 bool TextWindow::loadText() {

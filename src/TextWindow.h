@@ -3,6 +3,7 @@
 
 #include "ItemWindow.h"
 #include <Richedit.h>
+#include <commdlg.h>
 
 namespace chromafile {
 
@@ -33,6 +34,7 @@ private:
 
     void newLine();
     void indentSelection(int dir); // dir can be 1 (right) or -1 (left)
+    void openFindDialog();
 
     bool loadText();
     bool saveText();
@@ -47,6 +49,10 @@ private:
     HWND edit;
     Encoding encoding = FAIL;
     int scrollAccum = 0; // for high resolution scrolling
+
+    HWND findReplaceDialog = nullptr;
+    FINDREPLACE findReplace;
+    wchar_t findBuffer[128], replaceBuffer[128];
 };
 
 } // namespace
