@@ -27,6 +27,15 @@
 #define IDM_INDENT          1102
 #define IDM_UNINDENT        1103
 
+#define IDR_TEXT_MENU       108
+#define IDM_UNDO            1200
+#define IDM_REDO            1201
+#define IDM_CUT             1202
+#define IDM_COPY            1203
+#define IDM_PASTE           1204
+#define IDM_DELETE          1205
+#define IDM_SELECT_ALL      1206
+
 #define IDR_ICON_FONT   103
 // https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
 #define MDL2_CHEVRON_LEFT_MED       L"\uE973"

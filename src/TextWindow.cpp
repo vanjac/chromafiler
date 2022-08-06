@@ -93,6 +93,12 @@ bool TextWindow::handleTopLevelMessage(MSG *msg) {
     return ItemWindow::handleTopLevelMessage(msg);
 }
 
+void undoNameToString(UNDONAMEID id, LocalHeapPtr<wchar_t> &str) {
+    if (id > UID_AUTOTABLE)
+        id = UID_UNKNOWN;
+    formatMessage(str, id + STR_TEXT_ACTION_UNKNOWN);
+}
+
 LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_CLOSE:
@@ -104,7 +110,48 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 if (result == IDYES)
                     saveText();
             }
-            break;
+            break; // continue closing as normal
+        case WM_CONTEXTMENU: {
+            POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+            if (pos.x == -1 && pos.y == -1) {
+                CHARRANGE sel;
+                SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
+                SendMessage(edit, EM_POSFROMCHAR, (WPARAM)&pos, sel.cpMin);
+                ClientToScreen(edit, &pos);
+            }
+            HMENU menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_MENU));
+            TrackPopupMenuEx(GetSubMenu(menu, 0), TPM_RIGHTBUTTON,
+                pos.x, pos.y, hwnd, nullptr);
+            DestroyMenu(menu);
+            return 0;
+        }
+        case WM_INITMENUPOPUP: {
+            HMENU menu = (HMENU)wParam;
+            if (!SendMessage(edit, EM_CANUNDO, 0, 0)) {
+                EnableMenuItem(menu, IDM_UNDO, MF_GRAYED);
+            } else {
+                LocalHeapPtr<wchar_t> undoName, undoMessage;
+                undoNameToString((UNDONAMEID)SendMessage(edit, EM_GETUNDONAME, 0, 0), undoName);
+                formatMessage(undoMessage, STR_TEXT_UNDO, &*undoName);
+                ModifyMenu(menu, IDM_UNDO, MF_STRING, IDM_UNDO, undoMessage);
+            }
+            if (!SendMessage(edit, EM_CANREDO, 0, 0)) {
+                EnableMenuItem(menu, IDM_REDO, MF_GRAYED);
+            } else {
+                LocalHeapPtr<wchar_t> redoName, redoMessage;
+                undoNameToString((UNDONAMEID)SendMessage(edit, EM_GETREDONAME, 0, 0), redoName);
+                formatMessage(redoMessage, STR_TEXT_REDO, &*redoName);
+                ModifyMenu(menu, IDM_REDO, MF_STRING, IDM_REDO, redoMessage);
+            }
+            if (SendMessage(edit, EM_SELECTIONTYPE, 0, 0) == SEL_EMPTY) {
+                EnableMenuItem(menu, IDM_CUT, MF_GRAYED);
+                EnableMenuItem(menu, IDM_COPY, MF_GRAYED);
+                EnableMenuItem(menu, IDM_DELETE, MF_GRAYED);
+            }
+            if (!SendMessage(edit, EM_CANPASTE, 0, 0))
+                EnableMenuItem(menu, IDM_PASTE, MF_GRAYED);
+            return 0;
+        }
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
 }
@@ -124,6 +171,29 @@ bool TextWindow::onCommand(WORD command) {
         case IDM_UNINDENT:
             indentSelection(-1);
             return true;
+        case IDM_UNDO:
+            SendMessage(edit, EM_UNDO, 0, 0);
+            return true;
+        case IDM_REDO:
+            SendMessage(edit, EM_REDO, 0, 0);
+            return true;
+        case IDM_CUT:
+            SendMessage(edit, WM_CUT, 0, 0);
+            return true;
+        case IDM_COPY:
+            SendMessage(edit, WM_COPY, 0, 0);
+            return true;
+        case IDM_PASTE:
+            SendMessage(edit, WM_PASTE, 0, 0);
+            return true;
+        case IDM_DELETE:
+            SendMessage(edit, WM_CLEAR, 0, 0);
+            return true;
+        case IDM_SELECT_ALL: {
+            CHARRANGE sel = {0, -1};
+            SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
+            return true;
+        }
     }
     return ItemWindow::onCommand(command);
 }
