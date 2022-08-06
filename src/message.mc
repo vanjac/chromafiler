@@ -65,7 +65,7 @@ Language=English
 MessageId=
 SymbolicName=STR_TEXT_ACTION_UNKNOWN
 Language=English
-
+%b
 .
 
 MessageId=
