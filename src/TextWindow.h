@@ -32,6 +32,7 @@ private:
     void updateStatus(CHARRANGE range);
 
     void newLine();
+    void indentSelection(int dir); // dir can be 1 (right) or -1 (left)
 
     bool loadText();
     bool saveText();

@@ -88,8 +88,6 @@ void TextWindow::onSize(int width, int height) {
 }
 
 bool TextWindow::handleTopLevelMessage(MSG *msg) {
-    if (msg->message == WM_KEYDOWN && msg->wParam == VK_TAB)
-        return false;
     if (TranslateAccelerator(hwnd, textAccelTable, msg))
         return true;
     return ItemWindow::handleTopLevelMessage(msg);
@@ -120,6 +118,12 @@ bool TextWindow::onCommand(WORD command) {
         case IDM_NEW_LINE:
             newLine();
             return true;
+        case IDM_INDENT:
+            indentSelection(1);
+            return true;
+        case IDM_UNINDENT:
+            indentSelection(-1);
+            return true;
     }
     return ItemWindow::onCommand(command);
 }
@@ -133,9 +137,9 @@ LRESULT TextWindow::onNotify(NMHDR *nmHdr) {
 }
 
 void TextWindow::updateStatus(CHARRANGE range) {
-    ULONG line = 1 + (ULONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
-    ULONG lineIndex = (ULONG)SendMessage(edit, EM_LINEINDEX, (WPARAM)-1, 0);
-    ULONG col = range.cpMin - lineIndex + 1;
+    LONG line = 1 + (LONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
+    LONG lineIndex = (LONG)SendMessage(edit, EM_LINEINDEX, (WPARAM)-1, 0);
+    LONG col = range.cpMin - lineIndex + 1;
     LocalHeapPtr<wchar_t> status;
     if (range.cpMin == range.cpMax) {
         formatMessage(status, STR_TEXT_STATUS, line, col);
@@ -146,7 +150,7 @@ void TextWindow::updateStatus(CHARRANGE range) {
 }
 
 void TextWindow::newLine() {
-    ULONG line = (ULONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
+    LONG line = (LONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
     wchar_t newLineBuffer[1024];
     newLineBuffer[0] = '\n';
     newLineBuffer[1] = _countof(newLineBuffer) - 2; // allow room for null
@@ -158,6 +162,56 @@ void TextWindow::newLine() {
     }
     newLineBuffer[endIndent] = 0;
     SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)newLineBuffer);
+}
+
+void TextWindow::indentSelection(int dir) {
+    CHARRANGE sel;
+    SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
+    LONG startLine = (LONG)SendMessage(edit, EM_EXLINEFROMCHAR, 0, sel.cpMin);
+    LONG endLine = (LONG)SendMessage(edit, EM_EXLINEFROMCHAR, 0, sel.cpMax - 1);
+    if (dir == 1) {
+        LONG maxLine = (LONG)SendMessage(edit, EM_EXLINEFROMCHAR, 0, sel.cpMax);
+        if (startLine == maxLine) {
+            SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)L"\t");
+            return;
+        }
+    }
+    LONG startIndex = (LONG)SendMessage(edit, EM_LINEINDEX, startLine, 0);
+    LONG endIndex = (LONG)SendMessage(edit, EM_LINEINDEX, endLine + 1, 0);
+    if (endIndex == -1) { // last line
+        GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200};
+        endIndex = (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
+    }
+    LONG bufferSize = endIndex - startIndex + 1; // include null
+    if (dir == 1)
+        bufferSize += endLine - startLine + 1; // enough for tabs on each line
+    CComHeapPtr<wchar_t> indentBuffer;
+    indentBuffer.Allocate(bufferSize);
+    LONG bufferI = 0;
+    for (LONG line = startLine; line <= endLine; line++) {
+        if (dir == 1)
+            indentBuffer[bufferI++] = '\t';
+        LONG availableSize = bufferSize - bufferI - 1;
+        indentBuffer[bufferI] = availableSize < 65536 ? (wchar_t)availableSize : 65535;
+        LONG lineLen = (LONG)SendMessage(edit, EM_GETLINE, line, (LPARAM)(indentBuffer + bufferI));
+        if (dir == -1 && lineLen != 0 && indentBuffer[bufferI] == '\t') {
+            MoveMemory(indentBuffer + bufferI, indentBuffer + bufferI + 1,
+                (lineLen - 1) * sizeof(wchar_t));
+            bufferI -= 1;
+            if (line == startLine && sel.cpMin > startIndex)
+                sel.cpMin -= 1;
+            sel.cpMax -= 1;
+        }
+        bufferI += lineLen;
+    }
+    indentBuffer[bufferI] = 0;
+    CHARRANGE indentRange = {startIndex, endIndex};
+    SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&indentRange);
+    SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)&*indentBuffer);
+    // restore selection, now shifted by tab characters
+    if (dir == 1)
+        sel = {sel.cpMin + 1, sel.cpMax + (endLine - startLine) + 1};
+    SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
 }
 
 bool TextWindow::loadText() {
