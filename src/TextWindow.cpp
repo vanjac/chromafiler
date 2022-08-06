@@ -157,25 +157,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         }
     }
     if (message == findReplaceMessage) {
-        FINDREPLACE *input = (FINDREPLACE *)lParam;
-        if (input->Flags & FR_DIALOGTERM) {
-            findReplaceDialog = nullptr;
-        } else if (input->Flags & FR_FINDNEXT) {
-            FINDTEXTEX findText;
-            findText.lpstrText = input->lpstrFindWhat;
-            CHARRANGE sel;
-            SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
-            if (input->Flags & FR_DOWN) {
-                findText.chrg = {sel.cpMax, -1};
-            } else {
-                findText.chrg = {sel.cpMin, 0};
-            }
-            if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
-                SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
-            } else {
-                MessageBeep(MB_OK);
-            }
-        }
+        handleFindReplace((FINDREPLACE *)lParam);
         return 0;
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
@@ -277,7 +259,7 @@ void TextWindow::indentSelection(int dir) {
     LONG startIndex = (LONG)SendMessage(edit, EM_LINEINDEX, startLine, 0);
     LONG endIndex = (LONG)SendMessage(edit, EM_LINEINDEX, endLine + 1, 0);
     if (endIndex == -1) { // last line
-        GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200};
+        GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200}; // no CRLF
         endIndex = (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
     }
     LONG bufferSize = endIndex - startIndex + 1; // include null
@@ -322,6 +304,39 @@ void TextWindow::openFindDialog() {
     findReplace.lpstrFindWhat = findBuffer;
     findReplace.wFindWhatLen = _countof(findBuffer); // docs are wrong, this is in chars not bytes
     findReplaceDialog = FindText(&findReplace);
+}
+
+void TextWindow::handleFindReplace(FINDREPLACE *input) {
+    if (input->Flags & FR_DIALOGTERM) {
+        findReplaceDialog = nullptr;
+    } else if (input->Flags & FR_FINDNEXT) {
+        FINDTEXTEX findText;
+        findText.lpstrText = input->lpstrFindWhat;
+        CHARRANGE sel;
+        SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
+        if (input->Flags & FR_DOWN) {
+            findText.chrg = {sel.cpMax, -1};
+        } else {
+            findText.chrg = {sel.cpMin, 0};
+        }
+        if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
+            SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
+        } else {
+            // wrap around
+            if (input->Flags & FR_DOWN) {
+                findText.chrg.cpMin = 0;
+            } else {
+                GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200}; // no CRLF
+                findText.chrg.cpMin =
+                    (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
+            }
+            if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
+                SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
+            } else {
+                MessageBeep(MB_OK);
+            }
+        }
+    }
 }
 
 bool TextWindow::loadText() {

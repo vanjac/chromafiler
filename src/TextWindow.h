@@ -35,6 +35,7 @@ private:
     void newLine();
     void indentSelection(int dir); // dir can be 1 (right) or -1 (left)
     void openFindDialog();
+    void handleFindReplace(FINDREPLACE *input);
 
     bool loadText();
     bool saveText();
