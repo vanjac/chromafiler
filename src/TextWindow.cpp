@@ -80,6 +80,22 @@ void TextWindow::onCreate() {
         updateStatus({0, 0});
 }
 
+void TextWindow::addToolbarButtons(HWND tb) {
+    TBBUTTON buttons[] = {
+        makeToolbarButton(MDL2_DELETE, IDM_DELETE_PROXY, 0),
+    };
+    SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
+    ItemWindow::addToolbarButtons(tb);
+}
+
+int TextWindow::getToolbarTooltip(WORD command) {
+    switch (command) {
+        case IDM_DELETE_PROXY:
+            return IDS_DELETE_COMMAND;
+    }
+    return ItemWindow::getToolbarTooltip(command);
+}
+
 void TextWindow::onActivate(WORD state, HWND prevWindow) {
     ItemWindow::onActivate(state, prevWindow);
     if (state != WA_INACTIVE) {

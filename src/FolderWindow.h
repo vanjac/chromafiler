@@ -43,7 +43,7 @@ protected:
     void onSize(int width, int height) override;
 
     void addToolbarButtons(HWND tb) override;
-    virtual int getToolbarTooltip(WORD command);
+    int getToolbarTooltip(WORD command) override;
 
     void onChildDetached() override;
 

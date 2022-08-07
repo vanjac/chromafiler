@@ -21,6 +21,7 @@
 #define IDM_DETACH          1013
 #define IDM_CLOSE_PARENT    1014
 #define IDM_NEW_TEXT_FILE   1015
+#define IDM_DELETE_PROXY    1016
 
 #define IDR_TEXT_ACCEL      107
 #define IDM_SAVE            1100
@@ -48,6 +49,7 @@
 #define MDL2_SETTING                L"\uE713"
 #define MDL2_CALCULATOR_ADDITION    L"\uE948"
 #define MDL2_VIEW                   L"\uE890"
+#define MDL2_DELETE                 L"\uE74D"
 
 #define IDD_SETTINGS_GENERAL        104
 #define IDC_START_FOLDER_PATH       1001
@@ -82,3 +84,4 @@
 #define IDS_REFRESH_COMMAND     202
 #define IDS_NEW_ITEM_COMMAND    203
 #define IDS_VIEW_COMMAND        204
+#define IDS_DELETE_COMMAND      205

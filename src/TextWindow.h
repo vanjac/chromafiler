@@ -25,6 +25,9 @@ protected:
     void onActivate(WORD state, HWND prevWindow);
     void onSize(int width, int height);
 
+    void addToolbarButtons(HWND tb) override;
+    int getToolbarTooltip(WORD command) override;
+
 private:
     const wchar_t * className() override;
 

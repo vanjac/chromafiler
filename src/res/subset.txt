@@ -1,9 +1,10 @@
 Segoe MDL2 Assets font subset generated with https://everythingfonts.com/subsetter
-Included characters: 
+Included characters: 
     U+E973 (ChevronLeftMed)
     U+E72C (Refresh)
     U+E713 (Setting)
     U+E948 (CalculatorAddition)
     U+E890 (View)
+    U+E74D (Delete)
 
 https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font

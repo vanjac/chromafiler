@@ -688,6 +688,10 @@ bool ItemWindow::onCommand(WORD command) {
             if (useCustomFrame())
                 beginRename();
             return true;
+        case IDM_DELETE_PROXY:
+            if (useCustomFrame())
+                deleteProxy();
+            return true;
         case IDM_PARENT_MENU: {
             ItemWindow *rootParent = this;
             while (rootParent->parent)
@@ -1199,6 +1203,20 @@ void ItemWindow::openProxyProperties() {
         info.lpIDList = idList;
         info.hwnd = hwnd;
         ShellExecuteEx(&info);
+    }
+}
+
+void ItemWindow::deleteProxy() {
+    CComHeapPtr<ITEMIDLIST> idList;
+    if (checkHR(SHGetIDListFromObject(item, &idList))) {
+        SHELLEXECUTEINFO info = {sizeof(info)};
+        info.fMask = SEE_MASK_INVOKEIDLIST;
+        info.lpVerb = L"delete";
+        info.lpIDList = idList;
+        info.hwnd = hwnd;
+        ShellExecuteEx(&info);
+        // TODO: remove this once there's an automatic system for tracking files
+        resolveItem();
     }
 }
 
