@@ -39,6 +39,10 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
         if (previewsEnabled || textEditorEnabled) {
             wchar_t *ext = PathFindExtension(parsingName);
             if (ext) {
+                if (textEditorEnabled && ext[0] == 0) {
+                    window.Attach(new TextWindow(parent, item));
+                    return window;
+                }
                 CLSID previewID;
                 if (previewHandlerCLSID(ext, &previewID)) {
                     if (textEditorEnabled && previewID == TXT_PREVIEWER_CLSID) {
