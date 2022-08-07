@@ -23,8 +23,8 @@ protected:
     bool onCommand(WORD command) override;
     bool onControlCommand(HWND controlHwnd, WORD notif) override;
     LRESULT onNotify(NMHDR *nmHdr) override;
-    void onActivate(WORD state, HWND prevWindow);
-    void onSize(int width, int height);
+    void onActivate(WORD state, HWND prevWindow) override;
+    void onSize(int width, int height) override;
 
     void addToolbarButtons(HWND tb) override;
     int getToolbarTooltip(WORD command) override;
