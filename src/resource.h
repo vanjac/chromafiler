@@ -85,4 +85,5 @@
 #define IDS_REFRESH_COMMAND     202
 #define IDS_NEW_ITEM_COMMAND    203
 #define IDS_VIEW_COMMAND        204
-#define IDS_DELETE_COMMAND      205
+#define IDS_SAVE_COMMAND        205
+#define IDS_DELETE_COMMAND      206

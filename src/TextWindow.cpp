@@ -93,6 +93,8 @@ int TextWindow::getToolbarTooltip(WORD command) {
     switch (command) {
         case IDM_DELETE_PROXY:
             return IDS_DELETE_COMMAND;
+        case IDM_SAVE:
+            return IDS_SAVE_COMMAND;
     }
     return ItemWindow::getToolbarTooltip(command);
 }
