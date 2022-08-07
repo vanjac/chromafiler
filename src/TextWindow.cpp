@@ -156,6 +156,10 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             if (!SendMessage(edit, EM_CANPASTE, 0, 0))
                 EnableMenuItem(menu, IDM_PASTE, MF_GRAYED);
+            if (findBuffer[0] == 0) {
+                EnableMenuItem(menu, IDM_FIND_NEXT, MF_GRAYED);
+                EnableMenuItem(menu, IDM_FIND_PREV, MF_GRAYED);
+            }
             return 0;
         }
     }
@@ -183,6 +187,22 @@ bool TextWindow::onCommand(WORD command) {
             return true;
         case IDM_FIND:
             openFindDialog(false);
+            return true;
+        case IDM_FIND_NEXT:
+            if (findBuffer[0] == 0) {
+                openFindDialog(false);
+            } else {
+                findReplace.Flags |= FR_DOWN;
+                findNext(&findReplace);
+            }
+            return true;
+        case IDM_FIND_PREV:
+            if (findBuffer[0] == 0) {
+                openFindDialog(false);
+            } else {
+                findReplace.Flags &= ~FR_DOWN;
+                findNext(&findReplace);
+            }
             return true;
         case IDM_REPLACE:
             openFindDialog(true);
