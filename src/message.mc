@@ -51,6 +51,18 @@ Ln %1!d!, Col %2!d! (%3!d! selected)
 .
 
 MessageId=
+SymbolicName=STR_TEXT_STATUS_CANT_FIND
+Language=English
+Cannot find text!
+.
+
+MessageId=
+SymbolicName=STR_TEXT_STATUS_REPLACED
+Language=English
+Replaced %1!d! occurrences.
+.
+
+MessageId=
 SymbolicName=STR_TEXT_UNDO
 Language=English
 &Undo %1

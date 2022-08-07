@@ -32,10 +32,13 @@ private:
 
     void updateStatus(CHARRANGE range);
 
+    LONG getTextLength();
     void newLine();
     void indentSelection(int dir); // dir can be 1 (right) or -1 (left)
-    void openFindDialog();
+    void openFindDialog(bool replace);
     void handleFindReplace(FINDREPLACE *input);
+    void findNext(FINDREPLACE *input);
+    int replaceAll(FINDREPLACE *input);
 
     bool loadText();
     bool saveText();

@@ -182,7 +182,10 @@ bool TextWindow::onCommand(WORD command) {
             indentSelection(-1);
             return true;
         case IDM_FIND:
-            openFindDialog();
+            openFindDialog(false);
+            return true;
+        case IDM_REPLACE:
+            openFindDialog(true);
             return true;
         case IDM_UNDO:
             SendMessage(edit, EM_UNDO, 0, 0);
@@ -232,6 +235,12 @@ void TextWindow::updateStatus(CHARRANGE range) {
     setStatusText(status);
 }
 
+LONG TextWindow::getTextLength() {
+    // can't use WM_GETTEXTLENGTH because it counts CRLFs instead of LFs
+    GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200};
+    return (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
+}
+
 void TextWindow::newLine() {
     LONG line = (LONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
     wchar_t newLineBuffer[1024];
@@ -261,10 +270,8 @@ void TextWindow::indentSelection(int dir) {
     }
     LONG startIndex = (LONG)SendMessage(edit, EM_LINEINDEX, startLine, 0);
     LONG endIndex = (LONG)SendMessage(edit, EM_LINEINDEX, endLine + 1, 0);
-    if (endIndex == -1) { // last line
-        GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200}; // no CRLF
-        endIndex = (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
-    }
+    if (endIndex == -1) // last line
+        endIndex = getTextLength();
     LONG bufferSize = endIndex - startIndex + 1; // include null
     if (dir == 1)
         bufferSize += endLine - startLine + 1; // enough for tabs on each line
@@ -297,7 +304,7 @@ void TextWindow::indentSelection(int dir) {
     SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
 }
 
-void TextWindow::openFindDialog() {
+void TextWindow::openFindDialog(bool replace) {
     if (findReplaceDialog)
         DestroyWindow(findReplaceDialog);
     findReplace = {sizeof(findReplace)};
@@ -310,40 +317,120 @@ void TextWindow::openFindDialog() {
         SendMessage(edit, EM_GETSELTEXT, 0, (LPARAM)findBuffer);
     // otherwise keep previous
     findReplace.lpstrFindWhat = findBuffer;
-    findReplaceDialog = FindText(&findReplace);
+    findReplace.wReplaceWithLen = _countof(replaceBuffer);
+    findReplace.lpstrReplaceWith = replaceBuffer;
+    if (replace) {
+        findReplaceDialog = ReplaceText(&findReplace);
+    } else {
+        findReplaceDialog = FindText(&findReplace);
+    }
 }
 
 void TextWindow::handleFindReplace(FINDREPLACE *input) {
     if (input->Flags & FR_DIALOGTERM) {
         findReplaceDialog = nullptr;
     } else if (input->Flags & FR_FINDNEXT) {
-        FINDTEXTEX findText;
-        findText.lpstrText = input->lpstrFindWhat;
+        findNext(input);
+    } else if (input->Flags & FR_REPLACE) {
         CHARRANGE sel;
         SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
-        if (input->Flags & FR_DOWN) {
-            findText.chrg = {sel.cpMax, -1};
-        } else {
-            findText.chrg = {sel.cpMin, 0};
+        int compare = 1;
+        if (sel.cpMax != sel.cpMin && sel.cpMax - sel.cpMin < _countof(findBuffer) - 1) {
+            wchar_t selText[_countof(findBuffer)];
+            SendMessage(edit, EM_GETSELTEXT, 0, (LPARAM)selText);
+            compare = (input->Flags & FR_MATCHCASE) ?
+                lstrcmp(selText, input->lpstrFindWhat) : lstrcmpi(selText, input->lpstrFindWhat);
         }
-        if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
-            SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
-        } else {
-            // wrap around
-            if (input->Flags & FR_DOWN) {
-                findText.chrg.cpMin = 0;
-            } else {
-                GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200}; // no CRLF
-                findText.chrg.cpMin =
-                    (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
-            }
-            if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
-                SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
-            } else {
-                MessageBeep(MB_OK);
-            }
-        }
+        if (compare == 0)
+            SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)input->lpstrReplaceWith);
+        findNext(input);
+    } else if (input->Flags & FR_REPLACEALL) {
+        replaceAll(input);
     }
+}
+
+void TextWindow::findNext(FINDREPLACE *input) {
+    FINDTEXTEX findText;
+    findText.lpstrText = input->lpstrFindWhat;
+    CHARRANGE sel;
+    SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
+    if (input->Flags & FR_DOWN) {
+        findText.chrg = {sel.cpMax, -1};
+    } else {
+        findText.chrg = {sel.cpMin, 0};
+    }
+    if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
+        SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
+        return;
+    }
+    // wrap around
+    if (input->Flags & FR_DOWN) {
+        findText.chrg.cpMin = 0;
+    } else {
+        findText.chrg.cpMin = getTextLength();
+    }
+    if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
+        SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
+        return;
+    }
+    if (hasStatusText()) {
+        LocalHeapPtr<wchar_t> status;
+        formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
+        setStatusText(status);
+    }
+    MessageBeep(MB_OK);
+}
+
+int TextWindow::replaceAll(FINDREPLACE *input) {
+    // count number of occurrences (to determine size of buffer)
+    FINDTEXTEX findText;
+    findText.lpstrText = input->lpstrFindWhat;
+    findText.chrg = {0, -1};
+    int numOccurrences = 0;
+    while (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
+        numOccurrences++;
+        findText.chrg.cpMin = findText.chrgText.cpMax;
+    }
+    if (numOccurrences == 0) {
+        if (hasStatusText()) {
+            LocalHeapPtr<wchar_t> status;
+            formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
+            setStatusText(status);
+        }
+        MessageBeep(MB_OK);
+        return numOccurrences;
+    }
+
+    LONG textLength = getTextLength();
+    int findLen = lstrlen(input->lpstrFindWhat);
+    int replaceLen = lstrlen(input->lpstrReplaceWith);
+    CComHeapPtr<wchar_t> buffer;
+    buffer.Allocate(textLength + numOccurrences * (replaceLen - findLen) + 1);
+
+    findText.chrg.cpMin = 0; // search starting location
+    LONG bufferI = 0;
+    for (int i = 0; i < numOccurrences; i++) {
+        SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText);
+        CHARRANGE beforeMatch = {findText.chrg.cpMin, findText.chrgText.cpMin};
+        SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&beforeMatch);
+        bufferI += (LONG)SendMessage(edit, EM_GETSELTEXT, 0, (LPARAM)(buffer + bufferI));
+        CopyMemory(buffer + bufferI, input->lpstrReplaceWith, replaceLen * sizeof(wchar_t));
+        bufferI += replaceLen;
+        findText.chrg.cpMin = findText.chrgText.cpMax; // search after match
+    }
+    CHARRANGE afterLastMatch = {findText.chrg.cpMin, textLength};
+    SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&afterLastMatch);
+    bufferI += (LONG)SendMessage(edit, EM_GETSELTEXT, 0, (LPARAM)(buffer + bufferI));
+
+    SETTEXTEX setText = {ST_KEEPUNDO | ST_UNICODE, 1200};
+    SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)&*buffer);
+
+    if (hasStatusText()) {
+        LocalHeapPtr<wchar_t> status;
+        formatMessage(status, STR_TEXT_STATUS_REPLACED, numOccurrences);
+        setStatusText(status);
+    }
+    return numOccurrences;
 }
 
 bool TextWindow::loadText() {

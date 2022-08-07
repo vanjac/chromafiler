@@ -55,6 +55,7 @@ IDR_TEXT_ACCEL  ACCELERATORS {
     VK_TAB,         IDM_INDENT,         VIRTKEY
     VK_TAB,         IDM_UNINDENT,       VIRTKEY, SHIFT
     "F",            IDM_FIND,           VIRTKEY, CONTROL
+    "H",            IDM_REPLACE,        VIRTKEY, CONTROL
 }
 
 IDR_TEXT_MENU   MENU {
@@ -71,6 +72,7 @@ IDR_TEXT_MENU   MENU {
         MENUITEM    "Select &All",  IDM_SELECT_ALL
         MENUITEM    SEPARATOR
         MENUITEM    "&Find...",     IDM_FIND
+        MENUITEM    "R&eplace...",  IDM_REPLACE
     }
 }
 
