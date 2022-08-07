@@ -1095,6 +1095,9 @@ bool ItemWindow::resolveItem() {
     }
 
     debugPrintf(L"Item has been deleted!\n");
+    BOOL disableAnimations = false; // reenable animations to emphasize window closing
+    checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+        &disableAnimations, sizeof(disableAnimations)));
     close();
     return false;
 }
