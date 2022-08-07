@@ -17,7 +17,6 @@ const wchar_t CONTROL_PANEL_PATH[] = L"::{26EE0668-A00A-44D7-9371-BEB064C98683}"
 const CLSID TXT_PREVIEWER_CLSID =
     {0x1531d583, 0x8375, 0x4d3f, {0xb5, 0xfb, 0xd2, 0x3b, 0xbd, 0x16, 0x9f, 0x22}};
 
-bool isTextFile(wchar_t *ext);
 bool previewHandlerCLSID(wchar_t *ext, CLSID *previewID);
 
 CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item) {
