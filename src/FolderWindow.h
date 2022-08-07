@@ -61,7 +61,7 @@ private:
     void selectionChanged();
 
     CComPtr<IContextMenu> queryBackgroundMenu(HMENU *popupMenu);
-    void newFolder();
+    void newItem(const char *verb);
     void openNewItemMenu(POINT point);
     void openViewMenu(POINT point);
     void openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu, POINT point);

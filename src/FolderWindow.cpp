@@ -185,7 +185,10 @@ void FolderWindow::onDestroy() {
 bool FolderWindow::onCommand(WORD command) {
     switch (command) {
         case IDM_NEW_FOLDER:
-            newFolder();
+            newItem(CMDSTR_NEWFOLDERA);
+            return true;
+        case IDM_NEW_TEXT_FILE:
+            newItem(".txt");
             return true;
     }
     return ItemWindow::onCommand(command);
@@ -318,14 +321,14 @@ CComPtr<IContextMenu> FolderWindow::queryBackgroundMenu(HMENU *popupMenu) {
     return contextMenu;
 }
 
-void FolderWindow::newFolder() {
+void FolderWindow::newItem(const char *verb) {
     HMENU popupMenu;
     CComPtr<IContextMenu> contextMenu = queryBackgroundMenu(&popupMenu);
     if (!contextMenu)
         return;
     CMINVOKECOMMANDINFO info = {sizeof(info)};
     info.hwnd = hwnd;
-    info.lpVerb = CMDSTR_NEWFOLDERA;
+    info.lpVerb = verb;
     CComPtr<IFolderView2> folderView;
     if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
         // https://stackoverflow.com/q/40497455

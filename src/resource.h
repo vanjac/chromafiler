@@ -20,6 +20,7 @@
 #define IDM_VIEW_MENU       1012
 #define IDM_DETACH          1013
 #define IDM_CLOSE_PARENT    1014
+#define IDM_NEW_TEXT_FILE   1015
 
 #define IDR_TEXT_ACCEL      107
 #define IDM_SAVE            1100
