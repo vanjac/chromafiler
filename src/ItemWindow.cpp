@@ -608,9 +608,12 @@ void ItemWindow::setStatusText(wchar_t *text) {
     }
 }
 
-TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command, BYTE style) {
-    return {I_IMAGENONE, command, TBSTATE_ENABLED,
-        (BYTE)(BTNS_SHOWTEXT | style), {}, 0, (INT_PTR)text};
+TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command, BYTE style, BYTE state) {
+    return {I_IMAGENONE, command, state, (BYTE)(BTNS_SHOWTEXT | style), {}, 0, (INT_PTR)text};
+}
+
+void ItemWindow::setToolbarButtonState(WORD command, BYTE state) {
+    SendMessage(toolbar, TB_SETSTATE, command, state);
 }
 
 void ItemWindow::addToolbarButtons(HWND tb) {

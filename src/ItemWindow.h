@@ -72,7 +72,9 @@ protected:
 
     bool hasStatusText();
     void setStatusText(wchar_t *text);
-    TBBUTTON makeToolbarButton(const wchar_t *text, WORD command, BYTE style);
+    TBBUTTON makeToolbarButton(const wchar_t *text, WORD command, BYTE style,
+        BYTE state = TBSTATE_ENABLED);
+    void setToolbarButtonState(WORD command, BYTE state);
     virtual void addToolbarButtons(HWND tb);
     virtual int getToolbarTooltip(WORD command);
 

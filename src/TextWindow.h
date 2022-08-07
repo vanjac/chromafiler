@@ -21,6 +21,7 @@ protected:
 
     void onCreate() override;
     bool onCommand(WORD command) override;
+    bool onControlCommand(HWND controlHwnd, WORD notif) override;
     LRESULT onNotify(NMHDR *nmHdr) override;
     void onActivate(WORD state, HWND prevWindow);
     void onSize(int width, int height);

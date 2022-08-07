@@ -70,7 +70,7 @@ void TextWindow::onCreate() {
     if (monoFont)
         SendMessage(edit, WM_SETFONT, (WPARAM)monoFont, FALSE);
     SendMessage(edit, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
-    SendMessage(edit, EM_SETEVENTMASK, 0, ENM_SELCHANGE);
+    SendMessage(edit, EM_SETEVENTMASK, 0, ENM_SELCHANGE | ENM_CHANGE);
     SendMessage(edit, EM_EXLIMITTEXT, 0, 0x7FFFFFFE); // maximum possible limit
 
     if (!loadText())
@@ -82,6 +82,7 @@ void TextWindow::onCreate() {
 
 void TextWindow::addToolbarButtons(HWND tb) {
     TBBUTTON buttons[] = {
+        makeToolbarButton(MDL2_SAVE, IDM_SAVE, 0, 0),
         makeToolbarButton(MDL2_DELETE, IDM_DELETE_PROXY, 0),
     };
     SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
@@ -192,8 +193,10 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
 bool TextWindow::onCommand(WORD command) {
     switch (command) {
         case IDM_SAVE:
-            if (saveText())
+            if (saveText()) {
                 SendMessage(edit, EM_SETMODIFY, FALSE, 0);
+                setToolbarButtonState(IDM_SAVE, 0);
+            }
             return true;
         case IDM_NEW_LINE:
             newLine();
@@ -251,6 +254,14 @@ bool TextWindow::onCommand(WORD command) {
         }
     }
     return ItemWindow::onCommand(command);
+}
+
+bool TextWindow::onControlCommand(HWND controlHwnd, WORD notif) {
+    if (controlHwnd == edit && notif == EN_CHANGE) {
+        if (SendMessage(edit, EM_GETMODIFY, 0, 0))
+            setToolbarButtonState(IDM_SAVE, TBSTATE_ENABLED);
+    }
+    return ItemWindow::onControlCommand(controlHwnd, notif);
 }
 
 LRESULT TextWindow::onNotify(NMHDR *nmHdr) {

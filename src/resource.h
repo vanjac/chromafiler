@@ -49,6 +49,7 @@
 #define MDL2_SETTING                L"\uE713"
 #define MDL2_CALCULATOR_ADDITION    L"\uE948"
 #define MDL2_VIEW                   L"\uE890"
+#define MDL2_SAVE                   L"\uE74E"
 #define MDL2_DELETE                 L"\uE74D"
 
 #define IDD_SETTINGS_GENERAL        104
