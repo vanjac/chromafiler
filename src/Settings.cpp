@@ -15,6 +15,7 @@ const wchar_t VAL_STATUS_TEXT_ENABLED[] = L"StatusTextEnabled";
 const wchar_t VAL_TOOLBAR_ENABLED[]     = L"ToolbarEnabled";
 const wchar_t VAL_PREVIEWS_ENABLED[]    = L"PreviewsEnabled";
 const wchar_t VAL_TEXT_EDITOR_ENABLED[] = L"TextEditorEnabled";
+const wchar_t VAL_TEXT_WRAP[]           = L"TextWrap";
 const wchar_t VAL_TRAY_FOLDER[]         = L"TrayFolder";
 const wchar_t VAL_TRAY_X[]              = L"TrayX";
 const wchar_t VAL_TRAY_Y[]              = L"TrayY";
@@ -128,6 +129,17 @@ bool getTextEditorEnabled() {
 void setTextEditorEnabled(bool value) {
     DWORD dwValue = value;
     setSettingsValue(VAL_TEXT_EDITOR_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
+}
+
+bool getTextWrap() {
+    DWORD value = DEFAULT_TEXT_WRAP;
+    getSettingsValue(VAL_TEXT_WRAP, RRF_RT_DWORD, &value, sizeof(value));
+    return value;
+}
+
+void setTextWrap(bool value) {
+    DWORD dwValue = value;
+    setSettingsValue(VAL_TEXT_WRAP, REG_DWORD, &dwValue, sizeof(dwValue));
 }
 
 bool getTrayOpenOnStartup() {

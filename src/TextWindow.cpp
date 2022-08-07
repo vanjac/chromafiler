@@ -1,5 +1,6 @@
 #include "TextWindow.h"
 #include "RectUtils.h"
+#include "Settings.h"
 #include "UIStrings.h"
 #include "resource.h"
 #include <windowsx.h>
@@ -58,9 +59,11 @@ bool TextWindow::useDefaultStatusText() const {
 
 void TextWindow::onCreate() {
     ItemWindow::onCreate();
-    edit = CreateWindow(MSFTEDIT_CLASS, nullptr,
-        WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL
-        | ES_NOHIDESEL | ES_SAVESEL | ES_SELECTIONBAR,
+    DWORD style = WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL
+        | ES_NOHIDESEL | ES_SAVESEL | ES_SELECTIONBAR;
+    if (!settings::getTextWrap())
+        style |= WS_HSCROLL | ES_AUTOHSCROLL;
+    edit = CreateWindow(MSFTEDIT_CLASS, nullptr, style,
         0, 0, 0, 0,
         hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
     SetWindowSubclass(edit, richEditProc, 0, (DWORD_PTR)this);
@@ -263,7 +266,7 @@ LONG TextWindow::getTextLength() {
 
 void TextWindow::newLine() {
     LONG line = (LONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
-    wchar_t newLineBuffer[1024];
+    wchar_t newLineBuffer[256];
     newLineBuffer[0] = '\n';
     newLineBuffer[1] = _countof(newLineBuffer) - 2; // allow room for null
     LRESULT lineLen = SendMessage(edit, EM_GETLINE, line, (LPARAM)(newLineBuffer + 1));

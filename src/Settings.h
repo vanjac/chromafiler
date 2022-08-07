@@ -17,6 +17,7 @@ const bool      DEFAULT_STATUS_TEXT_ENABLED = true;
 const bool      DEFAULT_TOOLBAR_ENABLED     = true;
 const bool      DEFAULT_PREVIEWS_ENABLED    = true;
 const bool      DEFAULT_TEXT_EDITOR_ENABLED = false;
+const bool      DEFAULT_TEXT_WRAP           = false;
 const wchar_t   DEFAULT_TRAY_FOLDER[]       = L"shell:Links";
 const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
 const SIZE      DEFAULT_TRAY_SIZE           = {600, 48};
@@ -41,6 +42,8 @@ void setPreviewsEnabled(bool value);
 
 bool getTextEditorEnabled();
 void setTextEditorEnabled(bool value);
+bool getTextWrap();
+void setTextWrap(bool value);
 
 bool getTrayOpenOnStartup();
 void setTrayOpenOnStartup(bool value);
