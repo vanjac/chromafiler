@@ -115,7 +115,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 LocalHeapPtr<wchar_t> caption, text;
                 formatMessage(caption, STR_SAVE_PROMPT_CAPTION);
                 formatMessage(text, STR_SAVE_PROMPT, &*title);
-                int result = MessageBox(hwnd, text, caption, MB_YESNO);
+                int result = MessageBox(nullptr, text, caption, MB_YESNO | MB_TASKMODAL);
                 if (result == IDYES)
                     saveText();
             }
