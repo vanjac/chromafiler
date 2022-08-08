@@ -150,9 +150,9 @@ public:
 CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder) {
     CComPtr<IFileOperation> operation;
     if (!checkHR(operation.CoCreateInstance(__uuidof(FileOperation))))
-        return 0;
+        return nullptr;
     NewItemSink eventSink;
-    DWORD eventSinkCookie;
+    DWORD eventSinkCookie = 0;
     checkHR(operation->Advise(&eventSink, &eventSinkCookie));
     checkHR(operation->SetOperationFlags(FOFX_ADDUNDORECORD | FOF_RENAMEONCOLLISION));
     CComHeapPtr<wchar_t> fileName;
