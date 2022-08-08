@@ -25,13 +25,10 @@
 
 #define IDR_TEXT_ACCEL      107
 #define IDM_SAVE            1100
-#define IDM_NEW_LINE        1101
-#define IDM_INDENT          1102
-#define IDM_UNINDENT        1103
-#define IDM_FIND            1104
-#define IDM_FIND_NEXT       1105
-#define IDM_FIND_PREV       1106
-#define IDM_REPLACE         1107
+#define IDM_FIND            1101
+#define IDM_FIND_NEXT       1102
+#define IDM_FIND_PREV       1103
+#define IDM_REPLACE         1104
 
 #define IDR_TEXT_MENU       108
 #define IDM_UNDO            1200

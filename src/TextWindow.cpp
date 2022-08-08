@@ -116,6 +116,9 @@ bool TextWindow::handleTopLevelMessage(MSG *msg) {
     // TODO: this will only be handled if the text window is active
     if (findReplaceDialog && IsDialogMessage(findReplaceDialog, msg))
         return true;
+    if (msg->message == WM_KEYDOWN && msg->wParam == VK_TAB
+            && GetKeyState(VK_CONTROL) >= 0 && GetKeyState(VK_MENU) >= 0)
+        return false; // allow rich edit subclass to handle these
     if (TranslateAccelerator(hwnd, textAccelTable, msg))
         return true;
     return ItemWindow::handleTopLevelMessage(msg);
@@ -199,15 +202,6 @@ bool TextWindow::onCommand(WORD command) {
                 SendMessage(edit, EM_SETMODIFY, FALSE, 0);
                 setToolbarButtonState(IDM_SAVE, 0);
             }
-            return true;
-        case IDM_NEW_LINE:
-            newLine();
-            return true;
-        case IDM_INDENT:
-            indentSelection(1);
-            return true;
-        case IDM_UNINDENT:
-            indentSelection(-1);
             return true;
         case IDM_FIND:
             openFindDialog(false);
@@ -613,6 +607,12 @@ LRESULT CALLBACK TextWindow::richEditProc(HWND hwnd, UINT message,
         int lines = (int)floor(window->scrollAccum / lineDelta);
         window->scrollAccum -= (int)(lines * lineDelta);
         SendMessage(hwnd, EM_LINESCROLL, 0, -lines);
+        return 0;
+    } else if (message == WM_KEYDOWN && wParam == VK_RETURN) {
+        ((TextWindow *)refData)->newLine();
+        return 0;
+    } else if (message == WM_CHAR && wParam == VK_TAB) {
+        ((TextWindow *)refData)->indentSelection((GetKeyState(VK_SHIFT) < 0) ? -1 : 1);
         return 0;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);

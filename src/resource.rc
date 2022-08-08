@@ -52,9 +52,6 @@ IDR_ITEM_ACCEL  ACCELERATORS {
 
 IDR_TEXT_ACCEL  ACCELERATORS {
     "S",            IDM_SAVE,           VIRTKEY, CONTROL
-    VK_RETURN,      IDM_NEW_LINE,       VIRTKEY
-    VK_TAB,         IDM_INDENT,         VIRTKEY
-    VK_TAB,         IDM_UNINDENT,       VIRTKEY, SHIFT
     "F",            IDM_FIND,           VIRTKEY, CONTROL
     VK_F3,          IDM_FIND_NEXT,      VIRTKEY
     VK_F3,          IDM_FIND_PREV,      VIRTKEY, SHIFT
