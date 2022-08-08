@@ -6,9 +6,12 @@
 #include "CreateItemWindow.h"
 #include "Settings.h"
 #include "SettingsDialog.h"
+#include "UIStrings.h"
 #include "resource.h"
 #include <shellapi.h>
 #include <shlobj.h>
+#include <propkey.h>
+#include <Propvarutil.h>
 
 #pragma comment(lib, "Dwmapi.lib")
 #pragma comment(lib, "Gdi32.lib")
@@ -71,11 +74,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     {
         CComHeapPtr<wchar_t> pathAlloc;
         wchar_t *path;
-        bool tray = false;
+        bool tray = false, scratch = false;
         if (argc > 1 && lstrcmpi(argv[1], L"/tray") == 0) {
             settings::getTrayFolder(pathAlloc);
             path = pathAlloc;
             tray = true;
+        } else if (argc > 1 && lstrcmpi(argv[1], L"/scratch") == 0) {
+            settings::getScratchFolder(pathAlloc);
+            path = pathAlloc;
+            scratch = true;
         } else if (argc > 1) {
             path = argv[1];
             int pathLen = lstrlen(path);
@@ -96,6 +103,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         if (tray) {
             initialWindow.Attach(new TrayWindow(nullptr, startItem));
             pos = ((TrayWindow *)initialWindow.p)->requestedPosition();
+        } else if (scratch) {
+            CComPtr<IShellItem> scratchFile = createScratchFile(startItem);
+            if (!scratchFile)
+                return 0;
+            initialWindow = createItemWindow(nullptr, scratchFile);
+            pos = {CW_USEDEFAULT, CW_USEDEFAULT};
         } else {
             initialWindow = createItemWindow(nullptr, startItem);
             pos = {CW_USEDEFAULT, CW_USEDEFAULT};
@@ -129,12 +142,36 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 DWORD WINAPI updateJumpList(void *) {
     CComPtr<ICustomDestinationList> jumpList;
     if (!checkHR(jumpList.CoCreateInstance(__uuidof(DestinationList))))
-        return false;
+        return 0;
     checkHR(jumpList->SetAppID(APP_ID));
     UINT minSlots;
     CComPtr<IObjectArray> removedDestinations;
     checkHR(jumpList->BeginList(&minSlots, IID_PPV_ARGS(&removedDestinations)));
-    // previous versions had a jump list but for now it is removed (#105)
-    // so this only serves to clear any existing jump lists
-    return checkHR(jumpList->CommitList());
+
+    CComPtr<IObjectCollection> tasks;
+    if (!checkHR(tasks.CoCreateInstance(__uuidof(EnumerableObjectCollection))))
+        return 0;
+    
+    CComPtr<IShellLink> scratchLink;
+    if (checkHR(scratchLink.CoCreateInstance(__uuidof(ShellLink)))) {
+        wchar_t exePath[MAX_PATH];
+        GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH);
+
+        checkHR(scratchLink->SetPath(exePath));
+        checkHR(scratchLink->SetArguments(L"/scratch"));
+        checkHR(scratchLink->SetIconLocation(exePath, IDR_APP_ICON));
+
+        LocalHeapPtr<wchar_t> title;
+        formatMessage(title, STR_NEW_SCRATCH_TASK);
+        CComQIPtr<IPropertyStore> trayLinkProps(scratchLink);
+        PROPVARIANT propVar;
+        if (checkHR(InitPropVariantFromString(title, &propVar)))
+            checkHR(trayLinkProps->SetValue(PKEY_Title, propVar));
+
+        checkHR(tasks->AddObject(scratchLink));
+    }
+
+    checkHR(jumpList->AddUserTasks(tasks));
+    checkHR(jumpList->CommitList());
+    return 0;
 }

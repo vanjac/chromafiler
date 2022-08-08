@@ -9,5 +9,6 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
 CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem);
 // displays error message if item can't be found
 CComPtr<IShellItem> itemFromPath(wchar_t *path);
+CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder);
 
 } // namespace

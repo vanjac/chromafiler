@@ -7,6 +7,7 @@
 #include "UIStrings.h"
 #include <Shlguid.h>
 #include <shlobj.h>
+#include <shellapi.h>
 #include <strsafe.h>
 
 namespace chromafile {
@@ -110,5 +111,71 @@ CComPtr<IShellItem> itemFromPath(wchar_t *path) {
         } // else retry
     }
 }
+
+
+// not reference counted!
+class NewItemSink : public IFileOperationProgressSink {
+public:
+    // IUnknown
+    STDMETHODIMP QueryInterface(REFIID, void **) override;
+    STDMETHODIMP_(ULONG) AddRef() { return 2; };
+    STDMETHODIMP_(ULONG) Release() { return 1; };
+
+    // IFileOperationProgressSink
+    STDMETHODIMP PostNewItem(DWORD, IShellItem *, LPCWSTR, LPCWSTR, DWORD, HRESULT, IShellItem *)
+        override;
+
+    STDMETHODIMP StartOperations() override {return S_OK;}
+    STDMETHODIMP FinishOperations(HRESULT) override {return S_OK;}
+    STDMETHODIMP PreRenameItem(DWORD, IShellItem *, LPCWSTR) override {return S_OK;}
+    STDMETHODIMP PostRenameItem(DWORD, IShellItem *, LPCWSTR, HRESULT, IShellItem *)
+        override {return S_OK;}
+    STDMETHODIMP PreMoveItem(DWORD, IShellItem *, IShellItem *, LPCWSTR) override {return S_OK;}
+    STDMETHODIMP PostMoveItem(DWORD, IShellItem *, IShellItem *, LPCWSTR, HRESULT, IShellItem *)
+        override {return S_OK;}
+    STDMETHODIMP PreCopyItem(DWORD, IShellItem *, IShellItem *, LPCWSTR) override {return S_OK;}
+    STDMETHODIMP PostCopyItem(DWORD, IShellItem *, IShellItem *, LPCWSTR, HRESULT, IShellItem *)
+        override {return S_OK;}
+    STDMETHODIMP PreDeleteItem(DWORD, IShellItem *) override {return S_OK;}
+    STDMETHODIMP PostDeleteItem(DWORD, IShellItem *, HRESULT, IShellItem *) override {return S_OK;}
+    STDMETHODIMP PreNewItem(DWORD, IShellItem *, LPCWSTR) override {return S_OK;}
+    STDMETHODIMP UpdateProgress(UINT, UINT) override {return S_OK;}
+    STDMETHODIMP ResetTimer() override {return S_OK;}
+    STDMETHODIMP PauseTimer() override {return S_OK;}
+    STDMETHODIMP ResumeTimer() override {return S_OK;}
+
+    CComPtr<IShellItem> newItem;
+};
+
+CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder) {
+    CComPtr<IFileOperation> operation;
+    if (!checkHR(operation.CoCreateInstance(__uuidof(FileOperation))))
+        return 0;
+    NewItemSink eventSink;
+    DWORD eventSinkCookie;
+    checkHR(operation->Advise(&eventSink, &eventSinkCookie));
+    checkHR(operation->SetOperationFlags(FOFX_ADDUNDORECORD | FOF_RENAMEONCOLLISION));
+    CComHeapPtr<wchar_t> fileName;
+    settings::getScratchFileName(fileName);
+    checkHR(operation->NewItem(folder, FILE_ATTRIBUTE_NORMAL, fileName, nullptr, nullptr));
+    checkHR(operation->PerformOperations());
+    checkHR(operation->Unadvise(eventSinkCookie));
+    return eventSink.newItem;
+}
+
+STDMETHODIMP NewItemSink::PostNewItem(DWORD, IShellItem *, LPCWSTR, LPCWSTR, DWORD, HRESULT,
+        IShellItem *item) {
+    newItem = item;
+    return S_OK;
+}
+
+STDMETHODIMP NewItemSink::QueryInterface(REFIID id, void **obj) {
+    *obj = nullptr;
+    if (id == __uuidof(IUnknown) || id == __uuidof(IFileOperationProgressSink)) {
+        *obj = this;
+        return S_OK;
+    }
+    return E_NOINTERFACE;
+};
 
 } // namespace

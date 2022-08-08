@@ -7,6 +7,8 @@ namespace settings {
 const wchar_t KEY_SETTINGS[]            = L"Software\\chromafile";
 
 const wchar_t VAL_STARTING_FOLDER[]     = L"StartingFolder";
+const wchar_t VAL_SCRATCH_FOLDER[]      = L"ScratchFolder";
+const wchar_t VAL_SCRATCH_FILE_NAME[]   = L"ScratchFileName";
 const wchar_t VAL_ITEM_WINDOW_W[]       = L"ItemWindowWidth";
 const wchar_t VAL_ITEM_WINDOW_H[]       = L"ItemWindowHeight";
 const wchar_t VAL_FOLDER_WINDOW_W[]     = L"FolderWindowWidth";
@@ -61,6 +63,23 @@ void getStartingFolder(CComHeapPtr<wchar_t> &value) {
 
 void setStartingFolder(wchar_t *value) {
     setSettingsString(VAL_STARTING_FOLDER, REG_EXPAND_SZ, value);
+}
+
+void getScratchFolder(CComHeapPtr<wchar_t> &value) {
+    return getSettingsString(VAL_SCRATCH_FOLDER, RRF_RT_REG_SZ, DEFAULT_SCRATCH_FOLDER, value);
+}
+
+void setScratchFolder(wchar_t *value) {
+    setSettingsString(VAL_SCRATCH_FOLDER, REG_EXPAND_SZ, value);
+}
+
+void getScratchFileName(CComHeapPtr<wchar_t> &value) {
+    return getSettingsString(VAL_SCRATCH_FILE_NAME, RRF_RT_REG_SZ,
+        DEFAULT_SCRATCH_FILE_NAME, value);
+}
+
+void setScratchFileName(wchar_t *value) {
+    setSettingsString(VAL_SCRATCH_FILE_NAME, REG_SZ, value); // not expanded
 }
 
 SIZE getItemWindowSize() {

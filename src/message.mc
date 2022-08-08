@@ -15,6 +15,12 @@ Unable to find item at path: %1
 .
 
 MessageId=
+SymbolicName=STR_NEW_SCRATCH_TASK
+Language=English
+New Scratch File
+.
+
+MessageId=
 SymbolicName=STR_FOLDER_STATUS
 Language=English
 %1!d! items

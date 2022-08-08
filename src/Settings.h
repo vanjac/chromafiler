@@ -11,6 +11,8 @@ enum TrayDirection : DWORD { TRAY_UP, TRAY_DOWN, TRAY_RIGHT };
 
 // http://smallvoid.com/article/winnt-shell-keyword.html
 const wchar_t   DEFAULT_STARTING_FOLDER[]   = L"shell:Desktop";
+const wchar_t   DEFAULT_SCRATCH_FOLDER[]    = L"shell:Desktop";
+const wchar_t   DEFAULT_SCRATCH_FILE_NAME[] = L"scratch.txt";
 const SIZE      DEFAULT_ITEM_WINDOW_SIZE    = {450, 450};
 const SIZE      DEFAULT_FOLDER_WINDOW_SIZE  = {231, 450}; // just wide enough for scrollbar tooltips
 const bool      DEFAULT_STATUS_TEXT_ENABLED = true;
@@ -25,6 +27,10 @@ const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
 
 void getStartingFolder(CComHeapPtr<wchar_t> &value);
 void setStartingFolder(wchar_t *value);
+void getScratchFolder(CComHeapPtr<wchar_t> &value);
+void setScratchFolder(wchar_t *value);
+void getScratchFileName(CComHeapPtr<wchar_t> &value);
+void setScratchFileName(wchar_t *value);
 
 SIZE getItemWindowSize();
 void setItemWindowSize(SIZE value);
