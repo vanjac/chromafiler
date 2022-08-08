@@ -59,6 +59,8 @@ protected:
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
+    virtual bool alwaysOnTop() const;
+
     RECT windowBody();
 
     virtual void onCreate();
@@ -101,7 +103,6 @@ private:
     // extension points for TrayWindow
     virtual DWORD windowStyle() const;
     virtual bool useCustomFrame() const;
-    virtual bool alwaysOnTop() const;
     virtual bool stickToChild() const;
 
     virtual bool useDefaultStatusText() const;

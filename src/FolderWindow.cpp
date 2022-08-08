@@ -268,7 +268,7 @@ void FolderWindow::selectionChanged() {
                     openChild(selected);
             }
         }
-    } else if (numSelected == 0 && clickActivateRelease && selected) {
+    } else if (numSelected == 0 && clickActivateRelease && selected && !alwaysOnTop()) {
         debugPrintf(L"Blocking deselection\n");
         CComHeapPtr<ITEMID_CHILD> selectedID;
         checkHR(CComQIPtr<IParentAndItem>(selected)
