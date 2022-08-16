@@ -154,6 +154,7 @@ CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder) {
     NewItemSink eventSink;
     DWORD eventSinkCookie = 0;
     checkHR(operation->Advise(&eventSink, &eventSinkCookie));
+    // TODO: FOFX_ADDUNDORECORD requires Windows 8
     checkHR(operation->SetOperationFlags(FOFX_ADDUNDORECORD | FOF_RENAMEONCOLLISION));
     CComHeapPtr<wchar_t> fileName;
     settings::getScratchFileName(fileName);
