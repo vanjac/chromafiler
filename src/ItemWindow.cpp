@@ -125,12 +125,6 @@ WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
 
 LRESULT CALLBACK ItemWindow::windowProc(
         HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    // DWM custom frame
-    // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe
-    LRESULT dwmResult = 0;
-    if (DwmDefWindowProc(hwnd, message, wParam, lParam, &dwmResult))
-        return dwmResult;
-
     ItemWindow *self = nullptr;
     if (message == WM_NCCREATE) {
         CREATESTRUCT *create = (CREATESTRUCT*)lParam;
@@ -141,6 +135,12 @@ LRESULT CALLBACK ItemWindow::windowProc(
         self = (ItemWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
     }
     if (self) {
+        if (self->useCustomFrame()) {
+            // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe
+            LRESULT dwmResult = 0;
+            if (DwmDefWindowProc(hwnd, message, wParam, lParam, &dwmResult))
+                return dwmResult;
+        }
         return self->handleMessage(message, wParam, lParam);
     } else {
         return DefWindowProc(hwnd, message, wParam, lParam);
@@ -1095,9 +1095,11 @@ bool ItemWindow::resolveItem() {
     }
 
     debugPrintf(L"Item has been deleted!\n");
-    BOOL disableAnimations = false; // reenable animations to emphasize window closing
-    checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-        &disableAnimations, sizeof(disableAnimations)));
+    if (useCustomFrame()) {
+        BOOL disableAnimations = false; // reenable animations to emphasize window closing
+        checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+            &disableAnimations, sizeof(disableAnimations)));
+    }
     close();
     return false;
 }
