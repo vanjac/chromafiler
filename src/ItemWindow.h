@@ -25,7 +25,6 @@ public:
     static WNDCLASS createWindowClass(const wchar_t *name);
 
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
-    virtual ~ItemWindow();
 
     virtual bool preserveSize() const; // if true, requested size will be ignored by parent
     virtual SIZE requestedSize() const;

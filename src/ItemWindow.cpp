@@ -153,11 +153,6 @@ ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
     storedChildSize = settings::getItemWindowSize();
 }
 
-ItemWindow::~ItemWindow() {
-    DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
-    DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
-}
-
 bool ItemWindow::preserveSize() const {
     return true;
 }
@@ -292,6 +287,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onDestroy();
             return 0;
         case WM_NCDESTROY:
+            DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
+            DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
             hwnd = nullptr;
             if (InterlockedDecrement(&numOpenWindows) == 0)
                 PostQuitMessage(0);
