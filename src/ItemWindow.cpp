@@ -1084,7 +1084,7 @@ void ItemWindow::removeChainPreview() {
     if (isChainPreview) {
         CComPtr<ITaskbarList4> taskbar;
         if (checkHR(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
-            taskbar->UnregisterTab(hwnd);
+            checkHR(taskbar->UnregisterTab(hwnd));
             isChainPreview = false;
         }
     }
