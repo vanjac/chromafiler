@@ -802,8 +802,10 @@ void ItemWindow::onSize(int width, int) {
 }
 
 void ItemWindow::windowRectChanged() {
-    if (child && stickToChild()) {
-        child->setPos(childPos({})); // TODO pass child size
+    if (child) {
+        RECT childRect;
+        GetWindowRect(child->hwnd, &childRect);
+        child->setPos(childPos(rectSize(childRect)));
     }
 }
 
