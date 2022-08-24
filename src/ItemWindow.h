@@ -10,7 +10,6 @@ namespace chromafile {
 
 class ItemWindow;
 
-extern long numOpenWindows;
 extern CComPtr<ItemWindow> activeWindow;
 
 class ItemWindow : public IUnknownImpl, public IDropSource, public IDropTarget {
@@ -55,7 +54,7 @@ protected:
         MSG_SET_STATUS_TEXT = WM_USER,
         MSG_LAST
     };
-    static LRESULT CALLBACK windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
     virtual bool alwaysOnTop() const;
@@ -133,6 +132,9 @@ private:
     void completeRename();
     void cancelRename();
     bool dropAllowed(POINT point);
+
+    static LRESULT CALLBACK chainWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+    static BOOL CALLBACK enumCloseChain(HWND, LPARAM lParam);
 
     // window subclasses
     static LRESULT CALLBACK parentButtonProc(HWND hwnd, UINT message,

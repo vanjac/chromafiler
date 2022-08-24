@@ -70,7 +70,7 @@ void ItemWindow::init() {
 
     WNDCLASS chainClass = {};
     chainClass.lpszClassName = CHAIN_OWNER_CLASS;
-    chainClass.lpfnWndProc = DefWindowProc;
+    chainClass.lpfnWndProc = chainWindowProc;
     chainClass.hInstance = hInstance;
     RegisterClass(&chainClass);
 
@@ -123,8 +123,7 @@ WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
     return wndClass;
 }
 
-LRESULT CALLBACK ItemWindow::windowProc(
-        HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK ItemWindow::windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     ItemWindow *self = nullptr;
     if (message == WM_NCCREATE) {
         CREATESTRUCT *create = (CREATESTRUCT*)lParam;
@@ -640,8 +639,9 @@ void ItemWindow::onDestroy() {
     if (activeWindow == this)
         activeWindow = nullptr;
     HWND owner = GetWindowOwner(hwnd);
+    SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, 0);
     if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
-        PostMessage(owner, WM_CLOSE, 0, 0); // last window in group
+        DestroyWindow(owner); // last window in group
 
     if (itemDropTarget)
         RevokeDragDrop(hwnd);
@@ -1489,6 +1489,33 @@ STDMETHODIMP ItemWindow::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt
     return S_OK;
 }
 
+
+BOOL CALLBACK ItemWindow::enumCloseChain(HWND hwnd, LPARAM lParam) {
+    if (GetWindowOwner(hwnd) == (HWND)lParam) {
+        ItemWindow *itemWindow = (ItemWindow *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        if (itemWindow && itemWindow->alwaysOnTop())
+            itemWindow = itemWindow->child;
+        if (itemWindow) {
+            while (itemWindow->parent && !itemWindow->parent->alwaysOnTop())
+                itemWindow = itemWindow->parent;
+            itemWindow->close();
+        }
+        return FALSE;
+    }
+    return TRUE;
+}
+
+LRESULT CALLBACK ItemWindow::chainWindowProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam) {
+    if (message == WM_CLOSE) {
+        // default behavior is to destroy owned windows without calling WM_CLOSE.
+        // instead close the left-most chain window to give user a chance to save.
+        // TODO this is awful
+        EnumWindows(enumCloseChain, (LPARAM)hwnd);
+        return 0;
+    }
+    return DefWindowProc(hwnd, message, wParam, lParam);
+}
 
 LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
