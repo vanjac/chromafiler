@@ -206,7 +206,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         owner = createChainOwner(showCommand);
 
     HWND createHwnd = CreateWindowEx(
-        alwaysOnTop() ? WS_EX_TOPMOST : 0,
+        alwaysOnTop() ? (WS_EX_TOPMOST | WS_EX_TOOLWINDOW) : 0,
         // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
         className(), title, windowStyle() | WS_CLIPCHILDREN,
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
