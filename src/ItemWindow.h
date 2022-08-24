@@ -84,6 +84,9 @@ protected:
     virtual POINT childPos(SIZE size); // top left corner of child
     POINT parentPos(); // top right corner of parent
 
+    void addChainPreview();
+    void removeChainPreview();
+
     virtual void onItemChanged();
     virtual void refresh();
 
@@ -154,6 +157,7 @@ private:
     CComQIPtr<IContextMenu3> contextMenu3;
 
     POINT moveAccum;
+    bool isChainPreview = false;
     // drop target state
     IDataObject *dropDataObject;
     bool overDropTarget = false;

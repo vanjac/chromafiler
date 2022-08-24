@@ -492,6 +492,9 @@ void ItemWindow::onCreate() {
     AppendMenu(systemMenu, MF_SEPARATOR, 0, nullptr);
     AppendMenu(systemMenu, MF_STRING, IDM_SETTINGS, STR_SETTINGS_COMMAND);
 
+    if (!alwaysOnTop() && (!parent || parent->alwaysOnTop()))
+        addChainPreview();
+
     if (!useCustomFrame())
         return; // !!
     /* everything below relates to caption */
@@ -642,6 +645,8 @@ void ItemWindow::onDestroy() {
     child = nullptr; // onChildDetached will not be called
     if (activeWindow == this)
         activeWindow = nullptr;
+
+    removeChainPreview();
     HWND owner = GetWindowOwner(hwnd);
     SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, 0);
     if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
@@ -770,10 +775,6 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
 void ItemWindow::onActivate(WORD state, HWND) {
     if (state != WA_INACTIVE) {
         activeWindow = this;
-        HWND owner = GetWindowOwner(hwnd);
-        SetWindowText(owner, title); // update taskbar / alt-tab
-        SendMessage(owner, WM_SETICON, ICON_BIG, SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
-        SendMessage(owner, WM_SETICON, ICON_SMALL, SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
         if (alwaysOnTop() && child) {
             SetWindowPos(child->hwnd, HWND_TOP, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
@@ -974,6 +975,7 @@ void ItemWindow::openParent() {
             parent->storedChildSize = rectSize(windowRect);
         }
 
+        removeChainPreview();
         SIZE size = parent->requestedSize();
         POINT pos = parentPos();
         parent->create({pos.x - size.cx, pos.y, pos.x, pos.y + size.cy}, SW_SHOWNORMAL);
@@ -991,7 +993,7 @@ void ItemWindow::clearParent() {
 }
 
 void ItemWindow::detachFromParent(bool closeParent) {
-    CComPtr<ItemWindow> oldParent = parent;
+    ItemWindow *rootParent = parent;
     if (!parent->alwaysOnTop()) {
         HWND prevOwner = GetWindowOwner(hwnd);
         HWND owner = createChainOwner(SW_SHOWNORMAL);
@@ -1003,6 +1005,7 @@ void ItemWindow::detachFromParent(bool closeParent) {
         SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
         SetWindowLongPtr(prevOwner, GWLP_USERDATA,
             GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
+        addChainPreview();
     }
     clearParent();
 
@@ -1010,13 +1013,10 @@ void ItemWindow::detachFromParent(bool closeParent) {
     if (parentButton && SUCCEEDED(item->GetParent(&parentItem)))
         ShowWindow(parentButton, SW_SHOW);
     if (closeParent) {
-        ItemWindow *rootParent = oldParent;
         while (rootParent->parent && !rootParent->parent->alwaysOnTop())
             rootParent = rootParent->parent;
         if (!rootParent->alwaysOnTop())
             rootParent->close();
-    } else {
-        oldParent->activate(); // focus parent in chain
     }
     activate(); // bring this chain to front
 }
@@ -1063,6 +1063,31 @@ POINT ItemWindow::parentPos() {
     POINT shadow = {windowRect.left, windowRect.top};
     ScreenToClient(hwnd, &shadow); // determine size of drop shadow
     return {windowRect.left - shadow.x * 2 - windowBorderSize() * 2, windowRect.top};
+}
+
+void ItemWindow::addChainPreview() {
+    HWND owner = GetWindowOwner(hwnd);
+    CComPtr<ITaskbarList4> taskbar;
+    if (checkHR(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
+        checkHR(taskbar->RegisterTab(hwnd, GetWindowOwner(hwnd)));
+        checkHR(taskbar->SetTabOrder(hwnd, nullptr));
+        checkHR(taskbar->SetTabProperties(hwnd, STPF_USEAPPPEEKALWAYS));
+        isChainPreview = true;
+    }
+    // update alt-tab
+    SetWindowText(owner, title);
+    SendMessage(owner, WM_SETICON, ICON_BIG, SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
+    SendMessage(owner, WM_SETICON, ICON_SMALL, SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
+}
+
+void ItemWindow::removeChainPreview() {
+    if (isChainPreview) {
+        CComPtr<ITaskbarList4> taskbar;
+        if (checkHR(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
+            taskbar->UnregisterTab(hwnd);
+            isChainPreview = false;
+        }
+    }
 }
 
 bool ItemWindow::resolveItem() {
