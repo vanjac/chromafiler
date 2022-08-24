@@ -1069,7 +1069,7 @@ void ItemWindow::addChainPreview() {
     HWND owner = GetWindowOwner(hwnd);
     CComPtr<ITaskbarList4> taskbar;
     if (checkHR(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
-        checkHR(taskbar->RegisterTab(hwnd, GetWindowOwner(hwnd)));
+        checkHR(taskbar->RegisterTab(hwnd, owner));
         checkHR(taskbar->SetTabOrder(hwnd, nullptr));
         checkHR(taskbar->SetTabProperties(hwnd, STPF_USEAPPPEEKALWAYS));
         isChainPreview = true;
