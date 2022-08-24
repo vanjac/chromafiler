@@ -217,6 +217,10 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     }
     SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) + 1);
 
+    // https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-itaskbarlist2-markfullscreenwindow#remarks
+    if (alwaysOnTop())
+        SetProp(hwnd, L"NonRudeHWND", (HANDLE)TRUE);
+
     ShowWindow(createHwnd, showCommand);
 
     AddRef(); // keep window alive while open
