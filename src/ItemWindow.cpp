@@ -45,6 +45,7 @@ long numOpenWindows;
 CComPtr<ItemWindow> activeWindow;
 
 int ItemWindow::CAPTION_HEIGHT = 0;
+BOOL compositionEnabled = FALSE;
 HACCEL ItemWindow::accelTable;
 
 bool highContrastEnabled() {
@@ -89,6 +90,8 @@ void ItemWindow::init() {
     SYMBOL_FONT_HEIGHT = scaleDPI(SYMBOL_FONT_HEIGHT);
     DETACH_DISTANCE = scaleDPI(DETACH_DISTANCE);
     WIN10_CXSIZEFRAME = scaleDPI(WIN10_CXSIZEFRAME);
+
+    checkHR(DwmIsCompositionEnabled(&compositionEnabled));
 
     // TODO: alternatively use SystemParametersInfo with SPI_GETNONCLIENTMETRICS
     HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME);
@@ -177,7 +180,7 @@ DWORD ItemWindow::windowStyle() const {
 }
 
 bool ItemWindow::useCustomFrame() const {
-    return true;
+    return !!compositionEnabled;
 }
 
 bool ItemWindow::alwaysOnTop() const {
