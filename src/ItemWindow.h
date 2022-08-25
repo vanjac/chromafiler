@@ -14,8 +14,6 @@ extern CComPtr<ItemWindow> activeWindow;
 
 class ItemWindow : public IUnknownImpl, public IDropSource, public IDropTarget {
 protected:
-    // calculated in init()
-    static int CAPTION_HEIGHT;
     static HACCEL accelTable;
 
 public:

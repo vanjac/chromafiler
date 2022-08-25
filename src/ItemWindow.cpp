@@ -29,6 +29,8 @@ int STATUS_TOOLTIP_OFFSET = 2; // TODO not correct at higher DPIs
 int SYMBOL_FONT_HEIGHT = 14;
 int DETACH_DISTANCE = 32;
 
+int CAPTION_HEIGHT = 0; // calculated in init()
+
 // these are Windows metrics/colors that are not exposed through the API >:(
 int WIN10_CXSIZEFRAME = 8; // TODO not correct at higher DPIs
 // this is the color used in every high-contrast theme
@@ -44,7 +46,6 @@ static wchar_t STR_SETTINGS_COMMAND[64] = {0};
 long numOpenWindows;
 CComPtr<ItemWindow> activeWindow;
 
-int ItemWindow::CAPTION_HEIGHT = 0;
 BOOL compositionEnabled = FALSE;
 HACCEL ItemWindow::accelTable;
 
