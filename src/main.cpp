@@ -22,6 +22,7 @@
 using namespace chromafile;
 
 const wchar_t APP_ID[] = L"chroma.file";
+const wchar_t SHELL_PREFIX[] = L"shell:";
 
 #ifdef CHROMAFILE_DEBUG
 int main(int, char**) {
@@ -84,10 +85,20 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             path = pathAlloc;
             scratch = true;
         } else if (argc > 1) {
-            path = argv[1];
-            int pathLen = lstrlen(path);
-            if (path[pathLen - 1] == '"')
-                path[pathLen - 1] = '\\'; // fix weird CommandLineToArgvW behavior with \"
+            wchar_t *relPath = argv[1];
+            int relPathLen = lstrlen(relPath);
+            if (relPath[relPathLen - 1] == '"')
+                relPath[relPathLen - 1] = '\\'; // fix weird CommandLineToArgvW behavior with \"
+
+            if ((relPathLen >= 1 && relPath[0] == ':') || (relPathLen >= _countof(SHELL_PREFIX)
+                    && _memicmp(relPath, SHELL_PREFIX, _countof(SHELL_PREFIX)) == 0)) {
+                path = relPath; // assume desktop absolute parsing name
+            } else { // assume relative file system path
+                pathAlloc.Allocate(MAX_PATH);
+                path = pathAlloc;
+                if (!GetFullPathName(relPath, MAX_PATH, path, nullptr))
+                    path = relPath;
+            }
         } else {
             settings::getStartingFolder(pathAlloc);
             path = pathAlloc;
