@@ -37,6 +37,7 @@ private:
 
     DWORD windowStyle() const override;
     bool useCustomFrame() const override;
+    bool allowToolbar() const override;
     bool alwaysOnTop() const override;
     bool stickToChild() const override;
     POINT childPos(SIZE size) override;

@@ -105,6 +105,7 @@ private:
     // extension points for TrayWindow
     virtual DWORD windowStyle() const;
     virtual bool useCustomFrame() const;
+    virtual bool allowToolbar() const;
     virtual bool stickToChild() const;
 
     virtual bool useDefaultStatusText() const;

@@ -183,6 +183,10 @@ bool ItemWindow::useCustomFrame() const {
     return !!compositionEnabled;
 }
 
+bool ItemWindow::allowToolbar() const {
+    return true;
+}
+
 bool ItemWindow::alwaysOnTop() const {
     return false;
 }
@@ -260,9 +264,11 @@ void ItemWindow::move(int x, int y) {
 RECT ItemWindow::windowBody() {
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);
-    if (!useCustomFrame())
-        return clientRect;
-    int top = (statusText || toolbar) ? (CAPTION_HEIGHT + TOOLBAR_HEIGHT) : CAPTION_HEIGHT;
+    int top = 0;
+    if (useCustomFrame())
+        top += CAPTION_HEIGHT;
+    if (allowToolbar() && (statusText || toolbar))
+        top += TOOLBAR_HEIGHT;
     return RECT {0, top, clientRect.right, clientRect.bottom};
 }
 
@@ -498,62 +504,62 @@ void ItemWindow::onCreate() {
     if (!alwaysOnTop() && (!parent || parent->alwaysOnTop()))
         addChainPreview();
 
-    if (!useCustomFrame())
-        return; // !!
-    /* everything below relates to caption */
-
-    BOOL disableAnimations = true;
-    checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-        &disableAnimations, sizeof(disableAnimations)));
-    MARGINS margins;
-    margins.cxLeftWidth = 0;
-    margins.cxRightWidth = 0;
-    margins.cyTopHeight = CAPTION_HEIGHT;
-    margins.cyBottomHeight = 0;
-    checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
-
-    // will succeed for folders and EXEs, and fail for regular files
-    if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget)))) {
-        checkHR(dropTargetHelper.CoCreateInstance(CLSID_DragDropHelper));
-        checkHR(RegisterDragDrop(hwnd, this));
-    }
-
     HMODULE instance = GetWindowInstance(hwnd);
-    proxyTooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
-        WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        hwnd, nullptr, instance, nullptr);
-    SetWindowPos(proxyTooltip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-    if (captionFont)
-        SendMessage(proxyTooltip, WM_SETFONT, (WPARAM)captionFont, FALSE);
-    TOOLINFO toolInfo = {sizeof(toolInfo)};
-    toolInfo.uFlags = TTF_SUBCLASS | TTF_TRANSPARENT;
-    toolInfo.hwnd = hwnd;
-    toolInfo.lpszText = title;
-    SendMessage(proxyTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+    if (useCustomFrame()) {
+        BOOL disableAnimations = true;
+        checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+            &disableAnimations, sizeof(disableAnimations)));
+        MARGINS margins;
+        margins.cxLeftWidth = 0;
+        margins.cxRightWidth = 0;
+        margins.cyTopHeight = CAPTION_HEIGHT;
+        margins.cyBottomHeight = 0;
+        checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
 
-    CComPtr<IShellItem> parentItem;
-    bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
-    parentButton = CreateWindow(L"BUTTON", nullptr,
-        (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
-        0, PARENT_BUTTON_MARGIN, PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2,
-        hwnd, (HMENU)IDM_PREV_WINDOW, instance, nullptr);
-    SetWindowSubclass(parentButton, parentButtonProc, 0, (DWORD_PTR)this);
+        // will succeed for folders and EXEs, and fail for regular files
+        if (SUCCEEDED(item->BindToHandler(nullptr, BHID_SFUIObject,
+                IID_PPV_ARGS(&itemDropTarget)))) {
+            checkHR(dropTargetHelper.CoCreateInstance(CLSID_DragDropHelper));
+            checkHR(RegisterDragDrop(hwnd, this));
+        }
 
-    // will be positioned in beginRename
-    renameBox = CreateWindow(L"EDIT", nullptr,
-        WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
-        0, 0, 0, 0,
-        hwnd, nullptr, instance, nullptr);
-    SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
-    if (captionFont)
-        SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
+        proxyTooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
+            WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+            hwnd, nullptr, instance, nullptr);
+        SetWindowPos(proxyTooltip, HWND_TOPMOST, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        if (captionFont)
+            SendMessage(proxyTooltip, WM_SETFONT, (WPARAM)captionFont, FALSE);
+        TOOLINFO toolInfo = {sizeof(toolInfo)};
+        toolInfo.uFlags = TTF_SUBCLASS | TTF_TRANSPARENT;
+        toolInfo.hwnd = hwnd;
+        toolInfo.lpszText = title;
+        SendMessage(proxyTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
-    if (settings::getStatusTextEnabled()) {
+        CComPtr<IShellItem> parentItem;
+        bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
+        parentButton = CreateWindow(L"BUTTON", nullptr,
+            (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
+            0, PARENT_BUTTON_MARGIN, PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2,
+            hwnd, (HMENU)IDM_PREV_WINDOW, instance, nullptr);
+        SetWindowSubclass(parentButton, parentButtonProc, 0, (DWORD_PTR)this);
+
+        // will be positioned in beginRename
+        renameBox = CreateWindow(L"EDIT", nullptr,
+            WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
+            0, 0, 0, 0,
+            hwnd, nullptr, instance, nullptr);
+        SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
+        if (captionFont)
+            SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
+    } // if (useCustomFrame())
+
+    if (allowToolbar() && settings::getStatusTextEnabled()) {
         statusText = CreateWindow(L"STATIC", nullptr,
             WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE | SS_NOPREFIX
                 | SS_NOTIFY, // allows tooltips to work
-            STATUS_TEXT_MARGIN, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
+            STATUS_TEXT_MARGIN, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, TOOLBAR_HEIGHT,
             hwnd, nullptr, instance, nullptr);
         if (statusFont)
             SendMessage(statusText, WM_SETFONT, (WPARAM)statusFont, FALSE);
@@ -569,7 +575,7 @@ void ItemWindow::onCreate() {
         if (statusFont)
             SendMessage(statusTooltip, WM_SETFONT, (WPARAM)statusFont, FALSE);
         SendMessage(statusTooltip, TTM_SETMAXTIPWIDTH, 0, 0x7fff); // allow tabs
-        toolInfo = {sizeof(toolInfo)};
+        TOOLINFO toolInfo = {sizeof(toolInfo)};
         toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS | TTF_TRANSPARENT;
         toolInfo.hwnd = hwnd;
         toolInfo.uId = (UINT_PTR)statusText;
@@ -577,12 +583,12 @@ void ItemWindow::onCreate() {
         SendMessage(statusTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
     }
 
-    if (settings::getToolbarEnabled()) {
+    if (allowToolbar() && settings::getToolbarEnabled()) {
         toolbar = CreateWindowEx(
             TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
             TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
                 | WS_VISIBLE | WS_CHILD,
-            0, CAPTION_HEIGHT, 0, TOOLBAR_HEIGHT,
+            0, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, TOOLBAR_HEIGHT,
             hwnd, nullptr, instance, nullptr);
         SendMessage(toolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
         SendMessage(toolbar, TB_SETBUTTONWIDTH, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
@@ -689,13 +695,12 @@ bool ItemWindow::onCommand(WORD command) {
             if (resolveItem())
                 refresh();
             return true;
-        case IDM_PROXY_MENU:
-            if (useCustomFrame()) {
-                POINT menuPos = {proxyRect.right, proxyRect.top};
-                ClientToScreen(hwnd, &menuPos);
-                openProxyContextMenu(menuPos);
-            }
+        case IDM_PROXY_MENU: {
+            POINT menuPos = useCustomFrame() ? POINT{proxyRect.right, proxyRect.top} : POINT{0, 0};
+            ClientToScreen(hwnd, &menuPos);
+            openProxyContextMenu(menuPos);
             return true;
+        }
         case IDM_RENAME_PROXY:
             if (useCustomFrame())
                 beginRename();
@@ -708,8 +713,8 @@ bool ItemWindow::onCommand(WORD command) {
             ItemWindow *rootParent = this;
             while (rootParent->parent)
                 rootParent = rootParent->parent;
-            if (rootParent->useCustomFrame()) {
-                POINT menuPos = {0, CAPTION_HEIGHT};
+            if (!rootParent->alwaysOnTop()) {
+                POINT menuPos = {0, rootParent->useCustomFrame() ? CAPTION_HEIGHT : 0};
                 ClientToScreen(rootParent->hwnd, &menuPos);
                 rootParent->openParentMenu(menuPos);
             }
@@ -794,7 +799,7 @@ void ItemWindow::onSize(int width, int) {
         RECT toolbarRect;
         GetClientRect(toolbar, &toolbarRect);
         toolbarLeft = width - rectWidth(toolbarRect);
-        SetWindowPos(toolbar, nullptr, toolbarLeft, CAPTION_HEIGHT, 0, 0,
+        SetWindowPos(toolbar, nullptr, toolbarLeft, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
     if (statusText) {
