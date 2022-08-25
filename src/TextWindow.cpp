@@ -1,6 +1,7 @@
 #include "TextWindow.h"
 #include "RectUtils.h"
 #include "Settings.h"
+#include "DPI.h"
 #include "UIStrings.h"
 #include "resource.h"
 #include <windowsx.h>
@@ -11,7 +12,9 @@ namespace chromafile {
 const wchar_t TEXT_WINDOW_CLASS[] = L"Text Window";
 
 const wchar_t TEXT_FONT_FACE[] = L"Consolas";
-const int TEXT_FONT_HEIGHT = 16;
+
+// dimensions
+int TEXT_FONT_HEIGHT = 16;
 
 const uint8_t BOM_UTF8BOM[] = {0xEF, 0xBB, 0xBF};
 const uint8_t BOM_UTF16LE[] = {0xFF, 0xFE};
@@ -28,6 +31,8 @@ void TextWindow::init() {
     RegisterClass(&wndClass);
     // http://www.jose.it-berater.org/richedit/rich_edit_control.htm
     LoadLibrary(L"Msftedit.dll");
+
+    TEXT_FONT_HEIGHT = scaleDPI(TEXT_FONT_HEIGHT);
 
     monoFont = CreateFont(TEXT_FONT_HEIGHT, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
         ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 

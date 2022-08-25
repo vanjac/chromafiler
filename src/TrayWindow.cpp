@@ -1,6 +1,7 @@
 #include "TrayWindow.h"
 #include "RectUtils.h"
 #include "Settings.h"
+#include "DPI.h"
 #include <windowsx.h>
 #include <shellapi.h>
 
@@ -9,7 +10,9 @@ namespace chromafile {
 const wchar_t TRAY_WINDOW_CLASS[] = L"Tray";
 const wchar_t MOVE_GRIP_CLASS[] = L"Move Grip";
 
-const int SNAP_DISTANCE = 8;
+// dimensions
+int SNAP_DISTANCE = 8;
+int CLOSE_BOX_MARGIN = 4;
 
 void snapAxis(LONG value, LONG edge, LONG *snapped, LONG *snapDist) {
     if (abs(value - edge) <= *snapDist) {
@@ -29,6 +32,9 @@ void TrayWindow::init() {
     moveGripClass.hbrBackground = (HBRUSH)(COLOR_3DFACE + 1);
     moveGripClass.hCursor = LoadCursor(nullptr, IDC_SIZEALL);
     RegisterClass(&moveGripClass);
+
+    SNAP_DISTANCE = scaleDPI(SNAP_DISTANCE);
+    CLOSE_BOX_MARGIN = scaleDPI(CLOSE_BOX_MARGIN);
 }
 
 TrayWindow::TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
@@ -43,11 +49,11 @@ HWND TrayWindow::findTray() {
 }
 
 POINT TrayWindow::requestedPosition() {
-    return settings::getTrayPosition();
+    return pointMulDiv(settings::getTrayPosition(), systemDPI, settings::getTrayDPI());
 }
 
 SIZE TrayWindow::requestedSize() const {
-    return settings::getTraySize();
+    return sizeMulDiv(settings::getTraySize(), systemDPI, settings::getTrayDPI());
 }
 
 DWORD TrayWindow::windowStyle() const {
@@ -84,7 +90,7 @@ wchar_t * TrayWindow::propertyBag() const {
 }
 
 void TrayWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
-    checkHR(folderView->SetViewModeAndIconSize(FVM_LIST, GetSystemMetrics(SM_CXSMICON)));
+    checkHR(folderView->SetViewModeAndIconSize(FVM_LIST, SHELL_SMALL_ICON));
 }
 
 void TrayWindow::onCreate() {
@@ -174,6 +180,7 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             GetWindowRect(hwnd, &windowRect);
             settings::setTrayPosition({windowRect.left, windowRect.top});
             settings::setTraySize(rectSize(windowRect));
+            settings::setTrayDPI(systemDPI);
             return 0;
         }
     }
@@ -260,7 +267,7 @@ LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
             BeginPaint(hwnd, &paint);
             RECT rect;
             GetClientRect(hwnd, &rect);
-            InflateRect(&rect, -4, -4);
+            InflateRect(&rect, -CLOSE_BOX_MARGIN, -CLOSE_BOX_MARGIN);
             HBRUSH brush = GetSysColorBrush(COLOR_BTNTEXT);
             HDC hdc = paint.hdc;
             RECT f = {rect.left, rect.top, rect.right, rect.top + 1};   FillRect(hdc, &f, brush);

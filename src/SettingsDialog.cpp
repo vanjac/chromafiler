@@ -217,6 +217,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             } else if (LOWORD(wParam) == IDC_RESET_TRAY_POSITION && HIWORD(wParam) == BN_CLICKED) {
                 settings::setTrayPosition(settings::DEFAULT_TRAY_POSITION);
                 settings::setTraySize(settings::DEFAULT_TRAY_SIZE);
+                settings::setTrayDPI(settings::DEFAULT_TRAY_DPI);
                 HWND tray = TrayWindow::findTray();
                 if (tray) {
                     PostMessage(tray, WM_CLOSE, 0, 0);

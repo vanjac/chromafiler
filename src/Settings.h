@@ -21,6 +21,7 @@ const bool      DEFAULT_PREVIEWS_ENABLED    = true;
 const bool      DEFAULT_TEXT_EDITOR_ENABLED = false;
 const bool      DEFAULT_TEXT_WRAP           = false;
 const wchar_t   DEFAULT_TRAY_FOLDER[]       = L"shell:Links";
+const int       DEFAULT_TRAY_DPI            = 96;
 const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
 const SIZE      DEFAULT_TRAY_SIZE           = {600, 48};
 const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
@@ -32,10 +33,10 @@ void setScratchFolder(wchar_t *value);
 void getScratchFileName(CComHeapPtr<wchar_t> &value);
 void setScratchFileName(wchar_t *value);
 
-SIZE getItemWindowSize();
+SIZE getItemWindowSize(); // assuming 96 dpi
 void setItemWindowSize(SIZE value);
 
-SIZE getFolderWindowSize();
+SIZE getFolderWindowSize(); // assuming 96 dpi
 void setFolderWindowSize(SIZE value);
 
 bool getStatusTextEnabled();
@@ -55,9 +56,11 @@ bool getTrayOpenOnStartup();
 void setTrayOpenOnStartup(bool value);
 void getTrayFolder(CComHeapPtr<wchar_t> &value);
 void setTrayFolder(wchar_t *value);
-POINT getTrayPosition();
+int getTrayDPI();
+void setTrayDPI(int value);
+POINT getTrayPosition(); // using TrayDPI
 void setTrayPosition(POINT value);
-SIZE getTraySize();
+SIZE getTraySize(); // using TrayDPI
 void setTraySize(SIZE value);
 
 TrayDirection getTrayDirection();

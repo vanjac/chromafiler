@@ -19,6 +19,7 @@ const wchar_t VAL_PREVIEWS_ENABLED[]    = L"PreviewsEnabled";
 const wchar_t VAL_TEXT_EDITOR_ENABLED[] = L"TextEditorEnabled";
 const wchar_t VAL_TEXT_WRAP[]           = L"TextWrap";
 const wchar_t VAL_TRAY_FOLDER[]         = L"TrayFolder";
+const wchar_t VAL_TRAY_DPI[]            = L"TrayDPI";
 const wchar_t VAL_TRAY_X[]              = L"TrayX";
 const wchar_t VAL_TRAY_Y[]              = L"TrayY";
 const wchar_t VAL_TRAY_W[]              = L"TrayWidth";
@@ -187,6 +188,16 @@ void getTrayFolder(CComHeapPtr<wchar_t> &value) {
 
 void setTrayFolder(wchar_t *value) {
     setSettingsString(VAL_TRAY_FOLDER, REG_EXPAND_SZ, value);
+}
+
+int getTrayDPI() {
+    DWORD value = DEFAULT_TRAY_DPI;
+    getSettingsValue(VAL_TRAY_DPI, RRF_RT_DWORD, &value, sizeof(value));
+    return value;
+}
+
+void setTrayDPI(int value) {
+    setSettingsValue(VAL_TRAY_DPI, REG_DWORD, &value, sizeof(value));
 }
 
 POINT getTrayPosition() {

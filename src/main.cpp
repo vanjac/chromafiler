@@ -6,6 +6,7 @@
 #include "CreateItemWindow.h"
 #include "Settings.h"
 #include "SettingsDialog.h"
+#include "DPI.h"
 #include "UIStrings.h"
 #include "resource.h"
 #include <shellapi.h>
@@ -59,6 +60,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     controls.dwICC = ICC_STANDARD_CLASSES | ICC_BAR_CLASSES;
     InitCommonControlsEx(&controls);
 
+    initDPI();
     ItemWindow::init();
     FolderWindow::init();
     ThumbnailWindow::init();

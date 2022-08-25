@@ -4,6 +4,7 @@
 #include "GDIUtils.h"
 #include "Settings.h"
 #include "SettingsDialog.h"
+#include "DPI.h"
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
@@ -19,16 +20,17 @@ const wchar_t CHAIN_OWNER_CLASS[] = L"Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 
 // dimensions
-const int PARENT_BUTTON_WIDTH = 34; // matches close button width in windows 10
-const int WINDOW_ICON_PADDING = 4;
-const int RENAME_BOX_PADDING = 2; // with border
-const int TOOLBAR_HEIGHT = 24;
-const int STATUS_TEXT_MARGIN = 4;
-const int SYMBOL_FONT_HEIGHT = 14;
-const int SNAP_DISTANCE = 32;
+int PARENT_BUTTON_WIDTH = 34; // matches close button width in windows 10
+int PARENT_BUTTON_MARGIN = 1;
+int WINDOW_ICON_PADDING = 4;
+int TOOLBAR_HEIGHT = 24;
+int STATUS_TEXT_MARGIN = 4;
+int STATUS_TOOLTIP_OFFSET = 2; // TODO not correct at higher DPIs
+int SYMBOL_FONT_HEIGHT = 14;
+int DETACH_DISTANCE = 32;
 
 // these are Windows metrics/colors that are not exposed through the API >:(
-const int WIN10_CXSIZEFRAME = 8;
+int WIN10_CXSIZEFRAME = 8; // TODO not correct at higher DPIs
 // this is the color used in every high-contrast theme
 // regular light mode theme uses #999999
 const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
@@ -77,6 +79,16 @@ void ItemWindow::init() {
     RECT adjustedRect = {};
     AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
     CAPTION_HEIGHT = -adjustedRect.top; // = 31
+
+    PARENT_BUTTON_WIDTH = scaleDPI(PARENT_BUTTON_WIDTH);
+    PARENT_BUTTON_MARGIN = scaleDPI(PARENT_BUTTON_MARGIN);
+    WINDOW_ICON_PADDING = scaleDPI(WINDOW_ICON_PADDING);
+    TOOLBAR_HEIGHT = scaleDPI(TOOLBAR_HEIGHT);
+    STATUS_TEXT_MARGIN = scaleDPI(STATUS_TEXT_MARGIN);
+    STATUS_TOOLTIP_OFFSET = scaleDPI(STATUS_TOOLTIP_OFFSET);
+    SYMBOL_FONT_HEIGHT = scaleDPI(SYMBOL_FONT_HEIGHT);
+    DETACH_DISTANCE = scaleDPI(DETACH_DISTANCE);
+    WIN10_CXSIZEFRAME = scaleDPI(WIN10_CXSIZEFRAME);
 
     // TODO: alternatively use SystemParametersInfo with SPI_GETNONCLIENTMETRICS
     HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME);
@@ -149,7 +161,7 @@ LRESULT CALLBACK ItemWindow::windowProc(HWND hwnd, UINT message, WPARAM wParam, 
 ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : parent(parent),
           item(item) {
-    storedChildSize = settings::getItemWindowSize();
+    storedChildSize = scaleDPI(settings::getItemWindowSize());
 }
 
 bool ItemWindow::preserveSize() const {
@@ -157,7 +169,7 @@ bool ItemWindow::preserveSize() const {
 }
 
 SIZE ItemWindow::requestedSize() const {
-    return settings::getItemWindowSize();
+    return scaleDPI(settings::getItemWindowSize());
 }
 
 DWORD ItemWindow::windowStyle() const {
@@ -347,7 +359,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 moveAccum.x += desiredRect->left - curRect.left;
                 moveAccum.y += desiredRect->top - curRect.top;
                 int moveAmount = max(abs(moveAccum.x), abs(moveAccum.y));
-                if (moveAmount > SNAP_DISTANCE) {
+                if (moveAmount > DETACH_DISTANCE) {
                     detachFromParent(GetKeyState(VK_SHIFT) < 0);
                     OffsetRect(desiredRect, moveAccum.x, moveAccum.y);
                 } else {
@@ -533,7 +545,7 @@ void ItemWindow::onCreate() {
     bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
     parentButton = CreateWindow(L"BUTTON", nullptr,
         (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
-        0, 1, PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - 2,
+        0, PARENT_BUTTON_MARGIN, PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2,
         hwnd, (HMENU)IDM_PREV_WINDOW, instance, nullptr);
     SetWindowSubclass(parentButton, parentButtonProc, 0, (DWORD_PTR)this);
 
@@ -752,7 +764,8 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
             return TRUE;
         }
-        int topY = statusRect.top + (TOOLBAR_HEIGHT - rectHeight(statusRect)) / 2 + 2;
+        int topY = statusRect.top + (TOOLBAR_HEIGHT - rectHeight(statusRect)) / 2
+            + STATUS_TOOLTIP_OFFSET;
         SendMessage(statusTooltip, TTM_ADJUSTRECT, TRUE, (LPARAM)&statusRect);
         OffsetRect(&statusRect, 0, topY - statusRect.top);
         SetWindowPos(statusTooltip, nullptr, statusRect.left, statusRect.top, 0, 0,
@@ -1356,8 +1369,8 @@ void ItemWindow::proxyDrag(POINT offset) {
 void ItemWindow::beginRename() {
     // update rename box rect
     int leftMargin = LOWORD(SendMessage(renameBox, EM_GETMARGINS, 0, 0));
-    int renameHeight = rectHeight(titleRect) + RENAME_BOX_PADDING * 2;
-    POINT renamePos = {titleRect.left - leftMargin - RENAME_BOX_PADDING,
+    int renameHeight = rectHeight(titleRect) + 4; // NOT scaled with DPI
+    POINT renamePos = {titleRect.left - leftMargin - 2,
                        (CAPTION_HEIGHT - renameHeight) / 2};
     RECT clientRect;
     GetClientRect(hwnd, &clientRect);

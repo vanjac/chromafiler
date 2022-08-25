@@ -1,6 +1,7 @@
 #include "FolderWindow.h"
 #include "RectUtils.h"
 #include "Settings.h"
+#include "DPI.h"
 #include "UIStrings.h"
 #include "resource.h"
 #include <windowsx.h>
@@ -46,7 +47,7 @@ FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item,
         sizeVar.vt = VT_UI4;
         if (SUCCEEDED(propBag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
             // may be overwritten before create()
-            storedChildSize = {GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)};
+            storedChildSize = scaleDPI({GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)});
         }
     }
     oldStoredChildSize = storedChildSize;
@@ -69,10 +70,10 @@ SIZE FolderWindow::requestedSize() const {
         VARIANT sizeVar = {};
         sizeVar.vt = VT_UI4;
         if (SUCCEEDED(propBag->Read(PROP_SIZE, &sizeVar, nullptr))) {
-            return {GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)};
+            return scaleDPI({GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)});
         }
     }
-    return settings::getFolderWindowSize();
+    return scaleDPI(settings::getFolderWindowSize());
 }
 
 wchar_t * FolderWindow::propertyBag() const {
@@ -151,7 +152,7 @@ void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     // FVM_SMALLICON only seems to work if it's also specified with an icon size
     // TODO should this be the shell small icon size?
     // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
-    checkHR(folderView->SetViewModeAndIconSize(FVM_SMALLICON, GetSystemMetrics(SM_CXSMICON)));
+    checkHR(folderView->SetViewModeAndIconSize(FVM_SMALLICON, SHELL_SMALL_ICON));
 }
 
 void FolderWindow::onDestroy() {
@@ -161,14 +162,15 @@ void FolderWindow::onDestroy() {
             checkHR(propBag->Write(PROP_VISITED, &var));
         }
         if (sizeChanged) {
-            if (checkHR(InitVariantFromUInt32(MAKELONG(lastSize.cx, lastSize.cy), &var))) {
+            if (checkHR(InitVariantFromUInt32(MAKELONG(invScaleDPI(lastSize.cx),
+                    invScaleDPI(lastSize.cy)), &var))) {
                 debugPrintf(L"Write window size\n");
                 checkHR(propBag->Write(PROP_SIZE, &var));
             }
         }
         if (!sizeEqual(storedChildSize, oldStoredChildSize)) {
-            if (checkHR(InitVariantFromUInt32(
-                    MAKELONG(storedChildSize.cx, storedChildSize.cy), &var))) {
+            if (checkHR(InitVariantFromUInt32(MAKELONG(invScaleDPI(storedChildSize.cx),
+                    invScaleDPI(storedChildSize.cy)), &var))) {
                 debugPrintf(L"Write child size\n");
                 checkHR(propBag->Write(PROP_CHILD_SIZE, &var));
             }
