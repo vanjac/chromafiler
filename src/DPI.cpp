@@ -6,7 +6,7 @@ namespace chromafile {
 // https://github.com/tringi/win32-dpi
 
 // requires Windows 8.1
-HRESULT (WINAPI *ptrGetScaleFactorForMonitor)(HMONITOR hmonitor, int *scale);
+HRESULT (WINAPI *ptrGetScaleFactorForMonitor)(HMONITOR hmonitor, int *scale) = nullptr;
 
 // DPI.h
 int systemDPI;
