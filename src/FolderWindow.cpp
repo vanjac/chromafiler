@@ -150,7 +150,6 @@ int FolderWindow::getToolbarTooltip(WORD command) {
 
 void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     // FVM_SMALLICON only seems to work if it's also specified with an icon size
-    // TODO should this be the shell small icon size?
     // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
     checkHR(folderView->SetViewModeAndIconSize(FVM_SMALLICON, SHELL_SMALL_ICON));
 }
