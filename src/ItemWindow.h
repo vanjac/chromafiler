@@ -90,6 +90,7 @@ protected:
     virtual void onItemChanged();
     virtual void refresh();
 
+    void deleteProxy(bool resolve = true);
     void invokeContextMenuCommand(CComPtr<IContextMenu> contextMenu, int cmd, POINT point);
 
     HWND hwnd;
@@ -128,7 +129,6 @@ private:
 
     void invokeProxyDefaultVerb(POINT point);
     void openProxyProperties();
-    void deleteProxy();
     void openProxyContextMenu(POINT point);
     void proxyDrag(POINT offset); // specify offset from icon origin
     void beginRename();

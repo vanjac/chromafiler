@@ -118,7 +118,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             CComPtr<IShellItem> scratchFile = createScratchFile(startItem);
             if (!scratchFile)
                 return 0;
-            initialWindow = createItemWindow(nullptr, scratchFile);
+            initialWindow.Attach(new TextWindow(nullptr, scratchFile, true));
             pos = {CW_USEDEFAULT, CW_USEDEFAULT};
         } else {
             initialWindow = createItemWindow(nullptr, startItem);

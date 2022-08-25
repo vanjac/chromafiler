@@ -12,7 +12,7 @@ public:
     static void init();
     static void uninit();
 
-    TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
+    TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, bool scratch = false);
 
     bool handleTopLevelMessage(MSG *msg) override;
 
@@ -56,6 +56,7 @@ private:
 
     HWND edit;
     Encoding encoding = FAIL;
+    bool isUnsavedScratchFile;
     int scrollAccum = 0; // for high resolution scrolling
 
     HWND findReplaceDialog = nullptr;

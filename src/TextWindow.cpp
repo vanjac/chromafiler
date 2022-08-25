@@ -43,8 +43,9 @@ void TextWindow::uninit() {
         DeleteFont(monoFont);
 }
 
-TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
-        : ItemWindow(parent, item) {
+TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, bool scratch)
+        : ItemWindow(parent, item),
+          isUnsavedScratchFile(scratch) {
     findBuffer[0] = 0;
     replaceBuffer[0] = 0;
 }
@@ -138,9 +139,13 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 formatMessage(caption, STR_SAVE_PROMPT_CAPTION);
                 formatMessage(text, STR_SAVE_PROMPT, &*title);
                 int result = MessageBox(nullptr, text, caption, MB_YESNO | MB_TASKMODAL);
-                if (result == IDYES)
+                if (result == IDYES) {
                     saveText();
+                    isUnsavedScratchFile = false;
+                }
             }
+            if (isUnsavedScratchFile)
+                deleteProxy(false);
             break; // continue closing as normal
         case WM_CONTEXTMENU: {
             POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
@@ -201,6 +206,7 @@ bool TextWindow::onCommand(WORD command) {
             if (saveText()) {
                 SendMessage(edit, EM_SETMODIFY, FALSE, 0);
                 setToolbarButtonState(IDM_SAVE, 0);
+                isUnsavedScratchFile = false;
             }
             return true;
         case IDM_FIND:

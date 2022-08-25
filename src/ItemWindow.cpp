@@ -1242,7 +1242,7 @@ void ItemWindow::openProxyProperties() {
     }
 }
 
-void ItemWindow::deleteProxy() {
+void ItemWindow::deleteProxy(bool resolve) {
     CComHeapPtr<ITEMIDLIST> idList;
     if (checkHR(SHGetIDListFromObject(item, &idList))) {
         SHELLEXECUTEINFO info = {sizeof(info)};
@@ -1252,7 +1252,8 @@ void ItemWindow::deleteProxy() {
         info.hwnd = hwnd;
         ShellExecuteEx(&info);
         // TODO: remove this once there's an automatic system for tracking files
-        resolveItem();
+        if (resolve)
+            resolveItem();
     }
 }
 
