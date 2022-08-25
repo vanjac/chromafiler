@@ -159,6 +159,11 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
                 SendMessage(edit, EM_POSFROMCHAR, (WPARAM)&pos, sel.cpMin);
                 ClientToScreen(edit, &pos);
+            } else {
+                RECT body = windowBody();
+                MapWindowRect(hwnd, nullptr, &body);
+                if (!PtInRect(&body, pos))
+                    break;
             }
             HMENU menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_MENU));
             TrackPopupMenuEx(GetSubMenu(menu, 0), TPM_RIGHTBUTTON,
