@@ -81,8 +81,8 @@ protected:
     void openChild(CComPtr<IShellItem> childItem);
     void closeChild();
     virtual void onChildDetached();
-    virtual POINT childPos(SIZE size); // top left corner of child
-    POINT parentPos(); // top right corner of parent
+    virtual POINT childPos(SIZE size);
+    POINT parentPos(SIZE size);
 
     void addChainPreview();
     void removeChainPreview();

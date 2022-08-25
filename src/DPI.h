@@ -14,6 +14,8 @@ const int BASE_DPI = 96;
 const int SHELL_SMALL_ICON = 16;
 
 void initDPI();
+int monitorDPI(HMONITOR monitor);
+
 int scaleDPI(int dp);
 SIZE scaleDPI(SIZE size);
 int invScaleDPI(int px);

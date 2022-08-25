@@ -1,16 +1,33 @@
 #include "DPI.h"
+#include <stdio.h>
 
 namespace chromafile {
+
+// https://github.com/tringi/win32-dpi
+
+// requires Windows 8.1
+HRESULT (WINAPI *ptrGetScaleFactorForMonitor)(HMONITOR hmonitor, int *scale);
 
 // DPI.h
 int systemDPI;
 
-// https://github.com/tringi/win32-dpi
-
 void initDPI() {
-    HDC screen = GetDC(0);
+    HMODULE hShcore = LoadLibrary(L"Shcore");
+    if (hShcore) {
+        ptrGetScaleFactorForMonitor = (decltype(ptrGetScaleFactorForMonitor))
+            GetProcAddress(hShcore, "GetScaleFactorForMonitor");
+    }
+
+    HDC screen = GetDC(nullptr);
     systemDPI = GetDeviceCaps(screen, LOGPIXELSX);
-    ReleaseDC(0, screen);
+    ReleaseDC(nullptr, screen);
+}
+
+int monitorDPI(HMONITOR monitor) {
+    int scale;
+    if (ptrGetScaleFactorForMonitor && checkHR(ptrGetScaleFactorForMonitor(monitor, &scale)))
+        return MulDiv(scale, BASE_DPI, 100);
+    return systemDPI;
 }
 
 int scaleDPI(int dp) {

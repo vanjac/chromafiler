@@ -197,18 +197,6 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         return false;
     debugPrintf(L"Open %s\n", &*title);
 
-    // keep window on screen
-    if (!alwaysOnTop() && rect.left != CW_USEDEFAULT && rect.top != CW_USEDEFAULT) {
-        POINT testPoint = {rect.left, rect.top + CAPTION_HEIGHT};
-        HMONITOR nearestMonitor = MonitorFromPoint(testPoint, MONITOR_DEFAULTTONEAREST);
-        MONITORINFO monitorInfo = {sizeof(monitorInfo)};
-        GetMonitorInfo(nearestMonitor, &monitorInfo);
-        if (testPoint.x < monitorInfo.rcWork.left)
-            OffsetRect(&rect, monitorInfo.rcWork.left - testPoint.x, 0);
-        if (testPoint.y > monitorInfo.rcWork.bottom)
-            OffsetRect(&rect, 0, monitorInfo.rcWork.bottom - testPoint.y);
-    }
-
     HWND owner;
     if (parent && !parent->alwaysOnTop())
         owner = GetWindowOwner(parent->hwnd);
@@ -990,8 +978,8 @@ void ItemWindow::openParent() {
 
         removeChainPreview();
         SIZE size = parent->requestedSize();
-        POINT pos = parentPos();
-        parent->create({pos.x - size.cx, pos.y, pos.x, pos.y + size.cy}, SW_SHOWNORMAL);
+        POINT pos = parentPos(size);
+        parent->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNORMAL);
         if (parentButton)
             ShowWindow(parentButton, SW_HIDE);
     }
@@ -1061,21 +1049,35 @@ void ItemWindow::detachAndMove(bool closeParent) {
     }
 }
 
-POINT ItemWindow::childPos(SIZE) {
+POINT ItemWindow::childPos(SIZE size) {
     RECT windowRect = {}, clientRect = {};
     // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
     // GetWindowRect includes the drop shadow! (why??)
     GetWindowRect(hwnd, &windowRect);
     GetClientRect(hwnd, &clientRect);
-    return {windowRect.left + clientRect.right + windowBorderSize() * 2, windowRect.top};
+    POINT pos = {windowRect.left + clientRect.right + windowBorderSize() * 2, windowRect.top};
+
+    HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    RECT childRect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
+    HMONITOR childMonitor = MonitorFromRect(&childRect, MONITOR_DEFAULTTONEAREST);
+    return pointMulDiv(pos, monitorDPI(curMonitor), monitorDPI(childMonitor));
 }
 
-POINT ItemWindow::parentPos() {
+POINT ItemWindow::parentPos(SIZE size) {
     RECT windowRect = {};
     GetWindowRect(hwnd, &windowRect);
     POINT shadow = {windowRect.left, windowRect.top};
     ScreenToClient(hwnd, &shadow); // determine size of drop shadow
-    return {windowRect.left - shadow.x * 2 - windowBorderSize() * 2, windowRect.top};
+    POINT pos = {windowRect.left - shadow.x * 2 - windowBorderSize() * 2 - size.cx, windowRect.top};
+
+    HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+    GetMonitorInfo(curMonitor, &monitorInfo);
+    if (pos.x < monitorInfo.rcWork.left)
+        pos.x = monitorInfo.rcWork.left;
+    if (pos.y + CAPTION_HEIGHT > monitorInfo.rcWork.bottom)
+        pos.y = monitorInfo.rcWork.bottom - CAPTION_HEIGHT;
+    return pos;
 }
 
 void ItemWindow::addChainPreview() {
