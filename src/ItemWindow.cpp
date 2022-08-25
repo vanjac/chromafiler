@@ -1289,7 +1289,7 @@ void ItemWindow::openProxyContextMenu(POINT point) {
     HMENU popupMenu = CreatePopupMenu();
     if (!popupMenu)
         return;
-    UINT contextFlags = CMF_ITEMMENU | CMF_CANRENAME;
+    UINT contextFlags = CMF_ITEMMENU | (useCustomFrame() ? CMF_CANRENAME : 0);
     if (GetKeyState(VK_SHIFT) < 0)
         contextFlags |= CMF_EXTENDEDVERBS;
     if (!checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, contextFlags))) {
@@ -1309,7 +1309,7 @@ void ItemWindow::openProxyContextMenu(POINT point) {
         verb[0] = 0; // some handlers may return S_OK without touching the buffer
         bool hasVerb = checkHR(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr,
             (char*)verb, _countof(verb)));
-        if (hasVerb && lstrcmpi(verb, L"rename") == 0) {
+        if (useCustomFrame() && hasVerb && lstrcmpi(verb, L"rename") == 0) {
             beginRename();
         } else {
             invokeContextMenuCommand(contextMenu, cmd, point);
