@@ -16,6 +16,28 @@
             "console": "externalTerminal"
         },
         {
+            "name": "Tray",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build\\chromafile.exe",
+            "args": ["/tray"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\build",
+            "environment": [],
+            "console": "externalTerminal"
+        },
+        {
+            "name": "Scratch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build\\chromafile.exe",
+            "args": ["/scratch"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\build",
+            "environment": [],
+            "console": "externalTerminal"
+        },
+        {
             "name": "Explorer",
             "type": "cppvsdbg",
             "request": "launch",
