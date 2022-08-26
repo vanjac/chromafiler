@@ -10,7 +10,6 @@ namespace chromafile {
 class TextWindow : public ItemWindow {
 public:
     static void init();
-    static void uninit();
 
     TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, bool scratch = false);
 
@@ -36,9 +35,11 @@ private:
     bool useDefaultStatusText() const override;
 
     HWND createRichEdit(bool wordWrap);
+    void updateFont();
     void updateStatus(CHARRANGE range);
 
     LONG getTextLength();
+    void changeFontSize(int amount);
     bool isWordWrap();
     void setWordWrap(bool wordWrap);
     void newLine();
@@ -58,7 +59,9 @@ private:
         FAIL, UTF8, UTF8BOM, UTF16LE, UTF16BE
     };
 
-    HWND edit;
+    HWND edit = nullptr;
+    LOGFONT logFont; // NOT scaled for DPI
+    HFONT font = nullptr; // scaled for DPI
     Encoding encoding = FAIL;
     bool isUnsavedScratchFile;
     int vScrollAccum = 0, hScrollAccum = 0; // for high resolution scrolling

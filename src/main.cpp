@@ -146,7 +146,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     ItemWindow::uninit();
     PreviewWindow::uninit();
-    TextWindow::uninit();
     OleUninitialize();
 
     return (int)msg.wParam;

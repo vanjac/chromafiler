@@ -17,6 +17,8 @@ const wchar_t VAL_STATUS_TEXT_ENABLED[] = L"StatusTextEnabled";
 const wchar_t VAL_TOOLBAR_ENABLED[]     = L"ToolbarEnabled";
 const wchar_t VAL_PREVIEWS_ENABLED[]    = L"PreviewsEnabled";
 const wchar_t VAL_TEXT_EDITOR_ENABLED[] = L"TextEditorEnabled";
+const wchar_t VAL_TEXT_FONT_FACE[]      = L"TextFontFace";
+const wchar_t VAL_TEXT_FONT_SIZE[]      = L"TextFontSize";
 const wchar_t VAL_TEXT_WRAP[]           = L"TextWrap";
 const wchar_t VAL_TEXT_AUTO_INDENT[]    = L"TextAutoIndent";
 const wchar_t VAL_TRAY_FOLDER[]         = L"TrayFolder";
@@ -37,7 +39,7 @@ LSTATUS getSettingsValue(const wchar_t *name, DWORD type, void *data, DWORD size
 }
 
 // type should be a REG_* constant (unlike getSettingsValue!)
-LSTATUS setSettingsValue(const wchar_t *name, DWORD type, void *data, DWORD size) {
+LSTATUS setSettingsValue(const wchar_t *name, DWORD type, const void *data, DWORD size) {
     return RegSetKeyValue(HKEY_CURRENT_USER, KEY_SETTINGS, name, type, data, size);
 }
 
@@ -54,7 +56,7 @@ void getSettingsString(const wchar_t *name, DWORD type, const wchar_t *defaultVa
     }
 }
 
-void setSettingsString(const wchar_t *name, DWORD type, wchar_t *value) {
+void setSettingsString(const wchar_t *name, DWORD type, const wchar_t *value) {
     setSettingsValue(name, type, value, (lstrlen(value) + 1) * sizeof(wchar_t));
 }
 
@@ -150,6 +152,19 @@ bool getTextEditorEnabled() {
 void setTextEditorEnabled(bool value) {
     DWORD dwValue = value;
     setSettingsValue(VAL_TEXT_EDITOR_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
+}
+
+LOGFONT getTextFont() {
+    LOGFONT value = DEFAULT_TEXT_FONT;
+    // NOT getSettingsString since lfFaceName has a fixed size
+    getSettingsValue(VAL_TEXT_FONT_FACE, RRF_RT_REG_SZ, value.lfFaceName, sizeof(value.lfFaceName));
+    getSettingsValue(VAL_TEXT_FONT_SIZE, REG_DWORD, &value.lfHeight, sizeof(value.lfHeight));
+    return value;
+}
+
+void setTextFont(const LOGFONT &value) {
+    setSettingsString(VAL_TEXT_FONT_FACE, REG_SZ, value.lfFaceName);
+    setSettingsValue(VAL_TEXT_FONT_SIZE, REG_DWORD, &value.lfHeight, sizeof(value.lfHeight));
 }
 
 bool getTextWrap() {

@@ -19,6 +19,10 @@ const bool      DEFAULT_STATUS_TEXT_ENABLED = true;
 const bool      DEFAULT_TOOLBAR_ENABLED     = true;
 const bool      DEFAULT_PREVIEWS_ENABLED    = true;
 const bool      DEFAULT_TEXT_EDITOR_ENABLED = false;
+const LOGFONT   DEFAULT_TEXT_FONT           = {
+    16, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
+    ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
+    DEFAULT_PITCH | FF_DONTCARE, L"Consolas" };
 const bool      DEFAULT_TEXT_WRAP           = false;
 const bool      DEFAULT_TEXT_AUTO_INDENT    = true;
 const wchar_t   DEFAULT_TRAY_FOLDER[]       = L"shell:Links";
@@ -50,6 +54,8 @@ void setPreviewsEnabled(bool value);
 
 bool getTextEditorEnabled();
 void setTextEditorEnabled(bool value);
+LOGFONT getTextFont();
+void setTextFont(const LOGFONT &value);
 bool getTextWrap();
 void setTextWrap(bool value);
 bool getTextAutoIndent();

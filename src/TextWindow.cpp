@@ -11,11 +11,6 @@ namespace chromafile {
 
 const wchar_t TEXT_WINDOW_CLASS[] = L"Text Window";
 
-const wchar_t TEXT_FONT_FACE[] = L"Consolas";
-
-// dimensions
-int TEXT_FONT_HEIGHT = 16;
-
 const uint8_t BOM_UTF8BOM[] = {0xEF, 0xBB, 0xBF};
 const uint8_t BOM_UTF16LE[] = {0xFF, 0xFE};
 const uint8_t BOM_UTF16BE[] = {0xFE, 0xFF};
@@ -23,7 +18,6 @@ const uint8_t BOM_UTF16BE[] = {0xFE, 0xFF};
     ((size) >= sizeof(bom) && memcmp((buffer), (bom), sizeof(bom)) == 0)
 
 static HACCEL textAccelTable;
-static HFONT monoFont = 0;
 static UINT findReplaceMessage;
 
 void TextWindow::init() {
@@ -32,20 +26,9 @@ void TextWindow::init() {
     // http://www.jose.it-berater.org/richedit/rich_edit_control.htm
     LoadLibrary(L"Msftedit.dll");
 
-    TEXT_FONT_HEIGHT = scaleDPI(TEXT_FONT_HEIGHT);
-
-    monoFont = CreateFont(TEXT_FONT_HEIGHT, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
-        ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
-        DEFAULT_PITCH | FF_DONTCARE, TEXT_FONT_FACE);
-
     textAccelTable = LoadAccelerators(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_ACCEL));
 
     findReplaceMessage = RegisterWindowMessage(FINDMSGSTRING);
-}
-
-void TextWindow::uninit() {
-    if (monoFont)
-        DeleteFont(monoFont);
 }
 
 TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, bool scratch)
@@ -65,6 +48,9 @@ bool TextWindow::useDefaultStatusText() const {
 
 void TextWindow::onCreate() {
     ItemWindow::onCreate();
+
+    logFont = settings::getTextFont();
+    updateFont();
     edit = createRichEdit(settings::getTextWrap());
 
     if (!loadText())
@@ -83,8 +69,8 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
         0, 0, 0, 0,
         hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
     SetWindowSubclass(control, richEditProc, 0, (DWORD_PTR)this);
-    if (monoFont)
-        SendMessage(control, WM_SETFONT, (WPARAM)monoFont, FALSE);
+    if (font)
+        SendMessage(control, WM_SETFONT, (WPARAM)font, FALSE);
     SendMessage(control, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
     SendMessage(control, EM_SETEVENTMASK, 0, ENM_SELCHANGE | ENM_CHANGE);
     SendMessage(control, EM_EXLIMITTEXT, 0, 0x7FFFFFFE); // maximum possible limit
@@ -92,9 +78,21 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
     return control;
 }
 
+void TextWindow::updateFont() {
+    if (font)
+        DeleteFont(font);
+    LOGFONT scaledLogFont = logFont;
+    scaledLogFont.lfHeight = scaleDPI(logFont.lfHeight);
+    font = CreateFontIndirect(&scaledLogFont);
+    if (edit)
+        SendMessage(edit, WM_SETFONT, (WPARAM)font, FALSE);
+}
+
 void TextWindow::onDestroy() {
     if (isUnsavedScratchFile)
         deleteProxy(false);
+    if (font)
+        DeleteFont(font);
 }
 
 void TextWindow::addToolbarButtons(HWND tb) {
@@ -281,6 +279,16 @@ bool TextWindow::onCommand(WORD command) {
             settings::setTextWrap(wordWrap);
             return true;
         }
+        case IDM_ZOOM_IN:
+            changeFontSize(1);
+            return true;
+        case IDM_ZOOM_OUT:
+            changeFontSize(-1);
+            return true;
+        case IDM_ZOOM_RESET:
+            logFont.lfHeight = settings::DEFAULT_TEXT_FONT.lfHeight;
+            updateFont();
+            settings::setTextFont(logFont);
     }
     return ItemWindow::onCommand(command);
 }
@@ -318,6 +326,12 @@ LONG TextWindow::getTextLength() {
     // can't use WM_GETTEXTLENGTH because it counts CRLFs instead of LFs
     GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200};
     return (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
+}
+
+void TextWindow::changeFontSize(int amount) {
+    logFont.lfHeight = max(logFont.lfHeight + amount, 1);
+    updateFont();
+    settings::setTextFont(logFont);
 }
 
 bool TextWindow::isWordWrap() {
@@ -674,7 +688,12 @@ LRESULT CALLBACK TextWindow::richEditProc(HWND hwnd, UINT message,
         // override smooth scrolling
         TextWindow *window = (TextWindow *)refData;
         window->vScrollAccum += GET_WHEEL_DELTA_WPARAM(wParam);
-        SendMessage(hwnd, EM_LINESCROLL, 0, -scrollAccumLines(&window->vScrollAccum));
+        int lines = scrollAccumLines(&window->vScrollAccum);
+        if (GetKeyState(VK_CONTROL) < 0) {
+            window->changeFontSize(lines); // TODO should not be affected by scroll lines setting
+        } else {
+            SendMessage(hwnd, EM_LINESCROLL, 0, -lines);
+        }
         return 0;
     } else if (message == WM_MOUSEHWHEEL) {
         TextWindow *window = (TextWindow *)refData;

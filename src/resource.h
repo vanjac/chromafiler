@@ -29,6 +29,10 @@
 #define IDM_FIND_NEXT       1102
 #define IDM_FIND_PREV       1103
 #define IDM_REPLACE         1104
+#define IDM_WORD_WRAP       1105
+#define IDM_ZOOM_IN         1106
+#define IDM_ZOOM_OUT        1107
+#define IDM_ZOOM_RESET      1108
 
 #define IDR_TEXT_MENU       108
 #define IDM_UNDO            1200
@@ -38,7 +42,6 @@
 #define IDM_PASTE           1204
 #define IDM_DELETE          1205
 #define IDM_SELECT_ALL      1206
-#define IDM_WORD_WRAP       1207
 
 #define IDR_ICON_FONT   103
 // https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
