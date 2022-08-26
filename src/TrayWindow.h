@@ -17,6 +17,8 @@ public:
     POINT requestedPosition();
     SIZE requestedSize() const override;
 
+    bool handleTopLevelMessage(MSG *msg) override;
+
 protected:
     enum UserMessage {
         MSG_APPBAR_CALLBACK = ItemWindow::MSG_LAST,
@@ -30,6 +32,7 @@ protected:
 
     void onCreate() override;
     void onDestroy() override;
+    bool onCommand(WORD command) override;
     void onSize(int width, int height) override;
 
 private:

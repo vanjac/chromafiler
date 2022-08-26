@@ -2,6 +2,7 @@
 #include "RectUtils.h"
 #include "Settings.h"
 #include "DPI.h"
+#include "resource.h"
 #include <windowsx.h>
 #include <shellapi.h>
 
@@ -146,6 +147,12 @@ void TrayWindow::onSize(int width, int height) {
         SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
+bool TrayWindow::handleTopLevelMessage(MSG *msg) {
+    if (msg->message == WM_SYSKEYDOWN && msg->wParam == VK_F4)
+        return true; // block Alt-F4
+    return FolderWindow::handleTopLevelMessage(msg);
+}
+
 LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_GETMINMAXINFO: {
@@ -202,6 +209,20 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             break;
     }
     return FolderWindow::handleMessage(message, wParam, lParam);
+}
+
+bool TrayWindow::onCommand(WORD command) {
+    switch (command) {
+        case IDM_PREV_WINDOW:
+        case IDM_DETACH:
+        case IDM_CLOSE_PARENT:
+        case IDM_CLOSE_WINDOW:
+        case IDM_RENAME_PROXY:
+        case IDM_DELETE_PROXY:
+        case IDM_PARENT_MENU:
+            return true; // suppress commands
+    }
+    return FolderWindow::onCommand(command);
 }
 
 void TrayWindow::forceTopmost() {

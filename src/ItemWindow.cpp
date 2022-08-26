@@ -678,7 +678,7 @@ bool ItemWindow::onCommand(WORD command) {
         case IDM_PREV_WINDOW:
             if (parent)
                 parent->activate();
-            else if (!alwaysOnTop())
+            else
                 openParent();
             return true;
         case IDM_DETACH:
@@ -707,8 +707,7 @@ bool ItemWindow::onCommand(WORD command) {
                 beginRename();
             return true;
         case IDM_DELETE_PROXY:
-            if (!alwaysOnTop())
-                deleteProxy();
+            deleteProxy();
             return true;
         case IDM_PARENT_MENU: {
             ItemWindow *rootParent = this;
