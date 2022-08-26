@@ -20,6 +20,7 @@ const bool      DEFAULT_TOOLBAR_ENABLED     = true;
 const bool      DEFAULT_PREVIEWS_ENABLED    = true;
 const bool      DEFAULT_TEXT_EDITOR_ENABLED = false;
 const bool      DEFAULT_TEXT_WRAP           = false;
+const bool      DEFAULT_TEXT_AUTO_INDENT    = true;
 const wchar_t   DEFAULT_TRAY_FOLDER[]       = L"shell:Links";
 const int       DEFAULT_TRAY_DPI            = 96;
 const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
@@ -51,6 +52,8 @@ bool getTextEditorEnabled();
 void setTextEditorEnabled(bool value);
 bool getTextWrap();
 void setTextWrap(bool value);
+bool getTextAutoIndent();
+void setTextAutoIndent();
 
 bool getTrayOpenOnStartup();
 void setTrayOpenOnStartup(bool value);

@@ -671,7 +671,7 @@ LRESULT CALLBACK TextWindow::richEditProc(HWND hwnd, UINT message,
         window->scrollAccum -= (int)(lines * lineDelta);
         SendMessage(hwnd, EM_LINESCROLL, 0, -lines);
         return 0;
-    } else if (message == WM_KEYDOWN && wParam == VK_RETURN) {
+    } else if (message == WM_KEYDOWN && wParam == VK_RETURN && settings::getTextAutoIndent()) {
         ((TextWindow *)refData)->newLine();
         return 0;
     } else if (message == WM_CHAR && wParam == VK_TAB) {

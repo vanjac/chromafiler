@@ -18,6 +18,7 @@ const wchar_t VAL_TOOLBAR_ENABLED[]     = L"ToolbarEnabled";
 const wchar_t VAL_PREVIEWS_ENABLED[]    = L"PreviewsEnabled";
 const wchar_t VAL_TEXT_EDITOR_ENABLED[] = L"TextEditorEnabled";
 const wchar_t VAL_TEXT_WRAP[]           = L"TextWrap";
+const wchar_t VAL_TEXT_AUTO_INDENT[]    = L"TextAutoIndent";
 const wchar_t VAL_TRAY_FOLDER[]         = L"TrayFolder";
 const wchar_t VAL_TRAY_DPI[]            = L"TrayDPI";
 const wchar_t VAL_TRAY_X[]              = L"TrayX";
@@ -160,6 +161,17 @@ bool getTextWrap() {
 void setTextWrap(bool value) {
     DWORD dwValue = value;
     setSettingsValue(VAL_TEXT_WRAP, REG_DWORD, &dwValue, sizeof(dwValue));
+}
+
+bool getTextAutoIndent() {
+    DWORD value = DEFAULT_TEXT_AUTO_INDENT;
+    getSettingsValue(VAL_TEXT_AUTO_INDENT, RRF_RT_DWORD, &value, sizeof(value));
+    return value;
+}
+
+void setTextAutoIndent(bool value) {
+    DWORD dwValue = value;
+    setSettingsValue(VAL_TEXT_AUTO_INDENT, REG_DWORD, &dwValue, sizeof(dwValue));
 }
 
 bool getTrayOpenOnStartup() {
