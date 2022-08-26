@@ -95,7 +95,6 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
 void TextWindow::onDestroy() {
     if (isUnsavedScratchFile)
         deleteProxy(false);
-    settings::setTextWrap(isWordWrap());
 }
 
 void TextWindow::addToolbarButtons(HWND tb) {
@@ -276,9 +275,12 @@ bool TextWindow::onCommand(WORD command) {
             SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
             return true;
         }
-        case IDM_WORD_WRAP:
-            setWordWrap(!isWordWrap());
+        case IDM_WORD_WRAP: {
+            bool wordWrap = !isWordWrap();
+            setWordWrap(wordWrap);
+            settings::setTextWrap(wordWrap);
             return true;
+        }
     }
     return ItemWindow::onCommand(command);
 }
