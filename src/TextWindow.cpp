@@ -659,19 +659,35 @@ bool TextWindow::saveText() {
     return true;
 }
 
+int scrollAccumLines(int *scrollAccum) {
+    UINT linesPerClick = 3;
+    SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &linesPerClick, 0);
+    float lineDelta = (float)WHEEL_DELTA / linesPerClick;
+    int lines = (int)floor(*scrollAccum / lineDelta);
+    *scrollAccum -= (int)(lines * lineDelta);
+    return lines;
+}
+
 LRESULT CALLBACK TextWindow::richEditProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
     if (message == WM_MOUSEWHEEL) {
         // override smooth scrolling
         TextWindow *window = (TextWindow *)refData;
-        window->scrollAccum += GET_WHEEL_DELTA_WPARAM(wParam);
-
-        UINT linesPerClick = 3;
-        SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &linesPerClick, 0);
-        float lineDelta = (float)WHEEL_DELTA / linesPerClick;
-        int lines = (int)floor(window->scrollAccum / lineDelta);
-        window->scrollAccum -= (int)(lines * lineDelta);
-        SendMessage(hwnd, EM_LINESCROLL, 0, -lines);
+        window->vScrollAccum += GET_WHEEL_DELTA_WPARAM(wParam);
+        SendMessage(hwnd, EM_LINESCROLL, 0, -scrollAccumLines(&window->vScrollAccum));
+        return 0;
+    } else if (message == WM_MOUSEHWHEEL) {
+        TextWindow *window = (TextWindow *)refData;
+        window->hScrollAccum += GET_WHEEL_DELTA_WPARAM(wParam);
+        int lines = scrollAccumLines(&window->hScrollAccum);
+        while (lines > 0) {
+            SendMessage(hwnd, WM_HSCROLL, SB_LINERIGHT, 0);
+            lines--;
+        }
+        while (lines < 0) {
+            SendMessage(hwnd, WM_HSCROLL, SB_LINELEFT, 0);
+            lines++;
+        }
         return 0;
     } else if (message == WM_KEYDOWN && wParam == VK_RETURN && settings::getTextAutoIndent()) {
         ((TextWindow *)refData)->newLine();

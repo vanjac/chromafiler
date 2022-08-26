@@ -61,7 +61,7 @@ private:
     HWND edit;
     Encoding encoding = FAIL;
     bool isUnsavedScratchFile;
-    int scrollAccum = 0; // for high resolution scrolling
+    int vScrollAccum = 0, hScrollAccum = 0; // for high resolution scrolling
 
     HWND findReplaceDialog = nullptr;
     FINDREPLACE findReplace;
