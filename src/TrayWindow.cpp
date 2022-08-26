@@ -10,6 +10,8 @@ namespace chromafile {
 const wchar_t TRAY_WINDOW_CLASS[] = L"Tray";
 const wchar_t MOVE_GRIP_CLASS[] = L"Move Grip";
 
+const int HOTKEY_FOCUS_TRAY = 1;
+
 // dimensions
 int SNAP_DISTANCE = 8;
 int CLOSE_BOX_MARGIN = 4;
@@ -119,6 +121,9 @@ void TrayWindow::onCreate() {
     abData.uCallbackMessage = MSG_APPBAR_CALLBACK;
     SHAppBarMessage(ABM_NEW, &abData);
 
+    if (!RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C'))
+        debugPrintf(L"Unable to register hotkey (error %d)\n", GetLastError());
+
     FolderWindow::onCreate();
 }
 
@@ -127,6 +132,8 @@ void TrayWindow::onDestroy() {
 
     APPBARDATA abData = {sizeof(abData), hwnd};
     SHAppBarMessage(ABM_REMOVE, &abData);
+
+    UnregisterHotKey(hwnd, HOTKEY_FOCUS_TRAY);
 }
 
 void TrayWindow::onSize(int width, int height) {
@@ -187,6 +194,12 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             settings::setTrayDPI(systemDPI);
             return 0;
         }
+        case WM_HOTKEY:
+            if (wParam == HOTKEY_FOCUS_TRAY) {
+                SetForegroundWindow(hwnd);
+                return 0;
+            }
+            break;
     }
     return FolderWindow::handleMessage(message, wParam, lParam);
 }
