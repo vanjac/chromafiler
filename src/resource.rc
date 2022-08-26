@@ -75,6 +75,8 @@ IDR_TEXT_MENU   MENU {
         MENUITEM    "Find &Next",       IDM_FIND_NEXT
         MENUITEM    "Find Pre&vious",   IDM_FIND_PREV
         MENUITEM    "R&eplace...",      IDM_REPLACE
+        MENUITEM    SEPARATOR
+        MENUITEM    "&Word Wrap",        IDM_WORD_WRAP
     }
 }
 

@@ -65,25 +65,37 @@ bool TextWindow::useDefaultStatusText() const {
 
 void TextWindow::onCreate() {
     ItemWindow::onCreate();
-    DWORD style = WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL
-        | ES_NOHIDESEL | ES_SAVESEL | ES_SELECTIONBAR;
-    if (!settings::getTextWrap())
-        style |= WS_HSCROLL | ES_AUTOHSCROLL;
-    edit = CreateWindow(MSFTEDIT_CLASS, nullptr, style,
-        0, 0, 0, 0,
-        hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
-    SetWindowSubclass(edit, richEditProc, 0, (DWORD_PTR)this);
-    if (monoFont)
-        SendMessage(edit, WM_SETFONT, (WPARAM)monoFont, FALSE);
-    SendMessage(edit, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
-    SendMessage(edit, EM_SETEVENTMASK, 0, ENM_SELCHANGE | ENM_CHANGE);
-    SendMessage(edit, EM_EXLIMITTEXT, 0, 0x7FFFFFFE); // maximum possible limit
+    edit = createRichEdit(settings::getTextWrap());
 
     if (!loadText())
         SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
     SendMessage(edit, EM_SETMODIFY, FALSE, 0);
     if (hasStatusText())
         updateStatus({0, 0});
+}
+
+HWND TextWindow::createRichEdit(bool wordWrap) {
+    DWORD style = WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL
+        | ES_NOHIDESEL | ES_SAVESEL | ES_SELECTIONBAR;
+    if (!wordWrap)
+        style |= WS_HSCROLL | ES_AUTOHSCROLL;
+    HWND control = CreateWindow(MSFTEDIT_CLASS, nullptr, style,
+        0, 0, 0, 0,
+        hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
+    SetWindowSubclass(control, richEditProc, 0, (DWORD_PTR)this);
+    if (monoFont)
+        SendMessage(control, WM_SETFONT, (WPARAM)monoFont, FALSE);
+    SendMessage(control, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
+    SendMessage(control, EM_SETEVENTMASK, 0, ENM_SELCHANGE | ENM_CHANGE);
+    SendMessage(control, EM_EXLIMITTEXT, 0, 0x7FFFFFFE); // maximum possible limit
+    // TODO: SES_XLTCRCRLFTOCR?
+    return control;
+}
+
+void TextWindow::onDestroy() {
+    if (isUnsavedScratchFile)
+        deleteProxy(false);
+    settings::setTextWrap(isWordWrap());
 }
 
 void TextWindow::addToolbarButtons(HWND tb) {
@@ -149,8 +161,6 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     isUnsavedScratchFile = false;
                 }
             }
-            if (isUnsavedScratchFile)
-                deleteProxy(false);
             break; // continue closing as normal
         case WM_CONTEXTMENU: {
             POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
@@ -200,6 +210,8 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 EnableMenuItem(menu, IDM_FIND_NEXT, MF_GRAYED);
                 EnableMenuItem(menu, IDM_FIND_PREV, MF_GRAYED);
             }
+            if (isWordWrap())
+                CheckMenuItem(menu, IDM_WORD_WRAP, MF_CHECKED);
             return 0;
         }
     }
@@ -264,6 +276,9 @@ bool TextWindow::onCommand(WORD command) {
             SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
             return true;
         }
+        case IDM_WORD_WRAP:
+            setWordWrap(!isWordWrap());
+            return true;
     }
     return ItemWindow::onCommand(command);
 }
@@ -301,6 +316,38 @@ LONG TextWindow::getTextLength() {
     // can't use WM_GETTEXTLENGTH because it counts CRLFs instead of LFs
     GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200};
     return (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
+}
+
+bool TextWindow::isWordWrap() {
+    return !(GetWindowLongPtr(edit, GWL_STYLE) & ES_AUTOHSCROLL);
+}
+
+void TextWindow::setWordWrap(bool wordWrap) {
+    LONG textLength = getTextLength();
+    CComHeapPtr<wchar_t> buffer;
+    buffer.Allocate(textLength + 1);
+    GETTEXTEX getText = {};
+    getText.cb = (textLength + 1) * sizeof(wchar_t);
+    getText.codepage = 1200;
+    SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)&*buffer);
+
+    // other state
+    BOOL modify = (BOOL)SendMessage(edit, EM_GETMODIFY, 0, 0);
+    CHARRANGE sel;
+    SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
+
+    DestroyWindow(edit);
+    edit = createRichEdit(wordWrap);
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    onSize(rectWidth(clientRect), rectHeight(clientRect));
+
+    SETTEXTEX setText = {ST_UNICODE, 1200};
+    SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)&*buffer);
+    SendMessage(edit, EM_SETMODIFY, modify, 0);
+    SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
+
+    SetFocus(edit);
 }
 
 void TextWindow::newLine() {

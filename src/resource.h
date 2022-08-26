@@ -38,6 +38,7 @@
 #define IDM_PASTE           1204
 #define IDM_DELETE          1205
 #define IDM_SELECT_ALL      1206
+#define IDM_WORD_WRAP       1207
 
 #define IDR_ICON_FONT   103
 // https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font

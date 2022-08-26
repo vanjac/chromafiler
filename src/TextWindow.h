@@ -20,6 +20,7 @@ protected:
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     void onCreate() override;
+    void onDestroy() override;
     bool onCommand(WORD command) override;
     bool onControlCommand(HWND controlHwnd, WORD notif) override;
     LRESULT onNotify(NMHDR *nmHdr) override;
@@ -34,9 +35,12 @@ private:
 
     bool useDefaultStatusText() const override;
 
+    HWND createRichEdit(bool wordWrap);
     void updateStatus(CHARRANGE range);
 
     LONG getTextLength();
+    bool isWordWrap();
+    void setWordWrap(bool wordWrap);
     void newLine();
     void indentSelection(int dir); // dir can be 1 (right) or -1 (left)
     void openFindDialog(bool replace);
