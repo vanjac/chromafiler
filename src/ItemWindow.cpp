@@ -3,7 +3,6 @@
 #include "RectUtils.h"
 #include "GDIUtils.h"
 #include "Settings.h"
-#include "SettingsDialog.h"
 #include "DPI.h"
 #include "resource.h"
 #include <windowsx.h>
@@ -198,6 +197,10 @@ bool ItemWindow::stickToChild() const {
 
 bool ItemWindow::useDefaultStatusText() const {
     return true;
+}
+
+SettingsPage ItemWindow::settingsStartPage() const {
+    return SETTINGS_GENERAL;
 }
 
 bool ItemWindow::create(RECT rect, int showCommand) {
@@ -449,7 +452,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_SYSCOMMAND:
             if (LOWORD(wParam) == IDM_SETTINGS) {
-                openSettingsDialog();
+                openSettingsDialog(settingsStartPage());
                 return 0;
             }
             break;
@@ -725,7 +728,7 @@ bool ItemWindow::onCommand(WORD command) {
                 nullptr, nullptr, SW_SHOWNORMAL);
             return true;
         case IDM_SETTINGS:
-            openSettingsDialog();
+            openSettingsDialog(settingsStartPage());
             return true;
     }
     return false;

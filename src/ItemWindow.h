@@ -2,6 +2,7 @@
 #include <common.h>
 
 #include "COMUtils.h"
+#include "SettingsDialog.h"
 #include <windows.h>
 #include <shobjidl.h>
 #include <atlbase.h>
@@ -107,6 +108,7 @@ private:
     virtual bool stickToChild() const;
 
     virtual bool useDefaultStatusText() const;
+    virtual SettingsPage settingsStartPage() const;
 
     void close();
     void activate();

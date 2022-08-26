@@ -79,6 +79,10 @@ bool TrayWindow::stickToChild() const {
     return false;
 }
 
+SettingsPage TrayWindow::settingsStartPage() const {
+    return SETTINGS_TRAY;
+}
+
 POINT TrayWindow::childPos(SIZE size) {
     RECT windowRect;
     GetWindowRect(hwnd, &windowRect);

@@ -43,6 +43,7 @@ private:
     bool allowToolbar() const override;
     bool alwaysOnTop() const override;
     bool stickToChild() const override;
+    SettingsPage settingsStartPage() const override;
     POINT childPos(SIZE size) override;
     wchar_t * propertyBag() const override;
     void initDefaultView(CComPtr<IFolderView2> folderView) override;

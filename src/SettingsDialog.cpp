@@ -274,30 +274,31 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
     return FALSE;
 }
 
-void openSettingsDialog() {
+void openSettingsDialog(SettingsPage page) {
     if (settingsDialog) {
         SetActiveWindow(settingsDialog);
+        PropSheet_SetCurSel(settingsDialog, nullptr, page);
         return;
     }
 
-    PROPSHEETPAGE pages[3];
+    PROPSHEETPAGE pages[NUM_SETTINGS_PAGES];
 
-    pages[0] = {sizeof(PROPSHEETPAGE)};
-    pages[0].dwFlags = PSP_HASHELP;
-    pages[0].hInstance = GetModuleHandle(nullptr);
-    pages[0].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_GENERAL);
-    pages[0].pfnDlgProc = generalProc;
+    pages[SETTINGS_GENERAL] = {sizeof(PROPSHEETPAGE)};
+    pages[SETTINGS_GENERAL].dwFlags = PSP_HASHELP;
+    pages[SETTINGS_GENERAL].hInstance = GetModuleHandle(nullptr);
+    pages[SETTINGS_GENERAL].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_GENERAL);
+    pages[SETTINGS_GENERAL].pfnDlgProc = generalProc;
 
-    pages[1] = {sizeof(PROPSHEETPAGE)};
-    pages[1].dwFlags = PSP_HASHELP;
-    pages[1].hInstance = GetModuleHandle(nullptr);
-    pages[1].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_TRAY);
-    pages[1].pfnDlgProc = trayProc;
+    pages[SETTINGS_TRAY] = {sizeof(PROPSHEETPAGE)};
+    pages[SETTINGS_TRAY].dwFlags = PSP_HASHELP;
+    pages[SETTINGS_TRAY].hInstance = GetModuleHandle(nullptr);
+    pages[SETTINGS_TRAY].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_TRAY);
+    pages[SETTINGS_TRAY].pfnDlgProc = trayProc;
 
-    pages[2] = {sizeof(PROPSHEETPAGE)};
-    pages[2].hInstance = GetModuleHandle(nullptr);
-    pages[2].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_ABOUT);
-    pages[2].pfnDlgProc = aboutProc;
+    pages[SETTINGS_ABOUT] = {sizeof(PROPSHEETPAGE)};
+    pages[SETTINGS_ABOUT].hInstance = GetModuleHandle(nullptr);
+    pages[SETTINGS_ABOUT].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_ABOUT);
+    pages[SETTINGS_ABOUT].pfnDlgProc = aboutProc;
 
     PROPSHEETHEADER sheet = {sizeof(sheet)};
     sheet.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOCONTEXTHELP | PSH_MODELESS;
@@ -305,6 +306,7 @@ void openSettingsDialog() {
     sheet.pszIcon = MAKEINTRESOURCE(IDR_APP_ICON);
     sheet.pszCaption = MAKEINTRESOURCE(IDS_SETTINGS_CAPTION);
     sheet.nPages = _countof(pages);
+    sheet.nStartPage = page;
     sheet.ppsp = pages;
     settingsDialog = (HWND)PropertySheet(&sheet);
 }
