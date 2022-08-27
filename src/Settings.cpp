@@ -19,6 +19,8 @@ const wchar_t VAL_PREVIEWS_ENABLED[]    = L"PreviewsEnabled";
 const wchar_t VAL_TEXT_EDITOR_ENABLED[] = L"TextEditorEnabled";
 const wchar_t VAL_TEXT_FONT_FACE[]      = L"TextFontFace";
 const wchar_t VAL_TEXT_FONT_SIZE[]      = L"TextFontSize";
+const wchar_t VAL_TEXT_FONT_WEIGHT[]    = L"TextFontWeight";
+const wchar_t VAL_TEXT_FONT_ITALIC[]    = L"TextFontItalic";
 const wchar_t VAL_TEXT_WRAP[]           = L"TextWrap";
 const wchar_t VAL_TEXT_AUTO_INDENT[]    = L"TextAutoIndent";
 const wchar_t VAL_TRAY_FOLDER[]         = L"TrayFolder";
@@ -159,12 +161,19 @@ LOGFONT getTextFont() {
     // NOT getSettingsString since lfFaceName has a fixed size
     getSettingsValue(VAL_TEXT_FONT_FACE, RRF_RT_REG_SZ, value.lfFaceName, sizeof(value.lfFaceName));
     getSettingsValue(VAL_TEXT_FONT_SIZE, REG_DWORD, &value.lfHeight, sizeof(value.lfHeight));
+    getSettingsValue(VAL_TEXT_FONT_WEIGHT, REG_DWORD, &value.lfWeight, sizeof(value.lfWeight));
+    DWORD italic = value.lfItalic;
+    getSettingsValue(VAL_TEXT_FONT_ITALIC, REG_DWORD, &italic, sizeof(italic));
+    value.lfItalic = (BYTE)italic;
     return value;
 }
 
 void setTextFont(const LOGFONT &value) {
     setSettingsString(VAL_TEXT_FONT_FACE, REG_SZ, value.lfFaceName);
     setSettingsValue(VAL_TEXT_FONT_SIZE, REG_DWORD, &value.lfHeight, sizeof(value.lfHeight));
+    setSettingsValue(VAL_TEXT_FONT_WEIGHT, REG_DWORD, &value.lfWeight, sizeof(value.lfWeight));
+    DWORD italic = value.lfItalic;
+    setSettingsValue(VAL_TEXT_FONT_ITALIC, REG_DWORD, &italic, sizeof(italic));
 }
 
 bool getTextWrap() {

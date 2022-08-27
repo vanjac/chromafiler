@@ -20,7 +20,7 @@ const bool      DEFAULT_TOOLBAR_ENABLED     = true;
 const bool      DEFAULT_PREVIEWS_ENABLED    = true;
 const bool      DEFAULT_TEXT_EDITOR_ENABLED = false;
 const LOGFONT   DEFAULT_TEXT_FONT           = {
-    11, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
+    11, 0, 0, 0, FW_REGULAR, FALSE, FALSE, FALSE,
     ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
     DEFAULT_PITCH | FF_DONTCARE, L"Consolas" };
 const bool      DEFAULT_TEXT_WRAP           = false;
