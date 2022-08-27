@@ -2,11 +2,14 @@
 #include "Settings.h"
 #include "TrayWindow.h"
 #include "CreateItemWindow.h"
+#include "UIStrings.h"
+#include "DPI.h"
 #include "resource.h"
 #include <atlbase.h>
 #include <prsht.h>
 #include <shellapi.h>
 #include <shobjidl_core.h>
+#include <commdlg.h>
 
 namespace chromafile {
 
@@ -59,8 +62,6 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                 settings::getToolbarEnabled() ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hwnd, IDC_PREVIEWS_ENABLED,
                 settings::getPreviewsEnabled() ? BST_CHECKED : BST_UNCHECKED);
-            CheckDlgButton(hwnd, IDC_TEXT_EDITOR_ENABLED,
-                settings::getTextEditorEnabled() ? BST_CHECKED : BST_UNCHECKED);
             return TRUE;
         }
         case WM_NOTIFY: {
@@ -90,7 +91,6 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                 settings::setStatusTextEnabled(!!IsDlgButtonChecked(hwnd, IDC_STATUS_TEXT_ENABLED));
                 settings::setToolbarEnabled(!!IsDlgButtonChecked(hwnd, IDC_TOOLBAR_ENABLED));
                 settings::setPreviewsEnabled(!!IsDlgButtonChecked(hwnd, IDC_PREVIEWS_ENABLED));
-                settings::setTextEditorEnabled(!!IsDlgButtonChecked(hwnd, IDC_TEXT_EDITOR_ENABLED));
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
@@ -119,8 +119,95 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                     || LOWORD(wParam) == IDC_START_FOLDER_PATH && HIWORD(wParam) == CBN_SELCHANGE
                     || LOWORD(wParam) == IDC_STATUS_TEXT_ENABLED && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TOOLBAR_ENABLED && HIWORD(wParam) == BN_CLICKED
-                    || LOWORD(wParam) == IDC_PREVIEWS_ENABLED && HIWORD(wParam) == BN_CLICKED
-                    || LOWORD(wParam) == IDC_TEXT_EDITOR_ENABLED && HIWORD(wParam) == BN_CLICKED) {
+                    || LOWORD(wParam) == IDC_PREVIEWS_ENABLED && HIWORD(wParam) == BN_CLICKED) {
+                PropSheet_Changed(GetParent(hwnd), hwnd);
+                return TRUE;
+            }
+            return FALSE;
+        default:
+            return FALSE;
+    }
+}
+
+void updateFontNameText(HWND hwnd, const LOGFONT &logFont) {
+    LocalHeapPtr<wchar_t> fontName;
+    formatMessage(fontName, STR_FONT_NAME, logFont.lfFaceName, logFont.lfHeight);
+    SetDlgItemText(hwnd, IDC_TEXT_FONT_NAME, fontName);
+}
+
+INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    static LOGFONT logFont;
+
+    switch (message) {
+        case WM_INITDIALOG: {
+            CheckDlgButton(hwnd, IDC_TEXT_EDITOR_ENABLED,
+                settings::getTextEditorEnabled() ? BST_CHECKED : BST_UNCHECKED);
+            logFont = settings::getTextFont();
+            updateFontNameText(hwnd, logFont);
+            CheckDlgButton(hwnd, IDC_TEXT_WRAP,
+                settings::getTextWrap() ? BST_CHECKED : BST_UNCHECKED);
+            CheckDlgButton(hwnd, IDC_TEXT_AUTO_INDENT,
+                settings::getTextAutoIndent() ? BST_CHECKED : BST_UNCHECKED);
+            SendDlgItemMessage(hwnd, IDC_SCRATCH_FOLDER_PATH, CB_ADDSTRING, 0,
+                (LPARAM)settings::DEFAULT_SCRATCH_FOLDER);
+            CComHeapPtr<wchar_t> scratchFolder;
+            settings::getScratchFolder(scratchFolder);
+            SetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH, scratchFolder);
+            return TRUE;
+        }
+        case WM_NOTIFY: {
+            NMHDR *notif = (NMHDR *)lParam;
+            if (notif->code == PSN_KILLACTIVE) {
+                SetWindowLongPtr(hwnd, DWLP_MSGRESULT, FALSE);
+                return TRUE;
+            } else if (notif->code == PSN_APPLY) {
+                settings::setTextEditorEnabled(!!IsDlgButtonChecked(hwnd, IDC_TEXT_EDITOR_ENABLED));
+                settings::setTextFont(logFont);
+                settings::setTextWrap(!!IsDlgButtonChecked(hwnd, IDC_TEXT_WRAP));
+                settings::setTextAutoIndent(!!IsDlgButtonChecked(hwnd, IDC_TEXT_AUTO_INDENT));
+                wchar_t scratchFolder[MAX_PATH];
+                if (GetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH,
+                        scratchFolder, _countof(scratchFolder)))
+                    settings::setScratchFolder(scratchFolder);
+                SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
+                return TRUE;
+            } else if (notif->code == PSN_HELP) {
+                ShellExecute(nullptr, L"open",
+                    L"https://github.com/vanjac/chromafile/wiki/Text-Editor",
+                    nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
+            }
+            return FALSE;
+        }
+        case WM_COMMAND:
+            if (LOWORD(wParam) == IDC_TEXT_FONT && HIWORD(wParam) == BN_CLICKED) {
+                CHOOSEFONT chooseFont = {sizeof(chooseFont)};
+                chooseFont.hwndOwner = GetParent(hwnd);
+                chooseFont.lpLogFont = &logFont;
+                chooseFont.iPointSize = logFont.lfHeight * 10; // store in case cancelled
+                chooseFont.Flags = CF_INITTOLOGFONTSTRUCT | CF_NOSCRIPTSEL;
+                logFont.lfHeight = -pointsToPixels(logFont.lfHeight);
+                if (ChooseFont(&chooseFont)) {
+                    logFont.lfHeight = chooseFont.iPointSize / 10;
+                    updateFontNameText(hwnd, logFont);
+                    PropSheet_Changed(GetParent(hwnd), hwnd);
+                } else {
+                    logFont.lfHeight = chooseFont.iPointSize / 10;
+                }
+            } else if (LOWORD(wParam) == IDC_SCRATCH_FOLDER_BROWSE
+                    && HIWORD(wParam) == BN_CLICKED) {
+                CComHeapPtr<wchar_t> selected;
+                if (chooseFolder(GetParent(hwnd), selected)) {
+                    SetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH, selected);
+                    PropSheet_Changed(GetParent(hwnd), hwnd);
+                }
+                return TRUE;
+            } else if (LOWORD(wParam) == IDC_TEXT_EDITOR_ENABLED && HIWORD(wParam) == BN_CLICKED
+                    || LOWORD(wParam) == IDC_TEXT_WRAP && HIWORD(wParam) == BN_CLICKED
+                    || LOWORD(wParam) == IDC_TEXT_AUTO_INDENT && HIWORD(wParam) == BN_CLICKED
+                    || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && HIWORD(wParam) == CBN_EDITCHANGE
+                    || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH
+                            && HIWORD(wParam) == CBN_SELCHANGE) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
                 return TRUE;
             }
@@ -288,6 +375,12 @@ void openSettingsDialog(SettingsPage page) {
     pages[SETTINGS_GENERAL].hInstance = GetModuleHandle(nullptr);
     pages[SETTINGS_GENERAL].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_GENERAL);
     pages[SETTINGS_GENERAL].pfnDlgProc = generalProc;
+
+    pages[SETTINGS_TEXT] = {sizeof(PROPSHEETPAGE)};
+    pages[SETTINGS_TEXT].dwFlags = PSP_HASHELP;
+    pages[SETTINGS_TEXT].hInstance = GetModuleHandle(nullptr);
+    pages[SETTINGS_TEXT].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_TEXT);
+    pages[SETTINGS_TEXT].pfnDlgProc = textProc;
 
     pages[SETTINGS_TRAY] = {sizeof(PROPSHEETPAGE)};
     pages[SETTINGS_TRAY].dwFlags = PSP_HASHELP;

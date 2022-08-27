@@ -63,8 +63,7 @@
 #define IDC_STATUS_TEXT_ENABLED     1007
 #define IDC_TOOLBAR_ENABLED         1008
 #define IDC_PREVIEWS_ENABLED        1009
-#define IDC_TEXT_EDITOR_ENABLED     1010
-#define IDC_EXPLORER_SETTINGS       1011
+#define IDC_EXPLORER_SETTINGS       1010
 
 #define IDD_SETTINGS_TRAY           105
 #define IDC_TRAY_ENABLED            1001
@@ -80,6 +79,15 @@
 #define IDC_UPDATES_LINK            1001
 #define IDC_HELP_LINK               1002
 #define IDC_SOURCE_LINK             1003
+
+#define IDD_SETTINGS_TEXT           109
+#define IDC_TEXT_EDITOR_ENABLED     1001
+#define IDC_TEXT_FONT               1002
+#define IDC_TEXT_FONT_NAME          1003
+#define IDC_TEXT_WRAP               1004
+#define IDC_TEXT_AUTO_INDENT        1005
+#define IDC_SCRATCH_FOLDER_PATH     1006
+#define IDC_SCRATCH_FOLDER_BROWSE   1007
 
 #define IDS_SETTINGS_CAPTION    200
 #define IDS_SETTINGS_COMMAND    201

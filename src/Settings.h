@@ -20,7 +20,7 @@ const bool      DEFAULT_TOOLBAR_ENABLED     = true;
 const bool      DEFAULT_PREVIEWS_ENABLED    = true;
 const bool      DEFAULT_TEXT_EDITOR_ENABLED = false;
 const LOGFONT   DEFAULT_TEXT_FONT           = {
-    16, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
+    11, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
     ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
     DEFAULT_PITCH | FF_DONTCARE, L"Consolas" };
 const bool      DEFAULT_TEXT_WRAP           = false;
@@ -54,12 +54,12 @@ void setPreviewsEnabled(bool value);
 
 bool getTextEditorEnabled();
 void setTextEditorEnabled(bool value);
-LOGFONT getTextFont();
+LOGFONT getTextFont(); // height value is POSITIVE in POINTS (not typical)
 void setTextFont(const LOGFONT &value);
 bool getTextWrap();
 void setTextWrap(bool value);
 bool getTextAutoIndent();
-void setTextAutoIndent();
+void setTextAutoIndent(bool value);
 
 bool getTrayOpenOnStartup();
 void setTrayOpenOnStartup(bool value);

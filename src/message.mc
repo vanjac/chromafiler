@@ -121,3 +121,9 @@ SymbolicName=STR_TEXT_ACTION_AUTOTABLE
 Language=English
 table
 .
+
+MessageId=
+SymbolicName=STR_FONT_NAME
+Language=English
+%1 %2!d!pt
+.

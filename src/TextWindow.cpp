@@ -46,6 +46,10 @@ bool TextWindow::useDefaultStatusText() const {
     return false;
 }
 
+SettingsPage TextWindow::settingsStartPage() const {
+    return SETTINGS_TEXT;
+}
+
 void TextWindow::onCreate() {
     ItemWindow::onCreate();
 
@@ -82,7 +86,7 @@ void TextWindow::updateFont() {
     if (font)
         DeleteFont(font);
     LOGFONT scaledLogFont = logFont;
-    scaledLogFont.lfHeight = scaleDPI(logFont.lfHeight);
+    scaledLogFont.lfHeight = -pointsToPixels(logFont.lfHeight);
     font = CreateFontIndirect(&scaledLogFont);
     if (edit)
         SendMessage(edit, WM_SETFONT, (WPARAM)font, FALSE);

@@ -23,4 +23,8 @@ SIZE invScaleDPI(SIZE size);
 POINT pointMulDiv(POINT p, int num, int denom);
 SIZE sizeMulDiv(SIZE s, int num, int denom);
 
+// font
+int pointsToPixels(int pt);
+int pixelsToPoints(int px);
+
 } // namespace

@@ -33,6 +33,7 @@ private:
     const wchar_t * className() override;
 
     bool useDefaultStatusText() const override;
+    SettingsPage settingsStartPage() const override;
 
     HWND createRichEdit(bool wordWrap);
     void updateFont();

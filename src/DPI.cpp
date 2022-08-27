@@ -54,4 +54,12 @@ SIZE sizeMulDiv(SIZE s, int num, int denom) {
     return {MulDiv(s.cx, num, denom), MulDiv(s.cy, num, denom)};
 }
 
+int pointsToPixels(int pt) {
+    return MulDiv(pt, systemDPI, 72);
+}
+
+int pixelsToPoints(int px) {
+    return MulDiv(px, 72, systemDPI);
+}
+
 } // namespace
