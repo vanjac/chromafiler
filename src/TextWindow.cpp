@@ -97,6 +97,7 @@ void TextWindow::onDestroy() {
         deleteProxy(false);
     if (font)
         DeleteFont(font);
+    ItemWindow::onDestroy();
 }
 
 void TextWindow::addToolbarButtons(HWND tb) {
