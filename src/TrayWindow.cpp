@@ -126,8 +126,9 @@ void TrayWindow::onCreate() {
     abData.uCallbackMessage = MSG_APPBAR_CALLBACK;
     SHAppBarMessage(ABM_NEW, &abData);
 
-    if (!RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C'))
+    if (!RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C')) {
         debugPrintf(L"Unable to register hotkey (error %d)\n", GetLastError());
+    }
 
     FolderWindow::onCreate();
 }

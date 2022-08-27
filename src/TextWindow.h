@@ -45,6 +45,7 @@ private:
     HWND createRichEdit(bool wordWrap);
     void updateFont();
     void updateStatus(CHARRANGE range);
+    void userSave();
 
     LONG getTextLength();
     void changeFontSize(int amount);

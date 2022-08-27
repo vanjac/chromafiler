@@ -171,12 +171,18 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 formatMessage(caption, STR_SAVE_PROMPT_CAPTION);
                 formatMessage(text, STR_SAVE_PROMPT, &*title);
                 int result = MessageBox(nullptr, text, caption, MB_YESNO | MB_TASKMODAL);
-                if (result == IDYES) {
-                    saveText();
-                    isUnsavedScratchFile = false;
-                }
+                if (result == IDYES)
+                    userSave();
             }
             break; // continue closing as normal
+        case WM_QUERYENDSESSION:
+            if (SendMessage(edit, EM_GETMODIFY, 0, 0)) {
+                userSave();
+            } else if (isUnsavedScratchFile) { // empty
+                deleteProxy();
+                isUnsavedScratchFile = false;
+            }
+            return TRUE;
         case WM_CONTEXTMENU: {
             POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             if (pos.x == -1 && pos.y == -1) {
@@ -252,11 +258,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
 bool TextWindow::onCommand(WORD command) {
     switch (command) {
         case IDM_SAVE:
-            if (saveText()) {
-                SendMessage(edit, EM_SETMODIFY, FALSE, 0);
-                setToolbarButtonState(IDM_SAVE, 0);
-                isUnsavedScratchFile = false;
-            }
+            userSave();
             return true;
         case IDM_FIND:
             openFindDialog(false);
@@ -350,6 +352,14 @@ void TextWindow::updateStatus(CHARRANGE range) {
         formatMessage(status, STR_TEXT_STATUS_SEL, line, col, range.cpMax - range.cpMin);
     }
     setStatusText(status);
+}
+
+void TextWindow::userSave() {
+    if (saveText()) {
+        SendMessage(edit, EM_SETMODIFY, FALSE, 0);
+        setToolbarButtonState(IDM_SAVE, 0);
+    }
+    isUnsavedScratchFile = false;
 }
 
 LONG TextWindow::getTextLength() {
