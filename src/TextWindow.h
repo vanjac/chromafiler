@@ -13,9 +13,15 @@ public:
 
     TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, bool scratch = false);
 
+    static void updateAllSettings();
+
     bool handleTopLevelMessage(MSG *msg) override;
 
 protected:
+    enum UserMessage {
+        MSG_UPDATE_SETTINGS = ItemWindow::MSG_LAST,
+        MSG_LAST
+    };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     void onCreate() override;
@@ -31,6 +37,7 @@ protected:
 
 private:
     const wchar_t * className() override;
+    static BOOL CALLBACK updateWindowSettings(HWND hwnd, LPARAM);
 
     bool useDefaultStatusText() const override;
     SettingsPage settingsStartPage() const override;

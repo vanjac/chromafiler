@@ -50,6 +50,19 @@ SettingsPage TextWindow::settingsStartPage() const {
     return SETTINGS_TEXT;
 }
 
+BOOL CALLBACK TextWindow::updateWindowSettings(HWND hwnd, LPARAM) {
+    wchar_t className[64];
+    if (GetClassName(hwnd, className, _countof(className))
+            && lstrcmp(className, TEXT_WINDOW_CLASS) == 0) {
+        PostMessage(hwnd, MSG_UPDATE_SETTINGS, 0, 0);
+    }
+    return TRUE;
+}
+
+void TextWindow::updateAllSettings() {
+    EnumWindows(updateWindowSettings, 0);
+}
+
 void TextWindow::onCreate() {
     ItemWindow::onCreate();
 
@@ -214,6 +227,18 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             if (isWordWrap())
                 CheckMenuItem(menu, IDM_WORD_WRAP, MF_CHECKED);
+            return 0;
+        }
+        case MSG_UPDATE_SETTINGS: {
+            bool wordWrap = settings::getTextWrap();
+            if (wordWrap != isWordWrap())
+                setWordWrap(wordWrap);
+            LOGFONT newLogFont = settings::getTextFont();
+            if (memcmp(&newLogFont, &logFont, sizeof(logFont)) != 0) {
+                debugPrintf(L"Font changed\n");
+                logFont = newLogFont;
+                updateFont();
+            }
             return 0;
         }
     }

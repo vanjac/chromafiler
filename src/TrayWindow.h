@@ -21,7 +21,7 @@ public:
 
 protected:
     enum UserMessage {
-        MSG_APPBAR_CALLBACK = ItemWindow::MSG_LAST,
+        MSG_APPBAR_CALLBACK = FolderWindow::MSG_LAST,
         MSG_LAST
     };
     enum TimerID {

@@ -1,5 +1,6 @@
 #include "SettingsDialog.h"
 #include "Settings.h"
+#include "TextWindow.h"
 #include "TrayWindow.h"
 #include "CreateItemWindow.h"
 #include "UIStrings.h"
@@ -169,6 +170,7 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (GetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH,
                         scratchFolder, _countof(scratchFolder)))
                     settings::setScratchFolder(scratchFolder);
+                TextWindow::updateAllSettings();
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
