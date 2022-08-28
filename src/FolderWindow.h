@@ -35,6 +35,12 @@ public:
     STDMETHODIMP OnViewCreated(IShellView *shellView) override;
 
 protected:
+    enum UserMessage {
+        MSG_SETUP_SCROLLBAR_SUBCLASS = ItemWindow::MSG_LAST,
+        MSG_LAST
+    };
+    LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
+
     void onCreate() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
@@ -57,6 +63,10 @@ private:
 
     virtual wchar_t * propertyBag() const;
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
+
+    bool setupScrollBarSubclass();
+    static LRESULT CALLBACK scrollBarSubclassProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     void selectionChanged();
 

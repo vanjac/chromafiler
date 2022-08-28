@@ -53,7 +53,7 @@ SettingsPage TextWindow::settingsStartPage() const {
 BOOL CALLBACK TextWindow::updateWindowSettings(HWND hwnd, LPARAM) {
     wchar_t className[64];
     if (GetClassName(hwnd, className, _countof(className))
-            && lstrcmp(className, TEXT_WINDOW_CLASS) == 0) {
+            && lstrcmpi(className, TEXT_WINDOW_CLASS) == 0) {
         PostMessage(hwnd, MSG_UPDATE_SETTINGS, 0, 0);
     }
     return TRUE;
