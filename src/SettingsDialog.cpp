@@ -3,6 +3,7 @@
 #include "TextWindow.h"
 #include "TrayWindow.h"
 #include "CreateItemWindow.h"
+#include "main.h"
 #include "UIStrings.h"
 #include "DPI.h"
 #include "resource.h"
@@ -404,6 +405,8 @@ void openSettingsDialog(SettingsPage page) {
     sheet.nStartPage = page;
     sheet.ppsp = pages;
     settingsDialog = (HWND)PropertySheet(&sheet);
+    if (settingsDialog)
+        windowOpened();
 }
 
 bool handleSettingsDialogMessage(MSG *msg) {
@@ -413,6 +416,7 @@ bool handleSettingsDialogMessage(MSG *msg) {
     if (!PropSheet_GetCurrentPageHwnd(settingsDialog)) {
         DestroyWindow(settingsDialog);
         settingsDialog = nullptr;
+        windowClosed();
     }
     return isDialogMessage;
 }

@@ -1,3 +1,4 @@
+#include "main.h"
 #include "FolderWindow.h"
 #include "ThumbnailWindow.h"
 #include "PreviewWindow.h"
@@ -186,4 +187,17 @@ DWORD WINAPI updateJumpList(void *) {
     checkHR(jumpList->AddUserTasks(tasks));
     checkHR(jumpList->CommitList());
     return 0;
+}
+
+namespace chromafile {
+    long numOpenWindows;
+
+    void windowOpened() {
+        InterlockedIncrement(&numOpenWindows);
+    }
+
+    void windowClosed() {
+        if (InterlockedDecrement(&numOpenWindows) == 0)
+            PostQuitMessage(0);
+    }
 }

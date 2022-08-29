@@ -1,5 +1,6 @@
 #include "ItemWindow.h"
 #include "CreateItemWindow.h"
+#include "main.h"
 #include "RectUtils.h"
 #include "GDIUtils.h"
 #include "Settings.h"
@@ -42,7 +43,6 @@ static HFONT captionFont = 0, statusFont = 0, symbolFont = 0;
 static wchar_t STR_SETTINGS_COMMAND[64] = {0};
 
 // ItemWindow.h
-long numOpenWindows;
 CComPtr<ItemWindow> activeWindow;
 
 BOOL compositionEnabled = FALSE;
@@ -235,7 +235,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     ShowWindow(createHwnd, showCommand);
 
     AddRef(); // keep window alive while open
-    InterlockedIncrement(&numOpenWindows);
+    windowOpened();
     return true;
 }
 
@@ -306,8 +306,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
             DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
             hwnd = nullptr;
-            if (InterlockedDecrement(&numOpenWindows) == 0)
-                PostQuitMessage(0);
+            windowClosed();
             Release(); // allow window to be deleted
             return 0;
         case WM_ACTIVATE:
