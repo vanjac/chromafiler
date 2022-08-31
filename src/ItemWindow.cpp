@@ -37,8 +37,8 @@ int WIN10_CXSIZEFRAME = 8; // TODO not correct at higher DPIs
 // regular light mode theme uses #999999
 const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
 
-static HANDLE symbolFontHandle = 0;
-static HFONT captionFont = 0, statusFont = 0, symbolFont = 0;
+static HANDLE symbolFontHandle = nullptr;
+static HFONT captionFont = nullptr, statusFont = nullptr, symbolFont = nullptr;
 // string resources
 static wchar_t STR_SETTINGS_COMMAND[64] = {0};
 
@@ -50,7 +50,7 @@ HACCEL ItemWindow::accelTable;
 
 bool highContrastEnabled() {
     HIGHCONTRAST highContrast = {sizeof(highContrast)};
-    SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, &highContrast, 0);
+    checkLE(SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, &highContrast, 0));
     return highContrast.dwFlags & HCF_HIGHCONTRASTON;
 }
 
@@ -94,8 +94,7 @@ void ItemWindow::init() {
     checkHR(DwmIsCompositionEnabled(&compositionEnabled));
 
     // TODO: alternatively use SystemParametersInfo with SPI_GETNONCLIENTMETRICS
-    HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME);
-    if (theme) {
+    if (HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME)) {
         LOGFONT logFont;
         if (checkHR(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont)))
             captionFont = CreateFontIndirect(&logFont);
@@ -104,14 +103,17 @@ void ItemWindow::init() {
         checkHR(CloseThemeData(theme));
     }
 
-    HRSRC symbolFontResource = FindResource(hInstance, MAKEINTRESOURCE(IDR_ICON_FONT), RT_FONT);
-    HGLOBAL symbolFontAddr = LoadResource(hInstance, symbolFontResource);
-    DWORD count = 1;
-    symbolFontHandle = (HFONT)AddFontMemResourceEx(symbolFontAddr,
-        SizeofResource(hInstance, symbolFontResource), 0, &count);
-    symbolFont = CreateFont(SYMBOL_FONT_HEIGHT, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
-        ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
-        DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
+    if (HRSRC symbolFontResource =
+            checkLE(FindResource(hInstance, MAKEINTRESOURCE(IDR_ICON_FONT), RT_FONT))) {
+        if (HGLOBAL symbolFontAddr = checkLE(LoadResource(hInstance, symbolFontResource))) {
+            DWORD count = 1;
+            symbolFontHandle = (HFONT)AddFontMemResourceEx(symbolFontAddr,
+                SizeofResource(hInstance, symbolFontResource), 0, &count);
+            symbolFont = CreateFont(SYMBOL_FONT_HEIGHT, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
+                ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+                DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
+        }
+    }
 
     LoadString(hInstance, IDS_SETTINGS_COMMAND,
         STR_SETTINGS_COMMAND, _countof(STR_SETTINGS_COMMAND));
@@ -210,27 +212,25 @@ bool ItemWindow::create(RECT rect, int showCommand) {
 
     HWND owner;
     if (parent && !parent->alwaysOnTop())
-        owner = GetWindowOwner(parent->hwnd);
+        owner = checkLE(GetWindowOwner(parent->hwnd));
     else if (child)
-        owner = GetWindowOwner(child->hwnd);
+        owner = checkLE(GetWindowOwner(child->hwnd));
     else
         owner = createChainOwner(showCommand);
 
-    HWND createHwnd = CreateWindowEx(
+    HWND createHwnd = checkLE(CreateWindowEx(
         alwaysOnTop() ? (WS_EX_TOPMOST | WS_EX_TOOLWINDOW) : 0,
         // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
         className(), title, windowStyle() | WS_CLIPCHILDREN,
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
-        owner, nullptr, GetModuleHandle(nullptr), this);
-    if (!createHwnd) {
-        debugPrintf(L"Couldn't create window\n");
+        owner, nullptr, GetModuleHandle(nullptr), this));
+    if (!createHwnd)
         return false;
-    }
     SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) + 1);
 
     // https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-itaskbarlist2-markfullscreenwindow#remarks
     if (alwaysOnTop())
-        SetProp(hwnd, L"NonRudeHWND", (HANDLE)TRUE);
+        checkLE(SetProp(hwnd, L"NonRudeHWND", (HANDLE)TRUE));
 
     ShowWindow(createHwnd, showCommand);
 
@@ -240,8 +240,8 @@ bool ItemWindow::create(RECT rect, int showCommand) {
 }
 
 HWND ItemWindow::createChainOwner(int showCommand) {
-    HWND window = CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
-        nullptr, nullptr, GetModuleHandle(nullptr), 0); // user data stores num owned windows
+    HWND window = checkLE(CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
+        nullptr, nullptr, GetModuleHandle(nullptr), 0)); // user data stores num owned windows
     if (!alwaysOnTop())
         ShowWindow(window, showCommand); // show in taskbar
     return window;
@@ -260,18 +260,18 @@ void ItemWindow::setPos(POINT pos) {
 }
 
 void ItemWindow::move(int x, int y) {
-    RECT rect;
+    RECT rect = {};
     GetWindowRect(hwnd, &rect);
     setPos({rect.left + x, rect.top + y});
 }
 
 RECT ItemWindow::windowBody() {
-    RECT clientRect;
+    RECT clientRect = {};
     GetClientRect(hwnd, &clientRect);
     int top = 0;
     if (useCustomFrame())
         top += CAPTION_HEIGHT;
-    if (allowToolbar() && (statusText || toolbar))
+    if (statusText || toolbar)
         top += TOOLBAR_HEIGHT;
     return RECT {0, top, clientRect.right, clientRect.bottom};
 }
@@ -303,8 +303,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onDestroy();
             return 0;
         case WM_NCDESTROY:
-            DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
-            DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
+            checkLE(DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0)));
+            checkLE(DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0)));
             hwnd = nullptr;
             windowClosed();
             Release(); // allow window to be deleted
@@ -314,7 +314,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         case WM_NCACTIVATE:
             if (useCustomFrame()) {
-                RECT captionRect;
+                RECT captionRect = {};
                 GetClientRect(hwnd, &captionRect);
                 captionRect.bottom = CAPTION_HEIGHT;
                 InvalidateRect(hwnd, &captionRect, FALSE);
@@ -354,7 +354,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             // https://www.drdobbs.com/make-it-snappy/184416407
             if (parent) {
                 RECT *desiredRect = (RECT *)lParam;
-                RECT curRect;
+                RECT curRect = {};
                 GetWindowRect(hwnd, &curRect);
                 moveAccum.x += desiredRect->left - curRect.left;
                 moveAccum.y += desiredRect->top - curRect.top;
@@ -374,7 +374,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_SIZING:
             if (parent && parent->stickToChild()) {
                 RECT *desiredRect = (RECT *)lParam;
-                RECT curRect;
+                RECT curRect = {};
                 GetWindowRect(hwnd, &curRect);
                 // constrain top-left corner
                 int moveX = 0, moveY = 0;
@@ -500,9 +500,10 @@ void ItemWindow::onCreate() {
         }
     }
 
-    HMENU systemMenu = GetSystemMenu(hwnd, FALSE);
-    AppendMenu(systemMenu, MF_SEPARATOR, 0, nullptr);
-    AppendMenu(systemMenu, MF_STRING, IDM_SETTINGS, STR_SETTINGS_COMMAND);
+    if (HMENU systemMenu = GetSystemMenu(hwnd, FALSE)) {
+        AppendMenu(systemMenu, MF_SEPARATOR, 0, nullptr);
+        AppendMenu(systemMenu, MF_STRING, IDM_SETTINGS, STR_SETTINGS_COMMAND);
+    }
 
     if (!alwaysOnTop() && (!parent || parent->alwaysOnTop()))
         addChainPreview();
@@ -526,10 +527,10 @@ void ItemWindow::onCreate() {
             checkHR(RegisterDragDrop(hwnd, this));
         }
 
-        proxyTooltip = CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
+        proxyTooltip = checkLE(CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
             WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            hwnd, nullptr, instance, nullptr);
+            hwnd, nullptr, instance, nullptr));
         SetWindowPos(proxyTooltip, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         if (captionFont)
@@ -542,28 +543,28 @@ void ItemWindow::onCreate() {
 
         CComPtr<IShellItem> parentItem;
         bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
-        parentButton = CreateWindow(L"BUTTON", nullptr,
+        parentButton = checkLE(CreateWindow(L"BUTTON", nullptr,
             (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
             0, PARENT_BUTTON_MARGIN, PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2,
-            hwnd, (HMENU)IDM_PREV_WINDOW, instance, nullptr);
+            hwnd, (HMENU)IDM_PREV_WINDOW, instance, nullptr));
         SetWindowSubclass(parentButton, parentButtonProc, 0, (DWORD_PTR)this);
 
         // will be positioned in beginRename
-        renameBox = CreateWindow(L"EDIT", nullptr,
+        renameBox = checkLE(CreateWindow(L"EDIT", nullptr,
             WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
             0, 0, 0, 0,
-            hwnd, nullptr, instance, nullptr);
+            hwnd, nullptr, instance, nullptr));
         SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
         if (captionFont)
             SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
     } // if (useCustomFrame())
 
     if (allowToolbar() && settings::getStatusTextEnabled()) {
-        statusText = CreateWindow(L"STATIC", nullptr,
+        statusText = checkLE(CreateWindow(L"STATIC", nullptr,
             WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE | SS_NOPREFIX
                 | SS_NOTIFY, // allows tooltips to work
             STATUS_TEXT_MARGIN, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, TOOLBAR_HEIGHT,
-            hwnd, nullptr, instance, nullptr);
+            hwnd, nullptr, instance, nullptr));
         if (statusFont)
             SendMessage(statusText, WM_SETFONT, (WPARAM)statusFont, FALSE);
         if (useDefaultStatusText()) {
@@ -571,10 +572,10 @@ void ItemWindow::onCreate() {
             statusTextThread->start();
         }
 
-        statusTooltip = CreateWindow(TOOLTIPS_CLASS, nullptr,
+        statusTooltip = checkLE(CreateWindow(TOOLTIPS_CLASS, nullptr,
             WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            hwnd, nullptr, instance, nullptr);
+            hwnd, nullptr, instance, nullptr));
         if (statusFont)
             SendMessage(statusTooltip, WM_SETFONT, (WPARAM)statusFont, FALSE);
         SendMessage(statusTooltip, TTM_SETMAXTIPWIDTH, 0, 0x7fff); // allow tabs
@@ -587,12 +588,12 @@ void ItemWindow::onCreate() {
     }
 
     if (allowToolbar() && settings::getToolbarEnabled()) {
-        toolbar = CreateWindowEx(
+        toolbar = checkLE(CreateWindowEx(
             TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
             TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
                 | WS_VISIBLE | WS_CHILD,
             0, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, TOOLBAR_HEIGHT,
-            hwnd, nullptr, instance, nullptr);
+            hwnd, nullptr, instance, nullptr));
         SendMessage(toolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
         SendMessage(toolbar, TB_SETBUTTONWIDTH, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
         SendMessage(toolbar, TB_SETBITMAPSIZE, 0, 0);
@@ -628,7 +629,8 @@ TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command, BYTE s
 }
 
 void ItemWindow::setToolbarButtonState(WORD command, BYTE state) {
-    SendMessage(toolbar, TB_SETSTATE, command, state);
+    if (toolbar)
+        SendMessage(toolbar, TB_SETSTATE, command, state);
 }
 
 void ItemWindow::addToolbarButtons(HWND tb) {
@@ -659,13 +661,14 @@ void ItemWindow::onDestroy() {
         activeWindow = nullptr;
 
     removeChainPreview();
-    HWND owner = GetWindowOwner(hwnd);
-    SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, 0);
-    if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
-        DestroyWindow(owner); // last window in group
+    if (HWND owner = checkLE(GetWindowOwner(hwnd))) {
+        SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, 0);
+        if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
+            DestroyWindow(owner); // last window in group
+    }
 
     if (itemDropTarget)
-        RevokeDragDrop(hwnd);
+        checkHR(RevokeDragDrop(hwnd));
 
     if (statusTextThread)
         statusTextThread->stop();
@@ -705,8 +708,7 @@ bool ItemWindow::onCommand(WORD command) {
             return true;
         }
         case IDM_RENAME_PROXY:
-            if (useCustomFrame())
-                beginRename();
+            beginRename();
             return true;
         case IDM_DELETE_PROXY:
             deleteProxy();
@@ -734,7 +736,7 @@ bool ItemWindow::onCommand(WORD command) {
 }
 
 bool ItemWindow::onControlCommand(HWND controlHwnd, WORD notif) {
-    if (controlHwnd == renameBox && notif == EN_KILLFOCUS) {
+    if (renameBox && controlHwnd == renameBox && notif == EN_KILLFOCUS) {
         if (IsWindowVisible(renameBox))
             completeRename();
         return true;
@@ -743,7 +745,7 @@ bool ItemWindow::onControlCommand(HWND controlHwnd, WORD notif) {
 }
 
 LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
-    if (nmHdr->hwndFrom == proxyTooltip && nmHdr->code == TTN_SHOW) {
+    if (proxyTooltip && nmHdr->hwndFrom == proxyTooltip && nmHdr->code == TTN_SHOW) {
         // position tooltip on top of title
         RECT tooltipRect = titleRect;
         MapWindowRect(hwnd, nullptr, &tooltipRect);
@@ -751,8 +753,8 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         SetWindowPos(proxyTooltip, nullptr, tooltipRect.left, tooltipRect.top, 0, 0,
             SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
         return TRUE;
-    } else if (nmHdr->hwndFrom == statusTooltip && nmHdr->code == TTN_SHOW) {
-        RECT tooltipRect, statusRect;
+    } else if (statusTooltip && nmHdr->hwndFrom == statusTooltip && nmHdr->code == TTN_SHOW) {
+        RECT tooltipRect = {}, statusRect = {};
         GetClientRect(statusTooltip, &tooltipRect);
         GetWindowRect(statusText, &statusRect);
 
@@ -798,7 +800,7 @@ void ItemWindow::onSize(int width, int) {
 
     int toolbarLeft = width;
     if (toolbar) {
-        RECT toolbarRect;
+        RECT toolbarRect = {};
         GetClientRect(toolbar, &toolbarRect);
         toolbarLeft = width - rectWidth(toolbarRect);
         SetWindowPos(toolbar, nullptr, toolbarLeft, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, 0,
@@ -811,7 +813,7 @@ void ItemWindow::onSize(int width, int) {
     }
 
     if (parent && preserveSize()) {
-        RECT rect;
+        RECT rect = {};
         GetWindowRect(hwnd, &rect);
         parent->storedChildSize = rectSize(rect);
     }
@@ -819,7 +821,7 @@ void ItemWindow::onSize(int width, int) {
 
 void ItemWindow::windowRectChanged() {
     if (child) {
-        RECT childRect;
+        RECT childRect = {};
         GetWindowRect(child->hwnd, &childRect);
         child->setPos(childPos(rectSize(childRect)));
     }
@@ -829,7 +831,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-c-hittestnca-function
     // the default window proc handles the left, right, and bottom edges
     // so only need to check top edge and caption
-    RECT screenRect;
+    RECT screenRect = {};
     GetClientRect(hwnd, &screenRect);
     MapWindowRect(hwnd, nullptr, &screenRect);
 
@@ -851,7 +853,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     if (!useCustomFrame())
         return;
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-b-painting-the-caption-title
-    RECT clientRect;
+    RECT clientRect = {};
     GetClientRect(hwnd, &clientRect);
 
     HDC hdcPaint = CreateCompatibleDC(paint.hdc);
@@ -864,8 +866,8 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     // bitmap buffer for drawing caption
     // top-to-bottom order for DrawThemeTextEx()
     BITMAPINFO bitmapInfo = {{sizeof(BITMAPINFOHEADER), width, -height, 1, 32, BI_RGB}};
-    HBITMAP bitmap = CreateDIBSection(paint.hdc, &bitmapInfo, DIB_RGB_COLORS,
-                                      nullptr, nullptr, 0);
+    HBITMAP bitmap = checkLE(CreateDIBSection(paint.hdc, &bitmapInfo, DIB_RGB_COLORS,
+                                              nullptr, nullptr, 0));
     if (!bitmap) {
         DeleteDC(hdcPaint);
         return;
@@ -895,14 +897,16 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     // store for hit testing proxy icon/text
     proxyRect = {headerLeft, 0, headerLeft + headerWidth, CAPTION_HEIGHT};
 
-    if (truncateTitle) {
-        TOOLINFO toolInfo = {sizeof(toolInfo)};
-        toolInfo.hwnd = hwnd;
-        toolInfo.rect = proxyRect;
-        SendMessage(proxyTooltip, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo); // rect to trigger tooltip
-        SendMessage(proxyTooltip, TTM_ACTIVATE, TRUE, 0);
-    } else {
-        SendMessage(proxyTooltip, TTM_ACTIVATE, FALSE, 0);
+    if (proxyTooltip) {
+        if (truncateTitle) {
+            TOOLINFO toolInfo = {sizeof(toolInfo)};
+            toolInfo.hwnd = hwnd;
+            toolInfo.rect = proxyRect; // rect to trigger tooltip
+            SendMessage(proxyTooltip, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+            SendMessage(proxyTooltip, TTM_ACTIVATE, TRUE, 0);
+        } else {
+            SendMessage(proxyTooltip, TTM_ACTIVATE, FALSE, 0);
+        }
     }
 
     iconRect.left = headerLeft;
@@ -911,8 +915,8 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     iconRect.bottom = iconRect.top + iconSize;
     HICON icon = (HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0);
     if (icon) {
-        DrawIconEx(hdcPaint, iconRect.left, iconRect.top, icon,
-                   iconSize, iconSize, 0, nullptr, DI_NORMAL);
+        checkLE(DrawIconEx(hdcPaint, iconRect.left, iconRect.top, icon,
+                           iconSize, iconSize, 0, nullptr, DI_NORMAL));
     }
 
     // the colors won't be right in many cases and it seems like there's no easy way to fix that
@@ -943,7 +947,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         checkHR(CloseThemeData(windowTheme));
     }
 
-    BitBlt(paint.hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY);
+    checkLE(BitBlt(paint.hdc, 0, 0, width, height, hdcPaint, 0, 0, SRCCOPY));
 
     if (oldFont)
         SelectFont(hdcPaint, oldFont);
@@ -981,7 +985,7 @@ void ItemWindow::openParent() {
         parent = createItemWindow(nullptr, parentItem);
         parent->child = this;
         if (preserveSize()) {
-            RECT windowRect;
+            RECT windowRect = {};
             GetWindowRect(hwnd, &windowRect);
             parent->storedChildSize = rectSize(windowRect);
         }
@@ -1006,7 +1010,7 @@ void ItemWindow::clearParent() {
 void ItemWindow::detachFromParent(bool closeParent) {
     ItemWindow *rootParent = parent;
     if (!parent->alwaysOnTop()) {
-        HWND prevOwner = GetWindowOwner(hwnd);
+        HWND prevOwner = checkLE(GetWindowOwner(hwnd));
         HWND owner = createChainOwner(SW_SHOWNORMAL);
         int numChildren = 0;
         for (ItemWindow *next = this; next != nullptr; next = next->child) {
@@ -1038,7 +1042,7 @@ void ItemWindow::detachAndMove(bool closeParent) {
     ItemWindow *rootParent = this;
     while (rootParent->parent && !rootParent->parent->alwaysOnTop())
         rootParent = rootParent->parent;
-    RECT rootRect;
+    RECT rootRect = {};
     GetWindowRect(rootParent->hwnd, &rootRect);
 
     detachFromParent(closeParent);
@@ -1091,7 +1095,7 @@ POINT ItemWindow::parentPos(SIZE size) {
 }
 
 void ItemWindow::addChainPreview() {
-    HWND owner = GetWindowOwner(hwnd);
+    HWND owner = checkLE(GetWindowOwner(hwnd));
     CComPtr<ITaskbarList4> taskbar;
     if (checkHR(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
         checkHR(taskbar->RegisterTab(hwnd, owner));
@@ -1162,14 +1166,16 @@ void ItemWindow::onItemChanged() {
     if (checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &newTitle))) {
         title = newTitle;
         SetWindowText(hwnd, title);
-        TOOLINFO toolInfo = {sizeof(toolInfo)};
-        toolInfo.hwnd = hwnd;
-        toolInfo.lpszText = title;
-        SendMessage(proxyTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
+        if (proxyTooltip) {
+            TOOLINFO toolInfo = {sizeof(toolInfo)};
+            toolInfo.hwnd = hwnd;
+            toolInfo.lpszText = title;
+            SendMessage(proxyTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
+        }
     }
     if (useCustomFrame()) {
         // redraw caption
-        RECT captionRect;
+        RECT captionRect = {};
         GetClientRect(hwnd, &captionRect);
         captionRect.bottom = CAPTION_HEIGHT;
         InvalidateRect(hwnd, &captionRect, FALSE);
@@ -1178,7 +1184,7 @@ void ItemWindow::onItemChanged() {
             itemDropTarget = nullptr;
             if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject,
                     IID_PPV_ARGS(&itemDropTarget))))
-                RevokeDragDrop(hwnd);
+                checkHR(RevokeDragDrop(hwnd));
         }
     }
 }
@@ -1195,6 +1201,8 @@ void ItemWindow::refresh() {
 void ItemWindow::openParentMenu(POINT point) {
     int iconSize = GetSystemMetrics(SM_CXSMICON);
     HMENU menu = CreatePopupMenu();
+    if (!menu)
+        return;
     int id = 0;
     CComPtr<IShellItem> curItem = item, parentItem;
     while (SUCCEEDED(curItem->GetParent(&parentItem))) {
@@ -1217,7 +1225,7 @@ void ItemWindow::openParentMenu(POINT point) {
         }
     }
     if (id == 0) { // empty
-        DestroyMenu(menu);
+        checkLE(DestroyMenu(menu));
         return;
     }
     int cmd = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON,
@@ -1233,10 +1241,10 @@ void ItemWindow::openParentMenu(POINT point) {
     for (int i = 0, count = GetMenuItemCount(menu); i < count; i++) {
         MENUITEMINFO itemInfo = {sizeof(itemInfo)};
         itemInfo.fMask = MIIM_BITMAP;
-        if (GetMenuItemInfo(menu, i, TRUE, &itemInfo) && itemInfo.hbmpItem)
+        if (checkLE(GetMenuItemInfo(menu, i, TRUE, &itemInfo)) && itemInfo.hbmpItem)
             DeleteBitmap(itemInfo.hbmpItem);
     }
-    DestroyMenu(menu);
+    checkLE(DestroyMenu(menu));
 }
 
 void ItemWindow::invokeProxyDefaultVerb(POINT point) {
@@ -1252,7 +1260,7 @@ void ItemWindow::invokeProxyDefaultVerb(POINT point) {
         if (id != (UINT)-1)
             invokeContextMenuCommand(contextMenu, id - 1, point);
     }
-    DestroyMenu(popupMenu);
+    checkLE(DestroyMenu(popupMenu));
 }
 
 void ItemWindow::openProxyProperties() {
@@ -1263,7 +1271,7 @@ void ItemWindow::openProxyProperties() {
         info.lpVerb = L"properties";
         info.lpIDList = idList;
         info.hwnd = hwnd;
-        ShellExecuteEx(&info);
+        checkLE(ShellExecuteEx(&info));
     }
 }
 
@@ -1275,7 +1283,7 @@ void ItemWindow::deleteProxy(bool resolve) {
         info.lpVerb = L"delete";
         info.lpIDList = idList;
         info.hwnd = hwnd;
-        ShellExecuteEx(&info);
+        checkLE(ShellExecuteEx(&info));
         // TODO: remove this once there's an automatic system for tracking files
         if (resolve)
             resolveItem();
@@ -1290,11 +1298,11 @@ void ItemWindow::openProxyContextMenu(POINT point) {
     HMENU popupMenu = CreatePopupMenu();
     if (!popupMenu)
         return;
-    UINT contextFlags = CMF_ITEMMENU | (useCustomFrame() ? CMF_CANRENAME : 0);
+    UINT contextFlags = CMF_ITEMMENU | (renameBox ? CMF_CANRENAME : 0);
     if (GetKeyState(VK_SHIFT) < 0)
         contextFlags |= CMF_EXTENDEDVERBS;
     if (!checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, contextFlags))) {
-        DestroyMenu(popupMenu);
+        checkLE(DestroyMenu(popupMenu));
         return;
     }
     contextMenu2 = contextMenu;
@@ -1310,7 +1318,7 @@ void ItemWindow::openProxyContextMenu(POINT point) {
         verb[0] = 0; // some handlers may return S_OK without touching the buffer
         bool hasVerb = checkHR(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr,
             (char*)verb, _countof(verb)));
-        if (useCustomFrame() && hasVerb && lstrcmpi(verb, L"rename") == 0) {
+        if (hasVerb && lstrcmpi(verb, L"rename") == 0) {
             beginRename();
         } else {
             invokeContextMenuCommand(contextMenu, cmd, point);
@@ -1321,7 +1329,7 @@ void ItemWindow::openProxyContextMenu(POINT point) {
             resolveItem();
         }
     }
-    DestroyMenu(popupMenu);
+    checkLE(DestroyMenu(popupMenu));
 }
 
 void ItemWindow::invokeContextMenuCommand(CComPtr<IContextMenu> contextMenu, int cmd, POINT point) {
@@ -1354,7 +1362,7 @@ void ItemWindow::proxyDrag(POINT offset) {
         // TODO could this reuse the existing helper?
         if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper))) {
             ICONINFO iconInfo = {};
-            GetIconInfo(icon, &iconInfo);
+            checkLE(GetIconInfo(icon, &iconInfo));
             int iconSize = GetSystemMetrics(SM_CXSMICON);
             SHDRAGIMAGE dragImage = {};
             dragImage.sizeDragImage = {iconSize, iconSize};
@@ -1379,12 +1387,14 @@ void ItemWindow::proxyDrag(POINT offset) {
 }
 
 void ItemWindow::beginRename() {
+    if (!renameBox)
+        return;
     // update rename box rect
     int leftMargin = LOWORD(SendMessage(renameBox, EM_GETMARGINS, 0, 0));
     int renameHeight = rectHeight(titleRect) + 4; // NOT scaled with DPI
     POINT renamePos = {titleRect.left - leftMargin - 2,
                        (CAPTION_HEIGHT - renameHeight) / 2};
-    RECT clientRect;
+    RECT clientRect = {};
     GetClientRect(hwnd, &clientRect);
     TITLEBARINFOEX titleBar = {sizeof(titleBar)};
     SendMessage(hwnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&titleBar);
@@ -1418,7 +1428,8 @@ void ItemWindow::completeRename() {
         int titleLen = lstrlen(title);
         if (fileNameLen > titleLen) { // if extensions are hidden in File Explorer Options
             debugPrintf(L"Appending extension %s\n", fileName + titleLen);
-            checkHR(StringCchCat(newName, _countof(newName), fileName + titleLen));
+            if (!checkHR(StringCchCat(newName, _countof(newName), fileName + titleLen)))
+                return;
         }
     }
 
@@ -1566,7 +1577,7 @@ LRESULT CALLBACK ItemWindow::chainWindowProc(HWND hwnd, UINT message,
         // default behavior is to destroy owned windows without calling WM_CLOSE.
         // instead close the left-most chain window to give user a chance to save.
         // TODO this is awful
-        EnumWindows(enumCloseChain, (LPARAM)hwnd);
+        checkLE(EnumWindows(enumCloseChain, (LPARAM)hwnd));
         return 0;
     }
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -1590,7 +1601,7 @@ LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
 
         HTHEME theme = OpenThemeData(hwnd, L"Button");
         if (theme) {
-            RECT buttonRect;
+            RECT buttonRect = {};
             GetClientRect(hwnd, &buttonRect);
             InflateRect(&buttonRect, 1, 1);
             if (themeState == PBS_NORMAL) {

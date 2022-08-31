@@ -18,11 +18,13 @@ void makeBitmapOpaque(HDC hdc, const RECT &rect) {
 HBITMAP iconToPARGB32Bitmap(HICON icon, int width, int height) {
     HDC hdcMem = CreateCompatibleDC(nullptr);
     BITMAPINFO bitmapInfo = {{sizeof(BITMAPINFOHEADER), width, -height, 1, 32, BI_RGB}};
-    HBITMAP bitmap = CreateDIBSection(hdcMem, &bitmapInfo, DIB_RGB_COLORS,
-                                        nullptr, nullptr, 0);
-    SelectBitmap(hdcMem, bitmap);
-    DrawIconEx(hdcMem, 0, 0, icon, width, height, 0, nullptr, DI_NORMAL);
-    // TODO convert to premultiplied alpha?
+    HBITMAP bitmap = nullptr;
+    if ((bitmap = checkLE(CreateDIBSection(hdcMem, &bitmapInfo, DIB_RGB_COLORS,
+                                           nullptr, nullptr, 0))) != nullptr) {
+        SelectBitmap(hdcMem, bitmap);
+        checkLE(DrawIconEx(hdcMem, 0, 0, icon, width, height, 0, nullptr, DI_NORMAL));
+        // TODO convert to premultiplied alpha?
+    }
     DeleteDC(hdcMem);
     return bitmap;
 }

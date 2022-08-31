@@ -209,10 +209,11 @@ void setTrayOpenOnStartup(bool value) {
             return; // don't overwrite existing command
         wchar_t command[MAX_PATH];
         command[0] = L'"';
-        GetModuleFileName(GetModuleHandle(nullptr), command + 1, _countof(command) - 1);
-        StringCchCat(command, _countof(command), L"\" /tray");
-        RegSetKeyValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP, REG_EXPAND_SZ,
-            command, (lstrlen(command) + 1) * sizeof(wchar_t));
+        if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), command + 1, _countof(command) - 1))
+                && checkHR(StringCchCat(command, _countof(command), L"\" /tray"))) {
+            RegSetKeyValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP, REG_EXPAND_SZ,
+                command, (lstrlen(command) + 1) * sizeof(wchar_t));
+        }
     } else {
         RegDeleteKeyValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP);
     }

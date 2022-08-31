@@ -127,9 +127,7 @@ void FolderWindow::onCreate() {
         browser = nullptr;
         return;
     }
-    if (!setupScrollBarSubclass()) {
-        debugPrintf(L"Failed to find horizontal scroll bar\n");
-    }
+    setupScrollBarSubclass();
 }
 
 void FolderWindow::addToolbarButtons(HWND tb) {
@@ -157,9 +155,9 @@ void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     checkHR(folderView->SetViewModeAndIconSize(FVM_SMALLICON, SHELL_SMALL_ICON));
 }
 
-bool FolderWindow::setupScrollBarSubclass() {
+void FolderWindow::setupScrollBarSubclass() {
     if (!browser)
-        return true;
+        return;
     bool blockScrolling = true;
     CComPtr<IFolderView> folderView;
     if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
@@ -169,19 +167,19 @@ bool FolderWindow::setupScrollBarSubclass() {
     }
 
     HWND browserControl = FindWindowEx(hwnd, nullptr, L"ExplorerBrowserControl", nullptr);
-    if (!browserControl) return false;
+    if (!checkLE(browserControl)) return;
     HWND defView = FindWindowEx(browserControl, nullptr, L"SHELLDLL_DefView", nullptr);
-    if (!defView) return false;
+    if (!checkLE(defView)) return;
     HWND directUI = FindWindowEx(defView, nullptr, L"DirectUIHWND", nullptr);
-    if (!directUI) return false;
+    if (!checkLE(directUI)) return;
     HWND ctrlNotify = nullptr, scrollBar;
     do {
         ctrlNotify = FindWindowEx(directUI, ctrlNotify, L"CtrlNotifySink", nullptr);
-        if (!ctrlNotify) return false;
+        if (!checkLE(ctrlNotify)) return;
         scrollBar = FindWindowEx(ctrlNotify, nullptr, L"ScrollBar", nullptr);
-        if (!scrollBar) return false;
+        if (!checkLE(scrollBar)) return;
     } while (GetWindowLongPtr(scrollBar, GWL_STYLE) & SBS_VERT); // find the horizontal scroll bar
-    return !!SetWindowSubclass(scrollBar, scrollBarSubclassProc, blockScrolling, (DWORD_PTR)hwnd);
+    SetWindowSubclass(scrollBar, scrollBarSubclassProc, blockScrolling, (DWORD_PTR)hwnd);
 }
 
 LRESULT CALLBACK FolderWindow::scrollBarSubclassProc(HWND hwnd, UINT message,
@@ -237,9 +235,7 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
     switch (message) {
         case MSG_SETUP_SCROLLBAR_SUBCLASS:
             debugPrintf(L"Setup scroll bar subclass\n");
-            if (!setupScrollBarSubclass()) {
-                debugPrintf(L"Failed to find horizontal scroll bar\n");
-            }
+            setupScrollBarSubclass();
             return 0;
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
@@ -285,7 +281,7 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
         }
     }
     if (state == WA_CLICKACTIVE) {
-        POINT cursor;
+        POINT cursor = {};
         GetCursorPos(&cursor);
         ScreenToClient(hwnd, &cursor);
         RECT body = windowBody();
@@ -297,7 +293,7 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
 void FolderWindow::onSize(int width, int height) {
     ItemWindow::onSize(width, height);
 
-    RECT windowRect;
+    RECT windowRect = {};
     GetWindowRect(hwnd, &windowRect);
     SIZE windowSize = rectSize(windowRect);
     if (lastSize.cx != -1 && !sizeEqual(windowSize, lastSize))
@@ -378,7 +374,7 @@ CComPtr<IContextMenu> FolderWindow::queryBackgroundMenu(HMENU *popupMenu) {
     if ((*popupMenu = CreatePopupMenu()) == nullptr)
         return nullptr;
     if (!checkHR(contextMenu->QueryContextMenu(*popupMenu, 0, 1, 0x7FFF, CMF_OPTIMIZEFORINVOKE))) {
-        DestroyMenu(*popupMenu);
+        checkLE(DestroyMenu(*popupMenu));
         return nullptr;
     }
     return contextMenu;
@@ -401,7 +397,7 @@ void FolderWindow::newItem(const char *verb) {
     checkHR(contextMenu->InvokeCommand(&info));
     checkHR(IUnknown_SetSite(contextMenu, nullptr));
 
-    DestroyMenu(popupMenu);
+    checkLE(DestroyMenu(popupMenu));
 }
 
 HMENU findNewItemMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
@@ -410,7 +406,7 @@ HMENU findNewItemMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
     for (int i = 0, count = GetMenuItemCount(popupMenu); i < count; i++) {
         MENUITEMINFO itemInfo = {sizeof(itemInfo)};
         itemInfo.fMask = MIIM_SUBMENU;
-        if (!GetMenuItemInfo(popupMenu, i, TRUE, &itemInfo))
+        if (!checkLE(GetMenuItemInfo(popupMenu, i, TRUE, &itemInfo)))
             continue;
         if (!itemInfo.hSubMenu || GetMenuItemCount(itemInfo.hSubMenu) == 0)
             continue;
@@ -420,7 +416,8 @@ HMENU findNewItemMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
         }
         MENUITEMINFO subItemInfo = {sizeof(subItemInfo)};
         subItemInfo.fMask = MIIM_ID;
-        if (!GetMenuItemInfo(itemInfo.hSubMenu, 0, TRUE, &subItemInfo) || (int)subItemInfo.wID <= 0)
+        if (!checkLE(GetMenuItemInfo(itemInfo.hSubMenu, 0, TRUE, &subItemInfo))
+                || (int)subItemInfo.wID <= 0)
             continue;
         wchar_t verb[64];
         verb[0] = 0;
@@ -440,14 +437,14 @@ void FolderWindow::openNewItemMenu(POINT point) {
     HMENU newItemMenu = findNewItemMenu(contextMenu, popupMenu);
     if (newItemMenu)
         openBackgroundSubMenu(contextMenu, newItemMenu, point);
-    DestroyMenu(popupMenu);
+    checkLE(DestroyMenu(popupMenu));
 }
 
 HMENU findViewMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
     for (int i = 0, count = GetMenuItemCount(popupMenu); i < count; i++) {
         MENUITEMINFO itemInfo = {sizeof(itemInfo)};
         itemInfo.fMask = MIIM_ID | MIIM_SUBMENU;
-        if (!GetMenuItemInfo(popupMenu, i, TRUE, &itemInfo))
+        if (!checkLE(GetMenuItemInfo(popupMenu, i, TRUE, &itemInfo)))
             continue;
         if (!itemInfo.hSubMenu || itemInfo.wID <= 0)
             continue;
@@ -469,7 +466,7 @@ void FolderWindow::openViewMenu(POINT point) {
     HMENU viewMenu = findViewMenu(contextMenu, popupMenu);
     if (viewMenu)
         openBackgroundSubMenu(contextMenu, viewMenu, point);
-    DestroyMenu(popupMenu);
+    checkLE(DestroyMenu(popupMenu));
 }
 
 void FolderWindow::openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu,

@@ -104,19 +104,19 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
 ThumbnailWindow::ThumbnailThread::ThumbnailThread(CComPtr<IShellItem> item, HWND callbackWindow)
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
-    requestThumbnailEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    requestThumbnailEvent = checkLE(CreateEvent(nullptr, TRUE, FALSE, nullptr));
     InitializeCriticalSectionAndSpinCount(&requestThumbnailSection, 4000);
 }
 
 ThumbnailWindow::ThumbnailThread::~ThumbnailThread() {
-    CloseHandle(requestThumbnailEvent);
+    checkLE(CloseHandle(requestThumbnailEvent));
     DeleteCriticalSection(&requestThumbnailSection);
 }
 
 void ThumbnailWindow::ThumbnailThread::requestThumbnail(SIZE size) {
     EnterCriticalSection(&requestThumbnailSection);
     requestedSize = size;
-    SetEvent(requestThumbnailEvent);
+    checkLE(SetEvent(requestThumbnailEvent));
     LeaveCriticalSection(&requestThumbnailSection);
 }
 
@@ -134,7 +134,7 @@ void ThumbnailWindow::ThumbnailThread::run() {
             SIZE size;
             EnterCriticalSection(&requestThumbnailSection);
             size = requestedSize;
-            ResetEvent(requestThumbnailEvent);
+            checkLE(ResetEvent(requestThumbnailEvent));
             LeaveCriticalSection(&requestThumbnailSection);
 
             HBITMAP hBitmap;

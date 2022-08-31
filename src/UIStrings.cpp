@@ -9,7 +9,7 @@ bool formatMessage(LocalHeapPtr<wchar_t> &message, DWORD messageId, ...) {
     DWORD result = FormatMessage(FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_ALLOCATE_BUFFER,
         nullptr, messageId, 0, (wchar_t *)(wchar_t **)&message, 0, &args);
     va_end(args);
-    return !!result;
+    return !!checkLE(result);
 }
 
 } // namespace

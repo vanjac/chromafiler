@@ -33,7 +33,7 @@ protected:
     CRITICAL_SECTION stopSection; // thread will not be stopped while held
 
 private:
-    HANDLE thread;
+    HANDLE thread = nullptr;
 
     static DWORD WINAPI threadProc(void *);
 };

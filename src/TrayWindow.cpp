@@ -84,7 +84,7 @@ SettingsPage TrayWindow::settingsStartPage() const {
 }
 
 POINT TrayWindow::childPos(SIZE size) {
-    RECT windowRect;
+    RECT windowRect = {};
     GetWindowRect(hwnd, &windowRect);
     switch (settings::getTrayDirection()) {
         default: // TRAY_UP
@@ -107,28 +107,26 @@ void TrayWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
 void TrayWindow::onCreate() {
     HMODULE instance = GetWindowInstance(hwnd);
 
-    CreateWindow(MOVE_GRIP_CLASS, nullptr,
+    checkLE(CreateWindow(MOVE_GRIP_CLASS, nullptr,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
         0, 0, GetSystemMetrics(SM_CXVSCROLL), GetSystemMetrics(SM_CYHSCROLL),
-        hwnd, nullptr, instance, nullptr);
-    RECT clientRect;
+        hwnd, nullptr, instance, nullptr));
+    RECT clientRect = {};
     GetClientRect(hwnd, &clientRect);
-    traySizeGrip = CreateWindow(L"SCROLLBAR", nullptr,
+    traySizeGrip = checkLE(CreateWindow(L"SCROLLBAR", nullptr,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SBS_SIZEBOX | SBS_SIZEBOXBOTTOMRIGHTALIGN,
         0, 0, clientRect.right, clientRect.bottom,
-        hwnd, nullptr, instance, nullptr);
+        hwnd, nullptr, instance, nullptr));
     SetWindowSubclass(traySizeGrip, sizeGripProc, 0, 0);
 
     // TODO: SetCoalescableTimer on Windows 8 or later
-    SetTimer(hwnd, TIMER_MAKE_TOPMOST, 500, nullptr);
+    checkLE(SetTimer(hwnd, TIMER_MAKE_TOPMOST, 500, nullptr));
     // to receive fullscreen notifications:
     APPBARDATA abData = {sizeof(abData), hwnd};
     abData.uCallbackMessage = MSG_APPBAR_CALLBACK;
     SHAppBarMessage(ABM_NEW, &abData);
 
-    if (!RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C')) {
-        debugPrintf(L"Unable to register hotkey (error %d)\n", GetLastError());
-    }
+    checkLE(RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C'));
 
     FolderWindow::onCreate();
 }
@@ -139,13 +137,13 @@ void TrayWindow::onDestroy() {
     APPBARDATA abData = {sizeof(abData), hwnd};
     SHAppBarMessage(ABM_REMOVE, &abData);
 
-    UnregisterHotKey(hwnd, HOTKEY_FOCUS_TRAY);
+    checkLE(UnregisterHotKey(hwnd, HOTKEY_FOCUS_TRAY));
 }
 
 void TrayWindow::onSize(int width, int height) {
     FolderWindow::onSize(width, height);
 
-    RECT gripRect;
+    RECT gripRect = {};
     GetWindowRect(traySizeGrip, &gripRect);
     SetWindowPos(traySizeGrip, nullptr,
         width - rectWidth(gripRect), height - rectHeight(gripRect), 0, 0,
@@ -177,7 +175,7 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             if (wParam == TIMER_MAKE_TOPMOST && !fullScreen) {
                 GUITHREADINFO guiThread = {sizeof(guiThread)};
                 // don't cover up eg. menus or drag overlays
-                if (!(GetGUIThreadInfo(0, &guiThread) && guiThread.hwndCapture))
+                if (!(checkLE(GetGUIThreadInfo(0, &guiThread)) && guiThread.hwndCapture))
                     forceTopmost();
                 return 0;
             }
@@ -199,7 +197,7 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             break; // pass to FolderWindow
         case WM_EXITSIZEMOVE: {
             // save window position
-            RECT windowRect;
+            RECT windowRect = {};
             GetWindowRect(hwnd, &windowRect);
             settings::setTrayPosition({windowRect.left, windowRect.top});
             settings::setTraySize(rectSize(windowRect));
@@ -231,7 +229,7 @@ bool TrayWindow::onCommand(WORD command) {
 }
 
 void TrayWindow::forceTopmost() {
-    RECT windowRect;
+    RECT windowRect = {};
     GetWindowRect(hwnd, &windowRect);
     POINT testPoint {(windowRect.left + windowRect.right) / 2,
                      (windowRect.top + windowRect.bottom) / 2};
@@ -243,14 +241,15 @@ void TrayWindow::forceTopmost() {
     debugPrintf(L"Forcing topmost\n");
     // ugly hack https://shlomio.wordpress.com/2012/09/04/solved-setforegroundwindow-win32-api-not-always-works/
     DWORD fgThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
-    AttachThreadInput(fgThread, GetCurrentThreadId(), true);
+    DWORD threadID = GetCurrentThreadId();
+    checkLE(AttachThreadInput(fgThread, threadID, true));
     SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-    AttachThreadInput(fgThread, GetCurrentThreadId(), false);
+    checkLE(AttachThreadInput(fgThread, threadID, false));
     return;
 }
 
 POINT snapWindowPosition(HWND hwnd, POINT pos) {
-    RECT windowRect;
+    RECT windowRect = {};
     GetWindowRect(hwnd, &windowRect);
     HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo = {sizeof(monitorInfo)};
@@ -308,7 +307,7 @@ LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam
         case WM_PAINT: {
             PAINTSTRUCT paint;
             BeginPaint(hwnd, &paint);
-            RECT rect;
+            RECT rect = {};
             GetClientRect(hwnd, &rect);
             InflateRect(&rect, -CLOSE_BOX_MARGIN, -CLOSE_BOX_MARGIN);
             HBRUSH brush = GetSysColorBrush(COLOR_BTNTEXT);

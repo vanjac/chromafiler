@@ -39,6 +39,16 @@ bool logHRESULT(long hr, const char *file, int line, const char *expr) {
         return false;
     } 
 }
+
+void logLastError(const char *file, int line, const char *expr) {
+    DWORD error = GetLastError();
+    LocalHeapPtr<wchar_t> message;
+    FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr, error, 0, (wchar_t *)(wchar_t **)&message, 0, nullptr);
+    // message should end with a newline
+    debugPrintf(L"Error %d: %s    in %S (%S:%d)\n", error, &*message, expr, file, line);
+}
 #endif
 
 DWORD WINAPI updateJumpList(void *);
@@ -143,7 +153,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     }
 
     WaitForSingleObject(jumpListThread, INFINITE);
-    CloseHandle(jumpListThread);
+    checkLE(CloseHandle(jumpListThread));
 
     ItemWindow::uninit();
     PreviewWindow::uninit();
@@ -168,20 +178,20 @@ DWORD WINAPI updateJumpList(void *) {
     CComPtr<IShellLink> scratchLink;
     if (checkHR(scratchLink.CoCreateInstance(__uuidof(ShellLink)))) {
         wchar_t exePath[MAX_PATH];
-        GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH);
+        if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH))) {
+            checkHR(scratchLink->SetPath(exePath));
+            checkHR(scratchLink->SetArguments(L"/scratch"));
+            checkHR(scratchLink->SetIconLocation(exePath, IDR_APP_ICON));
 
-        checkHR(scratchLink->SetPath(exePath));
-        checkHR(scratchLink->SetArguments(L"/scratch"));
-        checkHR(scratchLink->SetIconLocation(exePath, IDR_APP_ICON));
+            LocalHeapPtr<wchar_t> title;
+            formatMessage(title, STR_NEW_SCRATCH_TASK);
+            CComQIPtr<IPropertyStore> trayLinkProps(scratchLink);
+            PROPVARIANT propVar;
+            if (checkHR(InitPropVariantFromString(title, &propVar)))
+                checkHR(trayLinkProps->SetValue(PKEY_Title, propVar));
 
-        LocalHeapPtr<wchar_t> title;
-        formatMessage(title, STR_NEW_SCRATCH_TASK);
-        CComQIPtr<IPropertyStore> trayLinkProps(scratchLink);
-        PROPVARIANT propVar;
-        if (checkHR(InitPropVariantFromString(title, &propVar)))
-            checkHR(trayLinkProps->SetValue(PKEY_Title, propVar));
-
-        checkHR(tasks->AddObject(scratchLink));
+            checkHR(tasks->AddObject(scratchLink));
+        }        
     }
 
     checkHR(jumpList->AddUserTasks(tasks));

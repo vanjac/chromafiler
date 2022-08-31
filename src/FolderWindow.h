@@ -64,7 +64,7 @@ private:
     virtual wchar_t * propertyBag() const;
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
 
-    bool setupScrollBarSubclass();
+    void setupScrollBarSubclass();
     static LRESULT CALLBACK scrollBarSubclassProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 

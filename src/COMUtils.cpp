@@ -31,13 +31,13 @@ STDMETHODIMP_(ULONG) IUnknownImpl::Release() {
 
 
 StoppableThread::StoppableThread() {
-    stopEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    stopEvent = checkLE(CreateEvent(nullptr, TRUE, FALSE, nullptr));
     InitializeCriticalSectionAndSpinCount(&stopSection, 4000);
 }
 
 StoppableThread::~StoppableThread() {
-    CloseHandle(thread);
-    CloseHandle(stopEvent);
+    checkLE(CloseHandle(thread));
+    checkLE(CloseHandle(stopEvent));
     DeleteCriticalSection(&stopSection);
 }
 
@@ -48,7 +48,7 @@ void StoppableThread::start() {
 
 void StoppableThread::stop() {
     EnterCriticalSection(&stopSection);
-    SetEvent(stopEvent);
+    checkLE(SetEvent(stopEvent));
     LeaveCriticalSection(&stopSection);
 }
 

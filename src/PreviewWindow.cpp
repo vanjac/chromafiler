@@ -49,9 +49,11 @@ void PreviewWindow::init() {
 }
 
 void PreviewWindow::uninit() {
-    PostThreadMessage(GetThreadId(initPreviewThread), WM_QUIT, 0, 0);
-    WaitForSingleObject(initPreviewThread, INFINITE);
-    CloseHandle(initPreviewThread);
+    if (initPreviewThread) {
+        checkLE(PostThreadMessage(GetThreadId(initPreviewThread), WM_QUIT, 0, 0));
+        WaitForSingleObject(initPreviewThread, INFINITE);
+        checkLE(CloseHandle(initPreviewThread));
+    }
     previewFactoryCache.clear();
 }
 
@@ -71,14 +73,16 @@ void PreviewWindow::onCreate() {
     RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
     // some preview handlers don't respect the given rect and always fill their window
     // so wrap the preview handler in a container window
-    container = CreateWindow(PREVIEW_CONTAINER_CLASS, nullptr, WS_VISIBLE | WS_CHILD,
+    container = checkLE(CreateWindow(PREVIEW_CONTAINER_CLASS, nullptr, WS_VISIBLE | WS_CHILD,
         previewRect.left, previewRect.top, containerClientRect.right, containerClientRect.bottom,
-        hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
+        hwnd, nullptr, GetWindowInstance(hwnd), nullptr));
 
     // don't use Attach() for an additional AddRef() -- keep request alive until received by thread
     initRequest = new InitPreviewRequest(item, previewID, hwnd, container);
-    PostThreadMessage(GetThreadId(initPreviewThread),
-        MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest);
+    if (initPreviewThread) {
+        checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
+            MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
+    }
 }
 
 void PreviewWindow::onDestroy() {
@@ -116,7 +120,7 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
         checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this));
         checkHR(preview->DoPreview());
         // required for some preview handlers to render correctly initially (eg. SumatraPDF)
-        RECT containerClientRect;
+        RECT containerClientRect = {};
         GetClientRect(container, &containerClientRect);
         checkHR(preview->SetRect(&containerClientRect));
         return 0;
@@ -135,8 +139,8 @@ void PreviewWindow::destroyPreview() {
         IStream *previewHandlerStream; // no CComPtr
         checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
             &previewHandlerStream));
-        PostThreadMessage(GetThreadId(initPreviewThread),
-            MSG_RELEASE_PREVIEW, 0, (LPARAM)previewHandlerStream);
+        checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
+            MSG_RELEASE_PREVIEW, 0, (LPARAM)previewHandlerStream));
 
         preview = nullptr;
     }
@@ -147,8 +151,10 @@ void PreviewWindow::refresh() {
     destroyPreview();
     initRequest->cancel();
     initRequest = new InitPreviewRequest(item, previewID, hwnd, container);
-    PostThreadMessage(GetThreadId(initPreviewThread),
-        MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest);
+    if (initPreviewThread) {
+        checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
+            MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
+    }
 }
 
 /* IUnknown */
@@ -193,18 +199,18 @@ PreviewWindow::InitPreviewRequest::InitPreviewRequest(CComPtr<IShellItem> item, 
           callbackWindow(callbackWindow),
           container(container) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
-    cancelEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    cancelEvent = checkLE(CreateEvent(nullptr, TRUE, FALSE, nullptr));
     InitializeCriticalSectionAndSpinCount(&cancelSection, 4000);
 }
 
 PreviewWindow::InitPreviewRequest::~InitPreviewRequest() {
-    CloseHandle(cancelEvent);
+    checkLE(CloseHandle(cancelEvent));
     DeleteCriticalSection(&cancelSection);
 }
 
 void PreviewWindow::InitPreviewRequest::cancel() {
     EnterCriticalSection(&cancelSection);
-    SetEvent(cancelEvent);
+    checkLE(SetEvent(cancelEvent));
     LeaveCriticalSection(&cancelSection);
 }
 
@@ -271,7 +277,7 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
         return; // early exit
     }
 
-    RECT containerClientRect;
+    RECT containerClientRect = {};
     GetClientRect(request->container, &containerClientRect);
     checkHR(preview->SetWindow(request->container, &containerClientRect));
 

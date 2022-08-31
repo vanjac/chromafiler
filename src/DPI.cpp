@@ -1,5 +1,4 @@
 #include "DPI.h"
-#include <stdio.h>
 
 namespace chromafile {
 
@@ -9,18 +8,18 @@ namespace chromafile {
 HRESULT (WINAPI *ptrGetScaleFactorForMonitor)(HMONITOR hmonitor, int *scale) = nullptr;
 
 // DPI.h
-int systemDPI;
+int systemDPI = BASE_DPI;
 
 void initDPI() {
-    HMODULE hShcore = LoadLibrary(L"Shcore");
-    if (hShcore) {
+    if (HMODULE hShcore = checkLE(LoadLibrary(L"Shcore"))) {
         ptrGetScaleFactorForMonitor = (decltype(ptrGetScaleFactorForMonitor))
-            GetProcAddress(hShcore, "GetScaleFactorForMonitor");
+            checkLE(GetProcAddress(hShcore, "GetScaleFactorForMonitor"));
     }
 
-    HDC screen = GetDC(nullptr);
-    systemDPI = GetDeviceCaps(screen, LOGPIXELSX);
-    ReleaseDC(nullptr, screen);
+    if (HDC screen = checkLE(GetDC(nullptr))) {
+        systemDPI = GetDeviceCaps(screen, LOGPIXELSX);
+        ReleaseDC(nullptr, screen);
+    }
 }
 
 int monitorDPI(HMONITOR monitor) {

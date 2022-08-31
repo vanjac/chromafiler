@@ -30,7 +30,7 @@ protected:
 private:
     const wchar_t * className() override;
 
-    HBITMAP thumbnailBitmap = 0;
+    HBITMAP thumbnailBitmap = nullptr;
 
     class ThumbnailThread : public StoppableThread {
     public:

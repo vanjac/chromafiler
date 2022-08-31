@@ -371,34 +371,35 @@ void openSettingsDialog(SettingsPage page) {
         return;
     }
 
+    HINSTANCE hInstance = GetModuleHandle(nullptr);
     PROPSHEETPAGE pages[NUM_SETTINGS_PAGES];
 
     pages[SETTINGS_GENERAL] = {sizeof(PROPSHEETPAGE)};
     pages[SETTINGS_GENERAL].dwFlags = PSP_HASHELP;
-    pages[SETTINGS_GENERAL].hInstance = GetModuleHandle(nullptr);
+    pages[SETTINGS_GENERAL].hInstance = hInstance;
     pages[SETTINGS_GENERAL].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_GENERAL);
     pages[SETTINGS_GENERAL].pfnDlgProc = generalProc;
 
     pages[SETTINGS_TEXT] = {sizeof(PROPSHEETPAGE)};
     pages[SETTINGS_TEXT].dwFlags = PSP_HASHELP;
-    pages[SETTINGS_TEXT].hInstance = GetModuleHandle(nullptr);
+    pages[SETTINGS_TEXT].hInstance = hInstance;
     pages[SETTINGS_TEXT].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_TEXT);
     pages[SETTINGS_TEXT].pfnDlgProc = textProc;
 
     pages[SETTINGS_TRAY] = {sizeof(PROPSHEETPAGE)};
     pages[SETTINGS_TRAY].dwFlags = PSP_HASHELP;
-    pages[SETTINGS_TRAY].hInstance = GetModuleHandle(nullptr);
+    pages[SETTINGS_TRAY].hInstance = hInstance;
     pages[SETTINGS_TRAY].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_TRAY);
     pages[SETTINGS_TRAY].pfnDlgProc = trayProc;
 
     pages[SETTINGS_ABOUT] = {sizeof(PROPSHEETPAGE)};
-    pages[SETTINGS_ABOUT].hInstance = GetModuleHandle(nullptr);
+    pages[SETTINGS_ABOUT].hInstance = hInstance;
     pages[SETTINGS_ABOUT].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_ABOUT);
     pages[SETTINGS_ABOUT].pfnDlgProc = aboutProc;
 
     PROPSHEETHEADER sheet = {sizeof(sheet)};
     sheet.dwFlags = PSH_PROPSHEETPAGE | PSH_USEICONID | PSH_NOCONTEXTHELP | PSH_MODELESS;
-    sheet.hInstance = GetModuleHandle(nullptr);
+    sheet.hInstance = hInstance;
     sheet.pszIcon = MAKEINTRESOURCE(IDR_APP_ICON);
     sheet.pszCaption = MAKEINTRESOURCE(IDS_SETTINGS_CAPTION);
     sheet.nPages = _countof(pages);

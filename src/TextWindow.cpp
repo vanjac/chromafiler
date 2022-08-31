@@ -24,11 +24,11 @@ void TextWindow::init() {
     WNDCLASS wndClass = createWindowClass(TEXT_WINDOW_CLASS);
     RegisterClass(&wndClass);
     // http://www.jose.it-berater.org/richedit/rich_edit_control.htm
-    LoadLibrary(L"Msftedit.dll");
+    checkLE(LoadLibrary(L"Msftedit.dll"));
 
     textAccelTable = LoadAccelerators(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_ACCEL));
 
-    findReplaceMessage = RegisterWindowMessage(FINDMSGSTRING);
+    findReplaceMessage = checkLE(RegisterWindowMessage(FINDMSGSTRING));
 }
 
 TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, bool scratch)
@@ -60,7 +60,7 @@ BOOL CALLBACK TextWindow::updateWindowSettings(HWND hwnd, LPARAM) {
 }
 
 void TextWindow::updateAllSettings() {
-    EnumWindows(updateWindowSettings, 0);
+    checkLE(EnumWindows(updateWindowSettings, 0)); // TODO use HWND_BROADCAST instead?
 }
 
 void TextWindow::onCreate() {
@@ -82,9 +82,9 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
         | ES_NOHIDESEL | ES_SAVESEL | ES_SELECTIONBAR;
     if (!wordWrap)
         style |= WS_HSCROLL | ES_AUTOHSCROLL;
-    HWND control = CreateWindow(MSFTEDIT_CLASS, nullptr, style,
+    HWND control = checkLE(CreateWindow(MSFTEDIT_CLASS, nullptr, style,
         0, 0, 0, 0,
-        hwnd, nullptr, GetWindowInstance(hwnd), nullptr);
+        hwnd, nullptr, GetWindowInstance(hwnd), nullptr));
     SetWindowSubclass(control, richEditProc, 0, (DWORD_PTR)this);
     if (font)
         SendMessage(control, WM_SETFONT, (WPARAM)font, FALSE);
@@ -197,9 +197,9 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     break;
             }
             HMENU menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_MENU));
-            TrackPopupMenuEx(GetSubMenu(menu, 0), TPM_RIGHTBUTTON,
-                pos.x, pos.y, hwnd, nullptr);
-            DestroyMenu(menu);
+            checkLE(TrackPopupMenuEx(GetSubMenu(menu, 0), TPM_RIGHTBUTTON,
+                pos.x, pos.y, hwnd, nullptr));
+            checkLE(DestroyMenu(menu));
             return 0;
         }
         case WM_INITMENUPOPUP: {
@@ -248,7 +248,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
     }
-    if (message == findReplaceMessage) {
+    if (findReplaceMessage && message == findReplaceMessage) {
         handleFindReplace((FINDREPLACE *)lParam);
         return 0;
     }
@@ -394,7 +394,7 @@ void TextWindow::setWordWrap(bool wordWrap) {
 
     DestroyWindow(edit);
     edit = createRichEdit(wordWrap);
-    RECT clientRect;
+    RECT clientRect = {};
     GetClientRect(hwnd, &clientRect);
     onSize(rectWidth(clientRect), rectHeight(clientRect));
 
@@ -715,7 +715,7 @@ bool TextWindow::saveText() {
 
 int scrollAccumLines(int *scrollAccum) {
     UINT linesPerClick = 3;
-    SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &linesPerClick, 0);
+    checkLE(SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &linesPerClick, 0));
     float lineDelta = (float)WHEEL_DELTA / linesPerClick;
     int lines = (int)floor(*scrollAccum / lineDelta);
     *scrollAccum -= (int)(lines * lineDelta);
