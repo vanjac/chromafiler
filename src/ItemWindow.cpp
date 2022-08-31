@@ -26,10 +26,13 @@ int WINDOW_ICON_PADDING = 4;
 int TOOLBAR_HEIGHT = 24;
 int STATUS_TEXT_MARGIN = 4;
 int STATUS_TOOLTIP_OFFSET = 2; // TODO not correct at higher DPIs
-int SYMBOL_FONT_HEIGHT = 14;
 int DETACH_DISTANCE = 32;
 
 int CAPTION_HEIGHT = 0; // calculated in init()
+
+LOGFONT SYMBOL_LOGFONT = {14, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
+    ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+    DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets"};
 
 // these are Windows metrics/colors that are not exposed through the API >:(
 int WIN10_CXSIZEFRAME = 8; // TODO not correct at higher DPIs
@@ -87,9 +90,9 @@ void ItemWindow::init() {
     TOOLBAR_HEIGHT = scaleDPI(TOOLBAR_HEIGHT);
     STATUS_TEXT_MARGIN = scaleDPI(STATUS_TEXT_MARGIN);
     STATUS_TOOLTIP_OFFSET = scaleDPI(STATUS_TOOLTIP_OFFSET);
-    SYMBOL_FONT_HEIGHT = scaleDPI(SYMBOL_FONT_HEIGHT);
     DETACH_DISTANCE = scaleDPI(DETACH_DISTANCE);
     WIN10_CXSIZEFRAME = scaleDPI(WIN10_CXSIZEFRAME);
+    SYMBOL_LOGFONT.lfHeight = scaleDPI(SYMBOL_LOGFONT.lfHeight);
 
     checkHR(DwmIsCompositionEnabled(&compositionEnabled));
 
@@ -109,9 +112,7 @@ void ItemWindow::init() {
             DWORD count = 1;
             symbolFontHandle = (HFONT)AddFontMemResourceEx(symbolFontAddr,
                 SizeofResource(hInstance, symbolFontResource), 0, &count);
-            symbolFont = CreateFont(SYMBOL_FONT_HEIGHT, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
-                ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
-                DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets");
+            symbolFont = CreateFontIndirect(&SYMBOL_LOGFONT);
         }
     }
 
