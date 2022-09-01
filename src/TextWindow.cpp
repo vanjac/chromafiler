@@ -396,8 +396,9 @@ bool TextWindow::confirmSave(bool willDelete) {
     TASKDIALOGCONFIG config = {sizeof(config)};
     config.hInstance = GetModuleHandle(nullptr);
     config.hwndParent = hwnd;
-    config.dwFlags = TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.dwFlags = TDF_USE_HICON_MAIN | TDF_POSITION_RELATIVE_TO_WINDOW;
     config.pszWindowTitle = title;
+    config.hMainIcon = (HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0);
     config.pszMainInstruction = MAKEINTRESOURCE(IDS_UNSAVED_CAPTION);
     config.pszContent = text;
     TASKDIALOG_BUTTON buttons[] = {{IDYES, MAKEINTRESOURCE(IDS_SAVE_BUTTON)},
