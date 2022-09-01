@@ -54,7 +54,7 @@ void logLastError(const char *file, int line, const char *expr) {
 DWORD WINAPI updateJumpList(void *);
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
-    debugPrintf(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
+    OutputDebugString(L"omg hiiiii ^w^\n"); // DO NOT REMOVE!!
 
 #ifdef CHROMAFILE_MEMLEAKS
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
