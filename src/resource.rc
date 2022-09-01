@@ -172,4 +172,8 @@ STRINGTABLE {
     IDS_VIEW_COMMAND,       "View..."
     IDS_SAVE_COMMAND,       "Save"
     IDS_DELETE_COMMAND,     "Delete file"
+    IDS_UNSAVED_CAPTION,    "Unsaved changes"
+    IDS_SAVE_BUTTON,        "&Save"
+    IDS_DONT_SAVE_BUTTON,   "Do&n't Save"
+    IDS_DELETE_BUTTON,      "&Delete"
 }

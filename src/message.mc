@@ -33,15 +33,15 @@ Language=English
 .
 
 MessageId=
-SymbolicName=STR_SAVE_PROMPT_CAPTION
-Language=English
-Save before closing?
-.
-
-MessageId=
 SymbolicName=STR_SAVE_PROMPT
 Language=English
 Do you want to save changes to %1?
+.
+
+MessageId=
+SymbolicName=STR_DELETE_PROMPT
+Language=English
+Are you sure you want to delete %1?
 .
 
 MessageId=

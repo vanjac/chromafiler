@@ -175,11 +175,9 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_CLOSE:
             if (encoding != FAIL && SendMessage(edit, EM_GETMODIFY, 0, 0)) {
-                LocalHeapPtr<wchar_t> caption, text;
-                formatMessage(caption, STR_SAVE_PROMPT_CAPTION);
-                formatMessage(text, STR_SAVE_PROMPT, &*title);
-                int result = MessageBox(nullptr, text, caption, MB_YESNO | MB_TASKMODAL);
-                if (result == IDYES)
+                SFGAOF attr;
+                bool itemExists = SUCCEEDED(item->GetAttributes(SFGAO_VALIDATE, &attr));
+                if (confirmSave(!itemExists))
                     userSave();
             }
             break; // continue closing as normal
@@ -374,6 +372,44 @@ void TextWindow::userSave() {
         setToolbarButtonState(IDM_SAVE, 0);
     }
     isUnsavedScratchFile = false;
+}
+
+BOOL CALLBACK enumEnableOwned(HWND hwnd, LPARAM lParam) {
+    if (lParam && GetWindowOwner(hwnd) == (HWND)lParam)
+        EnableWindow(hwnd, TRUE);
+    return TRUE;
+}
+
+BOOL CALLBACK enumDisableOwned(HWND hwnd, LPARAM lParam) {
+    if (lParam && GetWindowOwner(hwnd) == (HWND)lParam)
+        EnableWindow(hwnd, FALSE);
+    return TRUE;
+}
+
+bool TextWindow::confirmSave(bool willDelete) {
+    HWND owner = GetWindowOwner(hwnd);
+    // alternative to MB_TASKMODAL http://www.verycomputer.com/5_86324e67adeedf52_1.htm
+    EnumWindows(enumDisableOwned, (LPARAM)owner); // TODO ugly ugly ugly
+
+    LocalHeapPtr<wchar_t> text;
+    formatMessage(text, willDelete ? STR_DELETE_PROMPT : STR_SAVE_PROMPT, &*title);
+    TASKDIALOGCONFIG config = {sizeof(config)};
+    config.hInstance = GetModuleHandle(nullptr);
+    config.hwndParent = hwnd;
+    config.dwFlags = TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.pszWindowTitle = title;
+    config.pszMainInstruction = MAKEINTRESOURCE(IDS_UNSAVED_CAPTION);
+    config.pszContent = text;
+    TASKDIALOG_BUTTON buttons[] = {{1, MAKEINTRESOURCE(IDS_SAVE_BUTTON)},
+        {2, MAKEINTRESOURCE(willDelete ? IDS_DELETE_BUTTON : IDS_DONT_SAVE_BUTTON)}};
+    config.cButtons = _countof(buttons);
+    config.pButtons = buttons;
+    config.nDefaultButton = 1;
+    int result = 0;
+    checkHR(TaskDialogIndirect(&config, &result, nullptr, nullptr));
+
+    EnumWindows(enumEnableOwned, (LPARAM)owner);
+    return result == 1;
 }
 
 LONG TextWindow::getTextLength() {

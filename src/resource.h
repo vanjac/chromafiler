@@ -96,3 +96,7 @@
 #define IDS_VIEW_COMMAND        204
 #define IDS_SAVE_COMMAND        205
 #define IDS_DELETE_COMMAND      206
+#define IDS_UNSAVED_CAPTION     207
+#define IDS_SAVE_BUTTON         208
+#define IDS_DONT_SAVE_BUTTON    209
+#define IDS_DELETE_BUTTON       210

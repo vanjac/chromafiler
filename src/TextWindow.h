@@ -46,6 +46,7 @@ private:
     void updateFont();
     void updateStatus(CHARRANGE range);
     void userSave();
+    bool confirmSave(bool willDelete);
 
     LONG getTextLength();
     void changeFontSize(int amount);
