@@ -176,8 +176,8 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_CLOSE:
             if (encoding != FAIL && SendMessage(edit, EM_GETMODIFY, 0, 0)) {
                 SFGAOF attr;
-                bool itemExists = SUCCEEDED(item->GetAttributes(SFGAO_VALIDATE, &attr));
-                if (confirmSave(!itemExists))
+                if (confirmSave(isUnsavedScratchFile
+                        || FAILED(item->GetAttributes(SFGAO_VALIDATE, &attr)))) // doesn't exist
                     userSave();
             }
             break; // continue closing as normal
