@@ -18,7 +18,7 @@ const SIZE      DEFAULT_FOLDER_WINDOW_SIZE  = {231, 450}; // just wide enough fo
 const bool      DEFAULT_STATUS_TEXT_ENABLED = true;
 const bool      DEFAULT_TOOLBAR_ENABLED     = true;
 const bool      DEFAULT_PREVIEWS_ENABLED    = true;
-const bool      DEFAULT_TEXT_EDITOR_ENABLED = false;
+const bool      DEFAULT_TEXT_EDITOR_ENABLED = true;
 const LOGFONT   DEFAULT_TEXT_FONT           = {
     11, 0, 0, 0, FW_REGULAR, FALSE, FALSE, FALSE,
     ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
