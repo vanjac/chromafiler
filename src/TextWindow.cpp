@@ -11,6 +11,8 @@ namespace chromafile {
 
 const wchar_t TEXT_WINDOW_CLASS[] = L"Text Window";
 
+const ULONG MAX_FILE_SIZE = 50'000'000;
+
 const uint8_t BOM_UTF8BOM[] = {0xEF, 0xBB, 0xBF};
 const uint8_t BOM_UTF16LE[] = {0xFF, 0xFE};
 const uint8_t BOM_UTF16BE[] = {0xFE, 0xFF};
@@ -70,8 +72,14 @@ void TextWindow::onCreate() {
     updateFont();
     edit = createRichEdit(settings::getTextWrap());
 
-    if (!loadText())
+    if (!loadText()) {
         SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
+        if (hasStatusText()) {
+            LocalHeapPtr<wchar_t> status;
+            formatMessage(status, STR_TEXT_STATUS_LOAD_ERROR);
+            setStatusText(status);
+        }
+    }
     SendMessage(edit, EM_SETMODIFY, FALSE, 0);
     if (hasStatusText())
         updateStatus({0, 0});
@@ -90,7 +98,7 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
         SendMessage(control, WM_SETFONT, (WPARAM)font, FALSE);
     SendMessage(control, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
     SendMessage(control, EM_SETEVENTMASK, 0, ENM_SELCHANGE | ENM_CHANGE);
-    SendMessage(control, EM_EXLIMITTEXT, 0, 0x7FFFFFFE); // maximum possible limit
+    SendMessage(control, EM_EXLIMITTEXT, 0, MAX_FILE_SIZE);
     // TODO: SES_XLTCRCRLFTOCR?
     return control;
 }
@@ -184,6 +192,8 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             return TRUE;
         case WM_CONTEXTMENU: {
+            if (encoding == FAIL)
+                break;
             POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
             if (pos.x == -1 && pos.y == -1) {
                 CHARRANGE sel;
@@ -256,6 +266,8 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
 }
 
 bool TextWindow::onCommand(WORD command) {
+    if (encoding == FAIL)
+        return ItemWindow::onCommand(command);
     switch (command) {
         case IDM_SAVE:
             userSave();
@@ -342,6 +354,8 @@ LRESULT TextWindow::onNotify(NMHDR *nmHdr) {
 }
 
 void TextWindow::updateStatus(CHARRANGE range) {
+    if (encoding == FAIL)
+        return;
     LONG line = 1 + (LONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
     LONG lineIndex = (LONG)SendMessage(edit, EM_LINEINDEX, (WPARAM)-1, 0);
     LONG col = range.cpMin - lineIndex + 1;
@@ -379,6 +393,8 @@ bool TextWindow::isWordWrap() {
 }
 
 void TextWindow::setWordWrap(bool wordWrap) {
+    if (encoding == FAIL)
+        return;
     LONG textLength = getTextLength();
     CComHeapPtr<wchar_t> buffer;
     buffer.Allocate(textLength + 1);
@@ -614,10 +630,8 @@ bool TextWindow::loadText() {
         ULARGE_INTEGER largeSize;
         if (!checkHR(IStream_Size(stream, &largeSize)))
             return false;
-        if (largeSize.QuadPart > (ULONGLONG)(ULONG)-1) {
-            debugPrintf(L"Too large!\n");
+        if (largeSize.QuadPart > (ULONGLONG)MAX_FILE_SIZE)
             return false;
-        }
         size = (ULONG)largeSize.QuadPart;
         buffer.AllocateBytes(size + 2); // 2 null bytes
         if (!checkHR(IStream_Read(stream, buffer, (ULONG)size)))

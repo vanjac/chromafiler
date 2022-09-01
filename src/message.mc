@@ -57,6 +57,12 @@ Ln %1!d!, Col %2!d! (%3!d! selected)
 .
 
 MessageId=
+SymbolicName=STR_TEXT_STATUS_LOAD_ERROR
+Language=English
+Couldn't open file (too large?)
+.
+
+MessageId=
 SymbolicName=STR_TEXT_STATUS_CANT_FIND
 Language=English
 Cannot find text!
