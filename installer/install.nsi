@@ -56,6 +56,12 @@ Section "Start Menu Shortcut" SecStart
 	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\chromafile.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.file"
 SectionEnd
 
+Section "Add to Open with menu" SecProgID
+	SetRegView 64
+	WriteRegStr HKCR "Applications\chromafile.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
+	WriteRegStr HKCR "Applications\chromafile.exe\shell\open\command" "" '"$INSTDIR\chromafile.exe" "%1"'
+SectionEnd
+
 Section "Add to folder context menu" SecContext
 	SetRegView 64
 	WriteRegStr HKCR Directory\Shell "" "none"
@@ -96,6 +102,7 @@ Section "un.Uninstall"
 	WriteRegStr HKCR Drive\Shell "" "none"
 	DeleteRegKey HKLM "${REG_UNINST_KEY}"
 	DeleteRegKey HKLM Software\chromafile
+	DeleteRegKey HKCR "Applications\chromafile.exe"
 	DeleteRegKey HKCR Directory\shell\chromafile
 	DeleteRegKey HKCR Directory\Background\shell\chromafile
 	DeleteRegKey HKCR CompressedFolder\shell\chromafile
@@ -113,12 +120,14 @@ FunctionEnd
 
 LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
 LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the start menu to launch chromafile."
+LangString DESC_SecProgID ${LANG_ENGLISH} "Add an entry to the 'Open with' menu for all file types. (Does not change the default app for any file type.)"
 LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromafile' command when right-clicking a folder."
 LangString DESC_SecDefault ${LANG_ENGLISH} "Replace File Explorer as the default program for opening folders. Use at your own risk!"
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecBase} $(DESC_SecBase)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecStart} $(DESC_SecStart)
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecProgID} $(DESC_SecProgID)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecContext} $(DESC_SecContext)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecDefault} $(DESC_SecDefault)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
