@@ -400,8 +400,8 @@ bool TextWindow::confirmSave(bool willDelete) {
     config.pszWindowTitle = title;
     config.pszMainInstruction = MAKEINTRESOURCE(IDS_UNSAVED_CAPTION);
     config.pszContent = text;
-    TASKDIALOG_BUTTON buttons[] = {{1, MAKEINTRESOURCE(IDS_SAVE_BUTTON)},
-        {2, MAKEINTRESOURCE(willDelete ? IDS_DELETE_BUTTON : IDS_DONT_SAVE_BUTTON)}};
+    TASKDIALOG_BUTTON buttons[] = {{IDYES, MAKEINTRESOURCE(IDS_SAVE_BUTTON)},
+        {IDNO, MAKEINTRESOURCE(willDelete ? IDS_DELETE_BUTTON : IDS_DONT_SAVE_BUTTON)}};
     config.cButtons = _countof(buttons);
     config.pButtons = buttons;
     config.nDefaultButton = 1;
@@ -409,7 +409,7 @@ bool TextWindow::confirmSave(bool willDelete) {
     checkHR(TaskDialogIndirect(&config, &result, nullptr, nullptr));
 
     EnumWindows(enumEnableOwned, (LPARAM)owner);
-    return result == 1;
+    return result == IDYES;
 }
 
 LONG TextWindow::getTextLength() {
