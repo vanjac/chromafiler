@@ -42,8 +42,9 @@ StoppableThread::~StoppableThread() {
 }
 
 void StoppableThread::start() {
-    if (SHCreateThreadWithHandle(threadProc, this, CTF_COINIT_STA, nullptr, &thread))
-        AddRef();
+    AddRef();
+    if (!SHCreateThreadWithHandle(threadProc, this, CTF_COINIT_STA, nullptr, &thread))
+        Release();
 }
 
 void StoppableThread::stop() {
