@@ -152,9 +152,11 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 settings::getTextAutoIndent() ? BST_CHECKED : BST_UNCHECKED);
             SendDlgItemMessage(hwnd, IDC_SCRATCH_FOLDER_PATH, CB_ADDSTRING, 0,
                 (LPARAM)settings::DEFAULT_SCRATCH_FOLDER);
-            CComHeapPtr<wchar_t> scratchFolder;
+            CComHeapPtr<wchar_t> scratchFolder, scratchFileName;
             settings::getScratchFolder(scratchFolder);
             SetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH, scratchFolder);
+            settings::getScratchFileName(scratchFileName);
+            SetDlgItemText(hwnd, IDC_SCRATCH_FILE_NAME, scratchFileName);
             return TRUE;
         }
         case WM_NOTIFY: {
@@ -167,10 +169,13 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 settings::setTextFont(logFont);
                 settings::setTextWrap(!!IsDlgButtonChecked(hwnd, IDC_TEXT_WRAP));
                 settings::setTextAutoIndent(!!IsDlgButtonChecked(hwnd, IDC_TEXT_AUTO_INDENT));
-                wchar_t scratchFolder[MAX_PATH];
+                wchar_t scratchFolder[MAX_PATH], scratchFileName[MAX_PATH];
                 if (GetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH,
                         scratchFolder, _countof(scratchFolder)))
                     settings::setScratchFolder(scratchFolder);
+                if (GetDlgItemText(hwnd, IDC_SCRATCH_FILE_NAME,
+                        scratchFileName, _countof(scratchFileName)))
+                    settings::setScratchFileName(scratchFileName);
                 TextWindow::updateAllSettings();
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
@@ -209,8 +214,8 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     || LOWORD(wParam) == IDC_TEXT_WRAP && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TEXT_AUTO_INDENT && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && HIWORD(wParam) == CBN_EDITCHANGE
-                    || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH
-                            && HIWORD(wParam) == CBN_SELCHANGE) {
+                    || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && HIWORD(wParam) == CBN_SELCHANGE
+                    || LOWORD(wParam) == IDC_SCRATCH_FILE_NAME && HIWORD(wParam) == EN_CHANGE) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
                 return TRUE;
             }
