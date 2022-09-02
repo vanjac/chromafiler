@@ -51,12 +51,12 @@ Section "chromafile" SecBase
 	File ..\build\chromafile.exe
 SectionEnd
 
-Section "Start Menu Shortcut" SecStart
+Section "Start Menu shortcut" SecStart
 	CreateShortcut /NoWorkingDir "$SMPROGRAMS\chromafile.lnk" "$INSTDIR\chromafile.exe"
 	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\chromafile.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.file"
 SectionEnd
 
-Section "Add to Open with menu" SecProgID
+Section "Add to Open With menu" SecProgID
 	SetRegView 64
 	WriteRegStr HKCR "Applications\chromafile.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
 	WriteRegStr HKCR "Applications\chromafile.exe\shell\open\command" "" '"$INSTDIR\chromafile.exe" "%1"'
@@ -119,7 +119,7 @@ Function un.CleanupUser
 FunctionEnd
 
 LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
-LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the start menu to launch chromafile."
+LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the Start Menu to launch chromafile."
 LangString DESC_SecProgID ${LANG_ENGLISH} "Add an entry to the 'Open with' menu for all file types. (Does not change the default app for any file type.)"
 LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromafile' command when right-clicking a folder."
 LangString DESC_SecDefault ${LANG_ENGLISH} "Replace File Explorer as the default program for opening folders. Use at your own risk!"
