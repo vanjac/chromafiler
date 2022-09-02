@@ -1,5 +1,5 @@
-#define CHROMAFILE_VERSION        0,2,1,0
-#define CHROMAFILE_VERSION_STRING "0.2.1\0"
+#define CHROMAFILE_VERSION        0,3,0,0
+#define CHROMAFILE_VERSION_STRING "0.3.0\0"
 
 #define IDR_RT_MANIFEST1 1 // must be 1 for an exe
 
