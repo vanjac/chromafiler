@@ -1095,6 +1095,13 @@ POINT ItemWindow::parentPos(SIZE size) {
     return pos;
 }
 
+void ItemWindow::enableChain(bool enabled) {
+    for (ItemWindow *nextWindow = this; nextWindow; nextWindow = nextWindow->parent)
+        EnableWindow(nextWindow->hwnd, enabled);
+    for (ItemWindow *nextWindow = child; nextWindow; nextWindow = nextWindow->child)
+        EnableWindow(nextWindow->hwnd, enabled);
+}
+
 void ItemWindow::addChainPreview() {
     HWND owner = checkLE(GetWindowOwner(hwnd));
     CComPtr<ITaskbarList4> taskbar;

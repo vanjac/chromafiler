@@ -374,22 +374,9 @@ void TextWindow::userSave() {
     isUnsavedScratchFile = false;
 }
 
-BOOL CALLBACK enumEnableOwned(HWND hwnd, LPARAM lParam) {
-    if (lParam && GetWindowOwner(hwnd) == (HWND)lParam)
-        EnableWindow(hwnd, TRUE);
-    return TRUE;
-}
-
-BOOL CALLBACK enumDisableOwned(HWND hwnd, LPARAM lParam) {
-    if (lParam && GetWindowOwner(hwnd) == (HWND)lParam)
-        EnableWindow(hwnd, FALSE);
-    return TRUE;
-}
-
 bool TextWindow::confirmSave(bool willDelete) {
-    HWND owner = GetWindowOwner(hwnd);
     // alternative to MB_TASKMODAL http://www.verycomputer.com/5_86324e67adeedf52_1.htm
-    EnumWindows(enumDisableOwned, (LPARAM)owner); // TODO ugly ugly ugly
+    enableChain(false);
 
     LocalHeapPtr<wchar_t> text;
     formatMessage(text, willDelete ? STR_DELETE_PROMPT : STR_SAVE_PROMPT, &*title);
@@ -409,7 +396,7 @@ bool TextWindow::confirmSave(bool willDelete) {
     int result = 0;
     checkHR(TaskDialogIndirect(&config, &result, nullptr, nullptr));
 
-    EnumWindows(enumEnableOwned, (LPARAM)owner);
+    enableChain(true);
     return result == IDYES;
 }
 

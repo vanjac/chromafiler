@@ -82,6 +82,7 @@ protected:
     virtual void onChildDetached();
     virtual POINT childPos(SIZE size);
     POINT parentPos(SIZE size);
+    void enableChain(bool enabled);
 
     void addChainPreview();
     void removeChainPreview();
