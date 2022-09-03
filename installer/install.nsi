@@ -14,7 +14,9 @@ SetCompressor LZMA
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
 !define MUI_FINISHPAGE_RUN "$INSTDIR\chromafile.exe"
-!define MUI_FINISHPAGE_RUN_NOTCHECKED
+
+!getdllversion /productversion ..\build\chromafile.exe PRODUCT_VERSION_
+BrandingText "chromafile v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3}"
 
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
@@ -44,6 +46,10 @@ Section "chromafile" SecBase
 	WriteRegStr HKLM Software\chromafile "Install_Dir" "$INSTDIR"
 	WriteRegStr HKLM "${REG_UNINST_KEY}" "DisplayName" "chromafile"
 	WriteRegStr HKLM "${REG_UNINST_KEY}" "DisplayIcon" "$INSTDIR\chromafile.exe,0"
+	WriteRegStr HKLM "${REG_UNINST_KEY}" "InstallLocation" "$INSTDIR"
+	WriteRegStr HKLM "${REG_UNINST_KEY}" "Publisher" "chroma zone"
+	WriteRegStr HKLM "${REG_UNINST_KEY}" "VersionMajor" "${PRODUCT_VERSION_1}"
+	WriteRegStr HKLM "${REG_UNINST_KEY}" "VersionMinor" "${PRODUCT_VERSION_2}"
 	WriteRegStr HKLM "${REG_UNINST_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
 	WriteRegStr HKLM "${REG_UNINST_KEY}" "QuietUninstallString" '"$INSTDIR\uninstall.exe" /S'
 	WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoModify" 1
