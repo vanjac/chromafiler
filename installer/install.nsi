@@ -11,8 +11,8 @@ SetCompressor LZMA
 !define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\chromafile"
 !define CONTEXT_MENU_TEXT "Open in chromafile"
 
+!define MUI_ICON "..\src\res\folder.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
-
 !define MUI_FINISHPAGE_RUN "$INSTDIR\chromafile.exe"
 
 !getdllversion /productversion ..\build\chromafile.exe PRODUCT_VERSION_
