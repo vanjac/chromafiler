@@ -16,6 +16,7 @@ const int HOTKEY_FOCUS_TRAY = 1;
 // dimensions
 int SNAP_DISTANCE = 8;
 int CLOSE_BOX_MARGIN = 4;
+SIZE MIN_TRAY_SIZE = {28, 28};
 
 void snapAxis(LONG value, LONG edge, LONG *snapped, LONG *snapDist) {
     if (abs(value - edge) <= *snapDist) {
@@ -38,6 +39,7 @@ void TrayWindow::init() {
 
     SNAP_DISTANCE = scaleDPI(SNAP_DISTANCE);
     CLOSE_BOX_MARGIN = scaleDPI(CLOSE_BOX_MARGIN);
+    MIN_TRAY_SIZE = scaleDPI(MIN_TRAY_SIZE);
 }
 
 TrayWindow::TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
@@ -60,7 +62,7 @@ SIZE TrayWindow::requestedSize() const {
 }
 
 DWORD TrayWindow::windowStyle() const {
-    return WS_POPUP | WS_SYSMENU | WS_BORDER;
+    return WS_POPUPWINDOW;
 }
 
 bool TrayWindow::useCustomFrame() const {
@@ -160,8 +162,7 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_GETMINMAXINFO: {
             MINMAXINFO *minMax = (LPMINMAXINFO)lParam;
-            minMax->ptMinTrackSize.x = 28;
-            minMax->ptMinTrackSize.y = 28;
+            minMax->ptMinTrackSize = *(POINT *)&MIN_TRAY_SIZE;
             return 0;
         }
         case MSG_APPBAR_CALLBACK:
