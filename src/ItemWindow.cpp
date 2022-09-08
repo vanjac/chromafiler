@@ -241,10 +241,15 @@ bool ItemWindow::create(RECT rect, int showCommand) {
 }
 
 HWND ItemWindow::createChainOwner(int showCommand) {
-    HWND window = checkLE(CreateWindow(CHAIN_OWNER_CLASS, nullptr, WS_POPUP, 0, 0, 0, 0,
+    // there are special cases here for popup windows (ie. the tray) to fix DPI scaling bugs.
+    // see windowRectChanged() for details
+    bool isPopup = windowStyle() & WS_POPUP;
+    HWND window = checkLE(CreateWindowEx(isPopup ? (WS_EX_LAYERED | WS_EX_TOOLWINDOW) : 0,
+        CHAIN_OWNER_CLASS, nullptr, isPopup ? WS_OVERLAPPED : WS_POPUP, 0, 0, 0, 0,
         nullptr, nullptr, GetModuleHandle(nullptr), 0)); // user data stores num owned windows
-    if (!alwaysOnTop())
-        ShowWindow(window, showCommand); // show in taskbar
+    ShowWindow(window, showCommand); // show in taskbar
+    if (isPopup)
+        SetLayeredWindowAttributes(window, 0, 0, LWA_ALPHA); // invisible but still drawn
     return window;
 }
 
@@ -825,6 +830,20 @@ void ItemWindow::windowRectChanged() {
         RECT childRect = {};
         GetWindowRect(child->hwnd, &childRect);
         child->setPos(childPos(rectSize(childRect)));
+    }
+    if (windowStyle() & WS_POPUP) {
+        // unlike overlapped windows, popups do not use the current monitor DPI, instead they use
+        // the DPI of the most recently active overlapped window. this will always be the owner if
+        // it's visible and overlapped. here we move the owner to match the popup's position as it
+        // moves so it uses the correct DPI
+        RECT windowRect = {};
+        GetWindowRect(hwnd, &windowRect);
+        // must have visible client area to affect DPI scaling
+        int minHeight = GetSystemMetrics(SM_CYMINTRACK) + 1;
+        if (rectHeight(windowRect) < minHeight)
+            windowRect.bottom = windowRect.top + minHeight;
+        MoveWindow(checkLE(GetWindowOwner(hwnd)), windowRect.left, windowRect.top,
+            rectWidth(windowRect), rectHeight(windowRect), FALSE);
     }
 }
 
