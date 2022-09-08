@@ -8,7 +8,7 @@ namespace chromafile {
 HRESULT (WINAPI *ptrGetScaleFactorForMonitor)(HMONITOR hmonitor, int *scale) = nullptr;
 
 // DPI.h
-int systemDPI = BASE_DPI;
+int systemDPI = USER_DEFAULT_SCREEN_DPI;
 
 void initDPI() {
     if (HMODULE hShcore = checkLE(LoadLibrary(L"Shcore"))) {
@@ -25,12 +25,12 @@ void initDPI() {
 int monitorDPI(HMONITOR monitor) {
     int scale;
     if (ptrGetScaleFactorForMonitor && checkHR(ptrGetScaleFactorForMonitor(monitor, &scale)))
-        return MulDiv(scale, BASE_DPI, 100);
+        return MulDiv(scale, USER_DEFAULT_SCREEN_DPI, 100);
     return systemDPI;
 }
 
 int scaleDPI(int dp) {
-    return MulDiv(dp, systemDPI, BASE_DPI);
+    return MulDiv(dp, systemDPI, USER_DEFAULT_SCREEN_DPI);
 }
 
 SIZE scaleDPI(SIZE size) {
@@ -38,7 +38,7 @@ SIZE scaleDPI(SIZE size) {
 }
 
 int invScaleDPI(int px) {
-    return MulDiv(px, BASE_DPI, systemDPI);
+    return MulDiv(px, USER_DEFAULT_SCREEN_DPI, systemDPI);
 }
 
 SIZE invScaleDPI(SIZE size) {

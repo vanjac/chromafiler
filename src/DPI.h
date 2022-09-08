@@ -9,7 +9,6 @@ namespace chromafile {
 
 extern int systemDPI;
 
-const int BASE_DPI = 96;
 // to be used in SetViewModeAndIconSize (does not scale with DPI)
 const int SHELL_SMALL_ICON = 16;
 
