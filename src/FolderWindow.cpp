@@ -121,10 +121,19 @@ void FolderWindow::onCreate() {
     checkHR(browser->Advise(this, &eventsCookie));
     checkHR(browser->SetPropertyBag(propertyBag()));
     // will call IExplorerBrowserEvents callbacks
-    if (!checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
-        // eg. browsing a subdirectory in the recycle bin
+    HRESULT hr;
+    if (!checkHR(hr = browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
+        // eg. browsing a subdirectory in the recycle bin, or access denied
         checkHR(browser->Destroy());
         browser = nullptr;
+        if (hasStatusText()) {
+            LocalHeapPtr<wchar_t> message;
+            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER
+                | FORMAT_MESSAGE_IGNORE_INSERTS,
+                nullptr, hr, 0, (wchar_t *)(wchar_t **)&message, 0, nullptr);
+            if (message)
+                setStatusText(message);
+        }
         return;
     }
     setupScrollBarSubclass();
