@@ -32,12 +32,14 @@ int main(int, char**) {
 }
 
 bool logHRESULT(long hr, const char *file, int line, const char *expr) {
-    if (SUCCEEDED(hr)) {
+    if (SUCCEEDED(hr))
         return true;
-    } else {
-        debugPrintf(L"Error 0x%X in %S (%S:%d)\n", hr, expr, file, line);
-        return false;
-    } 
+    LocalHeapPtr<wchar_t> message;
+    FormatMessage(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr, hr, 0, (wchar_t *)(wchar_t **)&message, 0, nullptr);
+    debugPrintf(L"Error 0x%X: %s    in %S (%S:%d)\n", hr, &*message, expr, file, line);
+    return false;
 }
 
 void logLastError(const char *file, int line, const char *expr) {
