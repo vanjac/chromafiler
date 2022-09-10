@@ -340,6 +340,23 @@ void FolderWindow::selectionChanged() {
     }
 }
 
+void FolderWindow::updateStatus() {
+    // TODO: duplicate work in selectionChanged()
+    CComPtr<IFolderView2> folderView;
+    if (!checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+        return;
+    int numItems = 0, numSelected = 0;
+    checkHR(folderView->ItemCount(SVGIO_ALLVIEW, &numItems));
+    checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected));
+    LocalHeapPtr<wchar_t> status;
+    if (numSelected == 0) {
+        formatMessage(status, STR_FOLDER_STATUS, numItems);
+    } else {
+        formatMessage(status, STR_FOLDER_STATUS_SEL, numItems, numSelected);
+    }
+    setStatusText(status);
+}
+
 void FolderWindow::clearSelection() {
     if (shellView)
         checkHR(shellView->SelectItem(nullptr, SVSI_DESELECTOTHERS)); // keep focus
@@ -548,20 +565,10 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
         }
         ignoreNextSelection = false;
 
-        // TODO: duplicate work in selectionChanged()
-        CComPtr<IFolderView2> folderView;
-        if (hasStatusText() && checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
-            int numItems = 0, numSelected = 0;
-            checkHR(folderView->ItemCount(SVGIO_ALLVIEW, &numItems));
-            checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected));
-            LocalHeapPtr<wchar_t> status;
-            if (numSelected == 0) {
-                formatMessage(status, STR_FOLDER_STATUS, numItems);
-            } else {
-                formatMessage(status, STR_FOLDER_STATUS_SEL, numItems, numSelected);
-            }
-            setStatusText(status);
-        }
+        // note: sometimes the first SELCHANGE event occurs before navigation is complete and
+        // updateStatus() will fail (often when visiting a folder for the first time)
+        if (hasStatusText())
+            updateStatus();
     }
     return S_OK;
 }
@@ -592,6 +599,10 @@ STDMETHODIMP FolderWindow::OnNavigationPending(PCIDLIST_ABSOLUTE) {
 }
 
 STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
+    // note: often the item count will be incorrect at this point (esp. if the folder is already
+    // visited), but between this and OnStateChange, we'll usually end up with the right value.
+    if (hasStatusText())
+        updateStatus();
     return S_OK;
 }
 
@@ -600,6 +611,8 @@ STDMETHODIMP FolderWindow::OnNavigationFailed(PCIDLIST_ABSOLUTE) {
 }
 
 STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
+    shellView = view;
+
     bool visited = false; // folder has been visited before
     if (propBag) {
         VARIANT var = {};
@@ -623,7 +636,6 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
             SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
     }
 
-    shellView = view;
     return S_OK;
 }
 

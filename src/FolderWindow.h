@@ -74,6 +74,7 @@ private:
 
     void selectionChanged();
     void clearSelection();
+    void updateStatus();
 
     CComPtr<IContextMenu> queryBackgroundMenu(HMENU *popupMenu);
     void newItem(const char *verb);
