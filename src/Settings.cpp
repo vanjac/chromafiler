@@ -16,6 +16,7 @@ const wchar_t VAL_FOLDER_WINDOW_H[]     = L"FolderWindowHeight";
 const wchar_t VAL_STATUS_TEXT_ENABLED[] = L"StatusTextEnabled";
 const wchar_t VAL_TOOLBAR_ENABLED[]     = L"ToolbarEnabled";
 const wchar_t VAL_PREVIEWS_ENABLED[]    = L"PreviewsEnabled";
+const wchar_t VAL_DESELECT_ON_OPEN[]    = L"DeselectOnOpen";
 const wchar_t VAL_TEXT_EDITOR_ENABLED[] = L"TextEditorEnabled2";
 const wchar_t VAL_TEXT_FONT_FACE[]      = L"TextFontFace";
 const wchar_t VAL_TEXT_FONT_SIZE[]      = L"TextFontSize";
@@ -143,6 +144,17 @@ bool getPreviewsEnabled() {
 void setPreviewsEnabled(bool value) {
     DWORD dwValue = value;
     setSettingsValue(VAL_PREVIEWS_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
+}
+
+bool getDeselectOnOpen() {
+    DWORD value = DEFAULT_DESELECT_ON_OPEN;
+    getSettingsValue(VAL_DESELECT_ON_OPEN, RRF_RT_DWORD, &value, sizeof(value));
+    return value;
+}
+
+void setDeselectOnOpen(bool value) {
+    DWORD dwValue = value;
+    setSettingsValue(VAL_DESELECT_ON_OPEN, REG_DWORD, &dwValue, sizeof(dwValue));
 }
 
 bool getTextEditorEnabled() {

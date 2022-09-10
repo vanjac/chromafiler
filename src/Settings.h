@@ -18,6 +18,7 @@ const SIZE      DEFAULT_FOLDER_WINDOW_SIZE  = {231, 450}; // just wide enough fo
 const bool      DEFAULT_STATUS_TEXT_ENABLED = true;
 const bool      DEFAULT_TOOLBAR_ENABLED     = true;
 const bool      DEFAULT_PREVIEWS_ENABLED    = true;
+const bool      DEFAULT_DESELECT_ON_OPEN    = true;
 const bool      DEFAULT_TEXT_EDITOR_ENABLED = true;
 const LOGFONT   DEFAULT_TEXT_FONT           = {
     11, 0, 0, 0, FW_REGULAR, FALSE, FALSE, FALSE,
@@ -40,7 +41,6 @@ void setScratchFileName(wchar_t *value);
 
 SIZE getItemWindowSize(); // assuming 96 dpi
 void setItemWindowSize(SIZE value);
-
 SIZE getFolderWindowSize(); // assuming 96 dpi
 void setFolderWindowSize(SIZE value);
 
@@ -51,6 +51,9 @@ void setToolbarEnabled(bool value);
 
 bool getPreviewsEnabled();
 void setPreviewsEnabled(bool value);
+
+bool getDeselectOnOpen();
+void setDeselectOnOpen(bool value);
 
 bool getTextEditorEnabled();
 void setTextEditorEnabled(bool value);

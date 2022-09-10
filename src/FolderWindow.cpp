@@ -340,11 +340,13 @@ void FolderWindow::selectionChanged() {
     }
 }
 
+void FolderWindow::clearSelection() {
+    if (shellView)
+        checkHR(shellView->SelectItem(nullptr, SVSI_DESELECTOTHERS)); // keep focus
+}
+
 void FolderWindow::onChildDetached() {
-    if (shellView) {
-        // clear selection
-        checkHR(shellView->SelectItem(nullptr, SVSI_DESELECTOTHERS));
-    }
+    clearSelection();
 }
 
 void FolderWindow::onItemChanged() {
@@ -521,6 +523,14 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
 
 // called when double-clicking a file
 STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *) {
+    if (child && settings::getDeselectOnOpen()) { // single selection
+        POINT invokePoint = {0, 0};
+        ClientToScreen(hwnd, &invokePoint);
+        // can't use default action since item is now deselected
+        child->invokeProxyDefaultVerb(invokePoint);
+        clearSelection();
+        return S_OK;
+    }
     return S_FALSE; // perform default action
 }
 
@@ -529,7 +539,7 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
         if (!ignoreNextSelection) {
             if (GetActiveWindow() != hwnd) {
                 // this could happen when dragging a file. don't try to create any windows yet
-                updateSelectionOnActivate = true;
+                updateSelectionOnActivate = true; // TODO: only for non-empty selection!
             } else {
                 selectionChanged();
                 updateSelectionOnActivate = false;
@@ -556,6 +566,7 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
 }
 
 STDMETHODIMP FolderWindow::IncludeObject(IShellView *, PCUITEMID_CHILD) {
+    // TODO implement ICommDlgBrowser2::GetViewFlags
     return S_OK; // include all objects
 }
 

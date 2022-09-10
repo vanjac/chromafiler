@@ -69,6 +69,7 @@ private:
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     void selectionChanged();
+    void clearSelection();
 
     CComPtr<IContextMenu> queryBackgroundMenu(HMENU *popupMenu);
     void newItem(const char *verb);

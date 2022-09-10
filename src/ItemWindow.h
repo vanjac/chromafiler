@@ -32,6 +32,8 @@ public:
 
     virtual bool handleTopLevelMessage(MSG *msg);
 
+    void invokeProxyDefaultVerb(POINT point);
+
     // IUnknown
     STDMETHODIMP QueryInterface(REFIID id, void **obj) override;
     STDMETHODIMP_(ULONG) AddRef() override;
@@ -129,7 +131,6 @@ private:
 
     void openParentMenu(POINT point);
 
-    void invokeProxyDefaultVerb(POINT point);
     void openProxyProperties();
     void openProxyContextMenu(POINT point);
     void proxyDrag(POINT offset); // specify offset from icon origin
