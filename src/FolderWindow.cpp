@@ -583,11 +583,11 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
 }
 
 STDMETHODIMP FolderWindow::IncludeObject(IShellView *, PCUITEMID_CHILD) {
-    // TODO implement ICommDlgBrowser2::GetViewFlags
     return S_OK; // include all objects
 }
 
 /* ICommDlgBrowser2 */
+
 STDMETHODIMP FolderWindow::GetDefaultMenuText(IShellView *, wchar_t *, int) {
     return S_FALSE;
 }
