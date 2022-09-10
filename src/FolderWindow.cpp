@@ -490,6 +490,7 @@ STDMETHODIMP FolderWindow::QueryInterface(REFIID id, void **obj) {
     static const QITAB interfaces[] = {
         QITABENT(FolderWindow, IServiceProvider),
         QITABENT(FolderWindow, ICommDlgBrowser),
+        QITABENT(FolderWindow, ICommDlgBrowser2),
         {},
     };
     HRESULT hr = QISearch(this, interfaces, id, obj);
@@ -568,6 +569,20 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
 STDMETHODIMP FolderWindow::IncludeObject(IShellView *, PCUITEMID_CHILD) {
     // TODO implement ICommDlgBrowser2::GetViewFlags
     return S_OK; // include all objects
+}
+
+/* ICommDlgBrowser2 */
+STDMETHODIMP FolderWindow::GetDefaultMenuText(IShellView *, wchar_t *, int) {
+    return S_FALSE;
+}
+
+STDMETHODIMP FolderWindow::GetViewFlags(DWORD *flags) {
+    *flags = CDB2GVF_NOSELECTVERB | CDB2GVF_NOINCLUDEITEM;
+    return S_OK;
+}
+
+STDMETHODIMP FolderWindow::Notify(IShellView *, DWORD) {
+    return S_OK;
 }
 
 /* IExplorerBrowserEvents */

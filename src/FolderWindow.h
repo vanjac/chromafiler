@@ -5,7 +5,7 @@
 
 namespace chromafile {
 
-class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlgBrowser,
+class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlgBrowser2,
         public IExplorerBrowserEvents {
 public:
     static void init();
@@ -28,6 +28,10 @@ public:
     STDMETHODIMP OnDefaultCommand(IShellView *view) override;
     STDMETHODIMP OnStateChange(IShellView *view, ULONG change) override;
     STDMETHODIMP IncludeObject(IShellView *view, PCUITEMID_CHILD pidl) override;
+    // ICommDlgBrowser2
+    STDMETHODIMP GetDefaultMenuText(IShellView *view, wchar_t *text, int maxChars) override;
+    STDMETHODIMP GetViewFlags(DWORD *flags) override;
+    STDMETHODIMP Notify(IShellView *view, DWORD notifyType) override;
     // IExplorerBrowserEvents
     STDMETHODIMP OnNavigationPending(PCIDLIST_ABSOLUTE folder) override;
     STDMETHODIMP OnNavigationComplete(PCIDLIST_ABSOLUTE folder) override;
