@@ -72,11 +72,12 @@ void TextWindow::onCreate() {
     updateFont();
     edit = createRichEdit(settings::getTextWrap());
 
-    if (!loadText()) {
+    HRESULT hr;
+    if (!checkHR(hr = loadText())) {
         SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
         if (hasStatusText()) {
             LocalHeapPtr<wchar_t> status;
-            formatMessage(status, STR_TEXT_STATUS_LOAD_ERROR);
+            formatErrorMessage(status, hr);
             setStatusText(status);
         }
     }
@@ -638,7 +639,8 @@ int TextWindow::replaceAll(FINDREPLACE *input) {
     return numOccurrences;
 }
 
-bool TextWindow::loadText() {
+HRESULT TextWindow::loadText() {
+    HRESULT hr;
     encoding = FAIL;
     CComHeapPtr<uint8_t> buffer; // null terminated!
     ULONG size;
@@ -649,17 +651,17 @@ bool TextWindow::loadText() {
             checkHR(context->SetBindOptions(&options));
         }
         CComPtr<IStream> stream;
-        if (!checkHR(item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream))))
-            return false;
+        if (!checkHR(hr = item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream))))
+            return hr;
         ULARGE_INTEGER largeSize;
-        if (!checkHR(IStream_Size(stream, &largeSize)))
-            return false;
+        if (!checkHR(hr = IStream_Size(stream, &largeSize)))
+            return hr;
         if (largeSize.QuadPart > (ULONGLONG)MAX_FILE_SIZE)
-            return false;
+            return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
         size = (ULONG)largeSize.QuadPart;
         buffer.AllocateBytes(size + 2); // 2 null bytes
-        if (!checkHR(IStream_Read(stream, buffer, (ULONG)size)))
-            return false;
+        if (!checkHR(hr = IStream_Read(stream, buffer, (ULONG)size)))
+            return hr;
         buffer[size] = buffer[size + 1] = 0;
     }
 
@@ -687,7 +689,7 @@ bool TextWindow::loadText() {
         SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)utf8String);
     }
     debugPrintf(L"Encoding %d\n", encoding);
-    return true;
+    return S_OK;
 }
 
 bool TextWindow::saveText() {

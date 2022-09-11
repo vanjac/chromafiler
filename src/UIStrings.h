@@ -26,5 +26,6 @@ template<typename T>
 using LocalHeapPtr = CHeapPtr<T, LocalAllocator>;
 
 bool formatMessage(LocalHeapPtr<wchar_t> &message, DWORD messageId, ...);
+void formatErrorMessage(LocalHeapPtr<wchar_t> &message, DWORD error);
 
 } // namespace

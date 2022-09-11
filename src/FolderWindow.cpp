@@ -128,11 +128,8 @@ void FolderWindow::onCreate() {
         browser = nullptr;
         if (hasStatusText()) {
             LocalHeapPtr<wchar_t> message;
-            FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER
-                | FORMAT_MESSAGE_IGNORE_INSERTS,
-                nullptr, hr, 0, (wchar_t *)(wchar_t **)&message, 0, nullptr);
-            if (message)
-                setStatusText(message);
+            formatErrorMessage(message, hr);
+            setStatusText(message);
         }
         return;
     }

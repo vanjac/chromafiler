@@ -59,7 +59,7 @@ private:
     void findNext(FINDREPLACE *input);
     int replaceAll(FINDREPLACE *input);
 
-    bool loadText();
+    HRESULT loadText();
     bool saveText();
 
     static LRESULT CALLBACK richEditProc(HWND hwnd, UINT message,

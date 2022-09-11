@@ -35,21 +35,16 @@ bool logHRESULT(long hr, const char *file, int line, const char *expr) {
     if (SUCCEEDED(hr))
         return true;
     LocalHeapPtr<wchar_t> message;
-    FormatMessage(
-        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr, hr, 0, (wchar_t *)(wchar_t **)&message, 0, nullptr);
-    debugPrintf(L"Error 0x%X: %s    in %S (%S:%d)\n", hr, &*message, expr, file, line);
+    formatErrorMessage(message, hr);
+    debugPrintf(L"Error 0x%X: %s\n    in %S (%S:%d)\n", hr, &*message, expr, file, line);
     return false;
 }
 
 void logLastError(const char *file, int line, const char *expr) {
     DWORD error = GetLastError();
     LocalHeapPtr<wchar_t> message;
-    FormatMessage(
-        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr, error, 0, (wchar_t *)(wchar_t **)&message, 0, nullptr);
-    // message should end with a newline
-    debugPrintf(L"Error %d: %s    in %S (%S:%d)\n", error, &*message, expr, file, line);
+    formatErrorMessage(message, error);
+    debugPrintf(L"Error %d: %s\n    in %S (%S:%d)\n", error, &*message, expr, file, line);
 }
 #endif
 
