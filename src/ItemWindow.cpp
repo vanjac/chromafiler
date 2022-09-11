@@ -422,7 +422,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 if (GetKeyState(VK_MENU) < 0)
                     openProxyProperties();
                 else
-                    invokeProxyDefaultVerb(cursor);
+                    invokeProxyDefaultVerb();
                 return 0;
             }
             break;
@@ -1274,20 +1274,16 @@ void ItemWindow::openParentMenu(POINT point) {
     checkLE(DestroyMenu(menu));
 }
 
-void ItemWindow::invokeProxyDefaultVerb(POINT point) {
-    // https://devblogs.microsoft.com/oldnewthing/20040930-00/?p=37693
-    CComPtr<IContextMenu> contextMenu;
-    if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&contextMenu))))
-        return;
-    HMENU popupMenu = CreatePopupMenu();
-    if (!popupMenu)
-        return;
-    if (checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, CMF_DEFAULTONLY))) {
-        UINT id = GetMenuDefaultItem(popupMenu, FALSE, 0);
-        if (id != (UINT)-1)
-            invokeContextMenuCommand(contextMenu, id - 1, point);
+void ItemWindow::invokeProxyDefaultVerb() {
+    CComHeapPtr<ITEMIDLIST> idList;
+    if (checkHR(SHGetIDListFromObject(item, &idList))) {
+        SHELLEXECUTEINFO info = {sizeof(info)};
+        info.fMask = SEE_MASK_INVOKEIDLIST | SEE_MASK_FLAG_LOG_USAGE;
+        info.lpIDList = idList;
+        info.hwnd = hwnd;
+        info.nShow = SW_SHOWNORMAL;
+        checkLE(ShellExecuteEx(&info));
     }
-    checkLE(DestroyMenu(popupMenu));
 }
 
 void ItemWindow::openProxyProperties() {

@@ -549,12 +549,12 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
 /* ICommDlgBrowser */
 
 // called when double-clicking a file
-STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *) {
-    if (child && settings::getDeselectOnOpen()) { // single selection
-        POINT invokePoint = {0, 0};
-        ClientToScreen(hwnd, &invokePoint);
-        // can't use default action since item is now deselected
-        child->invokeProxyDefaultVerb(invokePoint);
+STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
+    if (selected && settings::getDeselectOnOpen()) { // single selection
+        selected = nullptr; // prevent recursion
+        CComQIPtr<IFolderView2> folderView(view);
+        if (folderView)
+            folderView->InvokeVerbOnSelection(nullptr);
         clearSelection();
         return S_OK;
     }
