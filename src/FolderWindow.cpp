@@ -558,16 +558,21 @@ STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
     return S_FALSE; // perform default action
 }
 
-STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
+STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
     if (change == CDBOSC_SELCHANGE) {
         if (!ignoreNextSelection) {
-            if (GetActiveWindow() != hwnd) {
-                // this could happen when dragging a file. don't try to create any windows yet
-                updateSelectionOnActivate = true; // TODO: only for non-empty selection!
-            } else {
-                selectionChanged();
-                updateSelectionOnActivate = false;
+            updateSelectionOnActivate = false;
+            if (GetActiveWindow() != hwnd) { // in background
+                CComQIPtr<IFolderView2> folderView(view);
+                int numSelected;
+                if (folderView && checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected))
+                        && numSelected == 1) {
+                    // this could happen when dragging a file. don't try to create any windows yet
+                    updateSelectionOnActivate = true;
+                }
             }
+            if (!updateSelectionOnActivate)
+                selectionChanged();
         }
         ignoreNextSelection = false;
 
