@@ -3,6 +3,7 @@ OutFile "..\build\chromafile-install.exe"
 RequestExecutionLevel admin
 Unicode True
 SetCompressor LZMA
+!addplugindir plugins
 
 !include MUI2.nsh
 !include EnumUsersReg.nsh
@@ -13,7 +14,8 @@ SetCompressor LZMA
 
 !define MUI_ICON "..\src\res\folder.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
-!define MUI_FINISHPAGE_RUN "$INSTDIR\chromafile.exe"
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_FUNCTION StartProgram
 
 !getdllversion /productversion ..\build\chromafile.exe PRODUCT_VERSION_
 BrandingText "chromafile v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3}"
@@ -107,6 +109,12 @@ Section /o "    Make default file browser (experimental!)" SecDefault
 	WriteRegStr HKCU Software\Classes\CompressedFolder\Shell "" "chromafile"
 	WriteRegStr HKCU Software\Classes\Drive\Shell "" "chromafile"
 SectionEnd
+
+Function StartProgram
+	InitPluginsDir
+	File "/ONAME=$PLUGINSDIR\ShellExecAsUser.dll" "plugins\ShellExecAsUser.dll"
+	CallAnsiPlugin::Call "$PLUGINSDIR\ShellExecAsUser.dll" ShellExecAsUser 2 "" '$INSTDIR\chromafile.exe'
+FunctionEnd
 
 Section "un.Uninstall"
 	Delete $INSTDIR\*.exe

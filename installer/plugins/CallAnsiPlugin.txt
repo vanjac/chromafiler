@@ -1,0 +1,1 @@
+https://nsis.sourceforge.io/CallAnsiPlugin_plug-in
