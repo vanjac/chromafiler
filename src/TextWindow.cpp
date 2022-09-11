@@ -20,7 +20,7 @@ const uint8_t BOM_UTF16BE[] = {0xFE, 0xFF};
     ((size) >= sizeof(bom) && memcmp((buffer), (bom), sizeof(bom)) == 0)
 
 static HACCEL textAccelTable;
-static UINT findReplaceMessage;
+static UINT updateSettingsMessage, findReplaceMessage;
 
 void TextWindow::init() {
     WNDCLASS wndClass = createWindowClass(TEXT_WINDOW_CLASS);
@@ -30,6 +30,7 @@ void TextWindow::init() {
 
     textAccelTable = LoadAccelerators(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_ACCEL));
 
+    updateSettingsMessage = checkLE(RegisterWindowMessage(L"chromafile_TextUpdateSettings"));
     findReplaceMessage = checkLE(RegisterWindowMessage(FINDMSGSTRING));
 }
 
@@ -52,17 +53,9 @@ SettingsPage TextWindow::settingsStartPage() const {
     return SETTINGS_TEXT;
 }
 
-BOOL CALLBACK TextWindow::updateWindowSettings(HWND hwnd, LPARAM) {
-    wchar_t className[64];
-    if (GetClassName(hwnd, className, _countof(className))
-            && lstrcmpi(className, TEXT_WINDOW_CLASS) == 0) {
-        PostMessage(hwnd, MSG_UPDATE_SETTINGS, 0, 0);
-    }
-    return TRUE;
-}
-
 void TextWindow::updateAllSettings() {
-    checkLE(EnumWindows(updateWindowSettings, 0)); // TODO use HWND_BROADCAST instead?
+    // https://stackoverflow.com/q/15987051
+    checkLE(SendNotifyMessage(HWND_BROADCAST, updateSettingsMessage, 0, 0));
 }
 
 void TextWindow::onCreate() {
@@ -244,20 +237,19 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 CheckMenuItem(menu, IDM_WORD_WRAP, MF_CHECKED);
             return 0;
         }
-        case MSG_UPDATE_SETTINGS: {
-            bool wordWrap = settings::getTextWrap();
-            if (wordWrap != isWordWrap())
-                setWordWrap(wordWrap);
-            LOGFONT newLogFont = settings::getTextFont();
-            if (memcmp(&newLogFont, &logFont, sizeof(logFont)) != 0) {
-                debugPrintf(L"Font changed\n");
-                logFont = newLogFont;
-                updateFont();
-            }
-            return 0;
-        }
     }
-    if (findReplaceMessage && message == findReplaceMessage) {
+    if (updateSettingsMessage && message == updateSettingsMessage) {
+        bool wordWrap = settings::getTextWrap();
+        if (wordWrap != isWordWrap())
+            setWordWrap(wordWrap);
+        LOGFONT newLogFont = settings::getTextFont();
+        if (memcmp(&newLogFont, &logFont, sizeof(logFont)) != 0) {
+            debugPrintf(L"Font changed\n");
+            logFont = newLogFont;
+            updateFont();
+        }
+        return 0;
+    } else if (findReplaceMessage && message == findReplaceMessage) {
         handleFindReplace((FINDREPLACE *)lParam);
         return 0;
     }
