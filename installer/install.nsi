@@ -58,7 +58,14 @@ Section "chromafile" SecBase
 	WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoRepair" 1
 	File ..\build\chromafile.exe
 
-	; clean up after previous versions that used HKCR for default browser instead of HKCU
+	;;; clean up after previous versions that wrote to HKCR instead of HKCU/HKLM ;;;
+
+	DeleteRegKey HKCU "Software\Classes\Applications\chromafile.exe"
+	DeleteRegKey HKCU Software\Classes\Directory\shell\chromafile
+	DeleteRegKey HKCU Software\Classes\Directory\Background\shell\chromafile
+	DeleteRegKey HKCU Software\Classes\CompressedFolder\shell\chromafile
+	DeleteRegKey HKCU Software\Classes\Drive\shell\chromafile
+
 	Var /GLOBAL default_browser
 	ReadRegStr $default_browser HKLM Software\Classes\Directory\Shell ""
 	StrCmp $default_browser "chromafile" 0 +2
@@ -78,29 +85,32 @@ SectionEnd
 
 Section "Add to Open With menu" SecProgID
 	SetRegView 64
-	WriteRegStr HKCR "Applications\chromafile.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
-	WriteRegStr HKCR "Applications\chromafile.exe\shell\open\command" "" '"$INSTDIR\chromafile.exe" "%1"'
+	WriteRegStr HKLM "Software\Classes\Applications\chromafile.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
+	WriteRegStr HKLM "Software\Classes\Applications\chromafile.exe\shell\open\command" "" '"$INSTDIR\chromafile.exe" "%1"'
 SectionEnd
 
 Section "Add to folder context menu" SecContext
 	SetRegView 64
+	WriteRegStr HKLM Software\Classes\Directory\Shell "" "none"
+	WriteRegStr HKLM Software\Classes\CompressedFolder\Shell "" "none"
+	WriteRegStr HKLM Software\Classes\Drive\Shell "" "none"
 
-	WriteRegStr HKCR Directory\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
-	WriteRegStr HKCR Directory\Background\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
-	WriteRegStr HKCR CompressedFolder\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
-	WriteRegStr HKCR Drive\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKLM Software\Classes\Directory\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKLM Software\Classes\Directory\Background\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKLM Software\Classes\CompressedFolder\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
+	WriteRegStr HKLM Software\Classes\Drive\shell\chromafile "" "${CONTEXT_MENU_TEXT}"
 
-	WriteRegStr HKCR Directory\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
-	WriteRegStr HKCR Directory\Background\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
-	WriteRegStr HKCR CompressedFolder\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
-	WriteRegStr HKCR Drive\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
+	WriteRegStr HKLM Software\Classes\Directory\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
+	WriteRegStr HKLM Software\Classes\Directory\Background\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
+	WriteRegStr HKLM Software\Classes\CompressedFolder\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
+	WriteRegStr HKLM Software\Classes\Drive\shell\chromafile "Icon" "$INSTDIR\chromafile.exe"
 
 	Var /GLOBAL context_menu_command
 	StrCpy $context_menu_command '"$INSTDIR\chromafile.exe" "%v"'
-	WriteRegStr HKCR Directory\shell\chromafile\command "" '$context_menu_command'
-	WriteRegStr HKCR Directory\Background\shell\chromafile\command "" '$context_menu_command'
-	WriteRegStr HKCR CompressedFolder\shell\chromafile\command "" '$context_menu_command'
-	WriteRegStr HKCR Drive\shell\chromafile\command "" '$context_menu_command'
+	WriteRegStr HKLM Software\Classes\Directory\shell\chromafile\command "" '$context_menu_command'
+	WriteRegStr HKLM Software\Classes\Directory\Background\shell\chromafile\command "" '$context_menu_command'
+	WriteRegStr HKLM Software\Classes\CompressedFolder\shell\chromafile\command "" '$context_menu_command'
+	WriteRegStr HKLM Software\Classes\Drive\shell\chromafile\command "" '$context_menu_command'
 SectionEnd
 
 Section /o "    Make default file browser (experimental!)" SecDefault
@@ -122,11 +132,11 @@ Section "un.Uninstall"
 	SetRegView 64
 	DeleteRegKey HKLM "${REG_UNINST_KEY}"
 	DeleteRegKey HKLM Software\chromafile
-	DeleteRegKey HKCR "Applications\chromafile.exe"
-	DeleteRegKey HKCR Directory\shell\chromafile
-	DeleteRegKey HKCR Directory\Background\shell\chromafile
-	DeleteRegKey HKCR CompressedFolder\shell\chromafile
-	DeleteRegKey HKCR Drive\shell\chromafile
+	DeleteRegKey HKLM "Software\Classes\Applications\chromafile.exe"
+	DeleteRegKey HKLM Software\Classes\Directory\shell\chromafile
+	DeleteRegKey HKLM Software\Classes\Directory\Background\shell\chromafile
+	DeleteRegKey HKLM Software\Classes\CompressedFolder\shell\chromafile
+	DeleteRegKey HKLM Software\Classes\Drive\shell\chromafile
 
 	ReadRegStr $default_browser HKCU Software\Classes\Directory\Shell ""
 	StrCmp $default_browser "chromafile" 0 +2
