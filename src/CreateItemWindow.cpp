@@ -18,40 +18,48 @@ const wchar_t CONTROL_PANEL_PATH[] = L"::{26EE0668-A00A-44D7-9371-BEB064C98683}"
 const CLSID TXT_PREVIEWER_CLSID =
     {0x1531d583, 0x8375, 0x4d3f, {0xb5, 0xfb, 0xd2, 0x3b, 0xbd, 0x16, 0x9f, 0x22}};
 
+static CComPtr<IShellItem> controlPanel;
+
 bool previewHandlerCLSID(wchar_t *ext, CLSID *previewID);
 
-CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item) {
-    CComHeapPtr<wchar_t> parsingName;
-    checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEPARSING, &parsingName));
+void initCreateItemWindow() {
+    checkHR(SHCreateItemFromParsingName(CONTROL_PANEL_PATH, nullptr,
+        IID_PPV_ARGS(&controlPanel)));
+}
 
+CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item) {
     CComPtr<ItemWindow> window;
     SFGAOF attr;
     if (checkHR(item->GetAttributes(SFGAO_FOLDER, &attr)) && (attr & SFGAO_FOLDER)) {
-        if (lstrcmpi(parsingName, CONTROL_PANEL_PATH) == 0) {
+        int compare;
+        if (controlPanel && checkHR(item->Compare(controlPanel, SICHINT_CANONICAL, &compare))
+                && compare == 0) {
             window.Attach(new ThumbnailWindow(parent, item));
             return window;
         }
         window.Attach(new FolderWindow(parent, item));
         return window;
-    } else if (parsingName) {
-        bool previewsEnabled = settings::getPreviewsEnabled();
-        bool textEditorEnabled = settings::getTextEditorEnabled();
-        if (previewsEnabled || textEditorEnabled) {
-            wchar_t *ext = PathFindExtension(parsingName);
-            if (ext) {
-                if (textEditorEnabled && ext[0] == 0) {
+    }
+
+    bool previewsEnabled = settings::getPreviewsEnabled();
+    bool textEditorEnabled = settings::getTextEditorEnabled();
+    CComHeapPtr<wchar_t> parentRelAddr;
+    // SIGDN_PARENTRELATIVEFORADDRESSBAR will always have the extension
+    if ((previewsEnabled || textEditorEnabled)
+            && checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEFORADDRESSBAR, &parentRelAddr))) {
+        if (wchar_t *ext = PathFindExtension(parentRelAddr)) {
+            if (textEditorEnabled && ext[0] == 0) {
+                window.Attach(new TextWindow(parent, item));
+                return window;
+            }
+            CLSID previewID;
+            if (previewHandlerCLSID(ext, &previewID)) {
+                if (textEditorEnabled && previewID == TXT_PREVIEWER_CLSID) {
                     window.Attach(new TextWindow(parent, item));
                     return window;
-                }
-                CLSID previewID;
-                if (previewHandlerCLSID(ext, &previewID)) {
-                    if (textEditorEnabled && previewID == TXT_PREVIEWER_CLSID) {
-                        window.Attach(new TextWindow(parent, item));
-                        return window;
-                    } else if (previewsEnabled) {
-                        window.Attach(new PreviewWindow(parent, item, previewID));
-                        return window;
-                    }
+                } else if (previewsEnabled) {
+                    window.Attach(new PreviewWindow(parent, item, previewID));
+                    return window;
                 }
             }
         }
