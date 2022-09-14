@@ -737,6 +737,9 @@ bool ItemWindow::onCommand(WORD command) {
         case IDM_SETTINGS:
             openSettingsDialog(settingsStartPage());
             return true;
+        case IDM_DEBUG_NAMES:
+            debugDisplayNames(hwnd, item);
+            return true;
     }
     return false;
 }

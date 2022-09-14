@@ -1,4 +1,5 @@
 #include "UIStrings.h"
+#include "DPI.h"
 
 namespace chromafile {
 
@@ -27,6 +28,24 @@ void formatErrorMessage(LocalHeapPtr<wchar_t> &message, DWORD error) {
     } else {
         formatMessage(message, STR_UNKNOWN_ERROR);
     }
+}
+
+
+void showDebugMessage(HWND owner, wchar_t *title, wchar_t *format, ...) {
+    va_list args = nullptr;
+    va_start(args, format);
+    LocalHeapPtr<wchar_t> message;
+    FormatMessage(FORMAT_MESSAGE_FROM_STRING | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+        format, 0, 0, (wchar_t *)(wchar_t **)&message, 0, &args);
+    va_end(args);
+
+    HWND edit = checkLE(CreateWindow(L"EDIT", title,
+        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_VSCROLL | WS_HSCROLL
+        | ES_AUTOHSCROLL | ES_LEFT | ES_MULTILINE | ES_READONLY,
+        CW_USEDEFAULT, CW_USEDEFAULT, scaleDPI(400), scaleDPI(200),
+        owner, nullptr, GetModuleHandle(nullptr), nullptr));
+    SendMessage(edit, WM_SETTEXT, 0, (LPARAM)&*message);
+    ShowWindow(edit, SW_SHOWNORMAL);
 }
 
 } // namespace

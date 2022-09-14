@@ -28,4 +28,6 @@ using LocalHeapPtr = CHeapPtr<T, LocalAllocator>;
 bool formatMessage(LocalHeapPtr<wchar_t> &message, DWORD messageId, ...);
 void formatErrorMessage(LocalHeapPtr<wchar_t> &message, DWORD error);
 
+void showDebugMessage(HWND owner, wchar_t *title, wchar_t *format, ...);
+
 } // namespace

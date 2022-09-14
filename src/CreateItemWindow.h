@@ -11,4 +11,6 @@ CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem);
 CComPtr<IShellItem> itemFromPath(wchar_t *path);
 CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder);
 
+void debugDisplayNames(HWND hwnd, CComPtr<IShellItem> item);
+
 } // namespace

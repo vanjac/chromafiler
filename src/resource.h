@@ -22,6 +22,7 @@
 #define IDM_CLOSE_PARENT    1014
 #define IDM_NEW_TEXT_FILE   1015
 #define IDM_DELETE_PROXY    1016
+#define IDM_DEBUG_NAMES     1017
 
 #define IDR_TEXT_ACCEL      107
 #define IDM_SAVE            1100

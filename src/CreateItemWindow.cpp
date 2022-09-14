@@ -179,4 +179,24 @@ STDMETHODIMP NewItemSink::QueryInterface(REFIID id, void **obj) {
     return E_NOINTERFACE;
 };
 
+
+void debugDisplayNames(HWND hwnd, CComPtr<IShellItem> item) {
+    static SIGDN nameTypes[] = {SIGDN_NORMALDISPLAY, SIGDN_PARENTRELATIVE,
+        SIGDN_PARENTRELATIVEEDITING, SIGDN_PARENTRELATIVEFORUI,
+        SIGDN_PARENTRELATIVEFORADDRESSBAR, SIGDN_FILESYSPATH,
+        SIGDN_DESKTOPABSOLUTEEDITING, SIGDN_DESKTOPABSOLUTEPARSING,
+        SIGDN_PARENTRELATIVEPARSING, SIGDN_URL};
+    CComHeapPtr<wchar_t> names[_countof(nameTypes)];
+    for (int i = 0; i < _countof(names); i++)
+        item->GetDisplayName(nameTypes[i], &names[i]);
+    showDebugMessage(hwnd, L"Item Display Names", L""
+        "Normal Display:\t\t%1\r\n"             "Parent Relative:\t\t%2\r\n"
+        "Parent Relative Editing:\t%3\r\n"      "Parent Relative UI (Win8):\t%4\r\n"
+        "Parent Relative Address Bar:\t%5\r\n"  "File System Path:\t\t%6\r\n"
+        "Desktop Absolute Editing:\t%7\r\n"     "Desktop Absolute Parsing:\t%8\r\n"
+        "Parent Relative Parsing:\t%9\r\n"      "URL:\t\t\t%10",
+        &*names[0], &*names[1], &*names[2], &*names[3], &*names[4], &*names[5],
+        &*names[6], &*names[7], &*names[8], &*names[9]);
+}
+
 } // namespace
