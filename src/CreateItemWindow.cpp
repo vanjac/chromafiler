@@ -188,7 +188,7 @@ void debugDisplayNames(HWND hwnd, CComPtr<IShellItem> item) {
         SIGDN_PARENTRELATIVEPARSING, SIGDN_URL};
     CComHeapPtr<wchar_t> names[_countof(nameTypes)];
     for (int i = 0; i < _countof(names); i++)
-        item->GetDisplayName(nameTypes[i], &names[i]);
+        checkHR(item->GetDisplayName(nameTypes[i], &names[i]));
     showDebugMessage(hwnd, L"Item Display Names", L""
         "Normal Display:\t\t%1\r\n"             "Parent Relative:\t\t%2\r\n"
         "Parent Relative Editing:\t%3\r\n"      "Parent Relative UI (Win8):\t%4\r\n"
