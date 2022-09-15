@@ -34,6 +34,12 @@ const wchar_t VAL_TRAY_DIRECTION[]      = L"TrayDirection";
 
 const wchar_t KEY_STARTUP[]             = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 const wchar_t VAL_STARTUP[]             = L"chromafile";
+const wchar_t KEY_DIRECTORY_VERB[]      = L"Directory\\shell\\chromafile";
+const wchar_t KEY_DIRECTORY_BROWSER[]   = L"Software\\Classes\\Directory\\Shell";
+const wchar_t KEY_COMPRESSED_BROWSER[]  = L"Software\\Classes\\CompressedFolder\\Shell";
+const wchar_t KEY_DRIVE_BROWSER[]       = L"Software\\Classes\\Drive\\Shell";
+const wchar_t DATA_BROWSER_SET[]        = L"chromafile";
+const wchar_t DATA_BROWSER_CLEAR[]      = L"none";
 
 // type should be a RRF_RT_* constant
 // data should already contain default value
@@ -281,6 +287,19 @@ TrayDirection getTrayDirection() {
 
 void setTrayDirection(TrayDirection value) {
     setSettingsValue(VAL_TRAY_DIRECTION, REG_DWORD, &value, sizeof(value));
+}
+
+bool supportsDefaultBrowser() {
+    return !RegGetValue(HKEY_CLASSES_ROOT, KEY_DIRECTORY_VERB, L"",
+        RRF_RT_ANY, nullptr, nullptr, nullptr);
+}
+
+void setDefaultBrowser(bool value) {
+    const wchar_t *data = value ? DATA_BROWSER_SET : DATA_BROWSER_CLEAR;
+    DWORD size = value ? sizeof(DATA_BROWSER_SET) : sizeof(DATA_BROWSER_CLEAR);
+    RegSetKeyValue(HKEY_CURRENT_USER, KEY_DIRECTORY_BROWSER, L"", REG_SZ, data, size);
+    RegSetKeyValue(HKEY_CURRENT_USER, KEY_COMPRESSED_BROWSER, L"", REG_SZ, data, size);
+    RegSetKeyValue(HKEY_CURRENT_USER, KEY_DRIVE_BROWSER, L"", REG_SZ, data, size);
 }
 
 }} // namespace

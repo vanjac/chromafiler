@@ -76,11 +76,6 @@
 #define IDC_TRAY_DIR_RIGHT          1007
 #define IDC_RESET_TRAY_POSITION     1008
 
-#define IDD_SETTINGS_ABOUT          106
-#define IDC_UPDATES_LINK            1001
-#define IDC_HELP_LINK               1002
-#define IDC_SOURCE_LINK             1003
-
 #define IDD_SETTINGS_TEXT           109
 #define IDC_TEXT_EDITOR_ENABLED     1001
 #define IDC_TEXT_FONT               1002
@@ -90,6 +85,15 @@
 #define IDC_SCRATCH_FOLDER_PATH     1006
 #define IDC_SCRATCH_FOLDER_BROWSE   1007
 #define IDC_SCRATCH_FILE_NAME       1008
+
+#define IDD_SETTINGS_BROWSER        110
+#define IDC_SET_DEFAULT_BROWSER     1001
+#define IDC_RESET_DEFAULT_BROWSER   1002
+
+#define IDD_SETTINGS_ABOUT          106
+#define IDC_UPDATES_LINK            1001
+#define IDC_HELP_LINK               1002
+#define IDC_SOURCE_LINK             1003
 
 #define IDS_SETTINGS_CAPTION    200
 #define IDS_SETTINGS_COMMAND    201
@@ -102,3 +106,8 @@
 #define IDS_SAVE_BUTTON         208
 #define IDS_DONT_SAVE_BUTTON    209
 #define IDS_DELETE_BUTTON       210
+#define IDS_SUCCESS_CAPTION     211
+#define IDS_BROWSER_SET_FAILED  212
+#define IDS_BROWSER_SET         213
+#define IDS_BROWSER_RESET       214
+#define IDS_REQUIRE_CONTEXT     215

@@ -113,13 +113,6 @@ Section "Add to folder context menu" SecContext
 	WriteRegStr HKLM Software\Classes\Drive\shell\chromafile\command "" '$context_menu_command'
 SectionEnd
 
-Section /o "    Make default file browser (experimental!)" SecDefault
-	SetRegView 64
-	WriteRegStr HKCU Software\Classes\Directory\Shell "" "chromafile"
-	WriteRegStr HKCU Software\Classes\CompressedFolder\Shell "" "chromafile"
-	WriteRegStr HKCU Software\Classes\Drive\Shell "" "chromafile"
-SectionEnd
-
 Function StartProgram
 	InitPluginsDir
 	File "/ONAME=$PLUGINSDIR\ShellExecAsUser.dll" "plugins\ShellExecAsUser.dll"
@@ -163,22 +156,10 @@ LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required compo
 LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the Start Menu to launch chromafile."
 LangString DESC_SecProgID ${LANG_ENGLISH} "Add an entry to the 'Open with' menu for all file types. (Does not change the default app for any file type.)"
 LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in chromafile' command when right-clicking a folder."
-LangString DESC_SecDefault ${LANG_ENGLISH} "Replace File Explorer as the default program for opening folders. Use at your own risk!"
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecBase} $(DESC_SecBase)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecStart} $(DESC_SecStart)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecProgID} $(DESC_SecProgID)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecContext} $(DESC_SecContext)
-	!insertmacro MUI_DESCRIPTION_TEXT ${SecDefault} $(DESC_SecDefault)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
-
-Function .onSelChange
-	; SecDefault depends on SecContext
-	${IfNot} ${SectionIsSelected} ${SecContext}
-		!insertmacro SetSectionFlag ${SecDefault} ${SF_RO}
-		!insertmacro UnselectSection ${SecDefault}
-	${Else}
-		!insertmacro ClearSectionFlag ${SecDefault} ${SF_RO}
-	${EndIf}
-FunctionEnd

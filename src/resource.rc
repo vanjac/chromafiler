@@ -134,20 +134,6 @@ IDD_SETTINGS_TRAY       DIALOGEX
     PUSHBUTTON "R&eset tray position", IDC_RESET_TRAY_POSITION, 42, 135, 70, 14
 }
 
-IDD_SETTINGS_ABOUT      DIALOGEX
-        0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
-        STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
-        CAPTION "About"
-        FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
-    ICON IDR_APP_ICON, -1, 7, 7, 0, 0
-    LTEXT "chromafile", -1, 35, 7, 49, 8
-    LTEXT "Version:", -1, 35, 15, 28, 8
-    LTEXT CHROMAFILE_VERSION_STRING, -1, 70, 15, 28, 8
-    PUSHBUTTON "Latest updates", IDC_UPDATES_LINK, 7, 28, 66, 14
-    PUSHBUTTON "Help", IDC_HELP_LINK, 80, 28, 66, 14
-    PUSHBUTTON "Source code", IDC_SOURCE_LINK, 153, 28, 66, 14
-}
-
 IDD_SETTINGS_TEXT       DIALOGEX
         0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
         STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
@@ -167,6 +153,31 @@ IDD_SETTINGS_TEXT       DIALOGEX
     EDITTEXT IDC_SCRATCH_FILE_NAME, 56, 161, 158, 14
 }
 
+IDD_SETTINGS_BROWSER    DIALOGEX
+        0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
+        STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+        CAPTION "Default Browser"
+        FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
+    ICON 32516, -1, 14, 7, 0, 0
+    LTEXT "Replace File Explorer as the default program for opening folders. Use at your own risk!", -1, 42, 8, 175, 16
+    PUSHBUTTON "&Set as default browser", IDC_SET_DEFAULT_BROWSER, 7, 35, 84, 14
+    PUSHBUTTON "&Reset default browser", IDC_RESET_DEFAULT_BROWSER, 7, 56, 84, 14
+}
+
+IDD_SETTINGS_ABOUT      DIALOGEX
+        0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
+        STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+        CAPTION "About"
+        FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
+    ICON IDR_APP_ICON, -1, 7, 7, 0, 0
+    LTEXT "chromafile", -1, 35, 7, 49, 8
+    LTEXT "Version:", -1, 35, 15, 28, 8
+    LTEXT CHROMAFILE_VERSION_STRING, -1, 70, 15, 28, 8
+    PUSHBUTTON "Latest updates", IDC_UPDATES_LINK, 7, 28, 66, 14
+    PUSHBUTTON "Help", IDC_HELP_LINK, 80, 28, 66, 14
+    PUSHBUTTON "Source code", IDC_SOURCE_LINK, 153, 28, 66, 14
+}
+
 STRINGTABLE {
     IDS_SETTINGS_CAPTION,   "chromafile Settings"
     IDS_SETTINGS_COMMAND,   "Settings"
@@ -179,4 +190,9 @@ STRINGTABLE {
     IDS_SAVE_BUTTON,        "&Save"
     IDS_DONT_SAVE_BUTTON,   "Do&n't Save"
     IDS_DELETE_BUTTON,      "&Delete"
+    IDS_SUCCESS_CAPTION     "Success"
+    IDS_BROWSER_SET_FAILED  "Failed to set default browser"
+    IDS_BROWSER_SET         "chromafile has been set as your default browser."
+    IDS_BROWSER_RESET       "File Explorer has been restored as your default browser."
+    IDS_REQUIRE_CONTEXT     "chromafile must be installed with the Folder Context Menu enabled to be able to change the default browser."
 }

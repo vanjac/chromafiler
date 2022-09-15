@@ -181,7 +181,7 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
                 ShellExecute(nullptr, L"open",
-                    L"https://github.com/vanjac/chromafile/wiki/Text-Editor",
+                    L"https://github.com/vanjac/chromafile/wiki/Settings#text-editor",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             }
@@ -337,6 +337,57 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 }
 
+INT_PTR CALLBACK browserProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+        case WM_NOTIFY: {
+            NMHDR *notif = (NMHDR *)lParam;
+            if (notif->code == PSN_KILLACTIVE) {
+                SetWindowLongPtr(hwnd, DWLP_MSGRESULT, FALSE);
+                return TRUE;
+            } else if (notif->code == PSN_APPLY) {
+                SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
+                return TRUE;
+            } else if (notif->code == PSN_HELP) {
+                ShellExecute(nullptr, L"open",
+                    L"https://github.com/vanjac/chromafile/wiki/Settings#default-browser",
+                    nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
+            }
+            return FALSE;
+        }
+        case WM_COMMAND:
+            HINSTANCE instance = GetModuleHandle(nullptr);
+            if (LOWORD(wParam) == IDC_SET_DEFAULT_BROWSER && HIWORD(wParam) == BN_CLICKED) {
+                if (settings::supportsDefaultBrowser()) {
+                    settings::setDefaultBrowser(true);
+                    TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_SUCCESS_CAPTION),
+                        nullptr, MAKEINTRESOURCE(IDS_BROWSER_SET),
+                        TDCBF_OK_BUTTON, nullptr, nullptr);
+                } else {
+                    TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_BROWSER_SET_FAILED),
+                        nullptr, MAKEINTRESOURCE(IDS_REQUIRE_CONTEXT),
+                        TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+                }
+                return TRUE;
+            } else if (LOWORD(wParam) == IDC_RESET_DEFAULT_BROWSER
+                    && HIWORD(wParam) == BN_CLICKED) {
+                if (settings::supportsDefaultBrowser()) {
+                    settings::setDefaultBrowser(false);
+                    TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_SUCCESS_CAPTION),
+                        nullptr, MAKEINTRESOURCE(IDS_BROWSER_RESET),
+                        TDCBF_OK_BUTTON, nullptr, nullptr);
+                } else {
+                    TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_BROWSER_SET_FAILED),
+                        nullptr, MAKEINTRESOURCE(IDS_REQUIRE_CONTEXT),
+                        TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+                }
+                return TRUE;
+            }
+            return FALSE;
+    }
+    return FALSE;
+}
+
 INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_NOTIFY: {
@@ -396,6 +447,12 @@ void openSettingsDialog(SettingsPage page) {
     pages[SETTINGS_TRAY].hInstance = hInstance;
     pages[SETTINGS_TRAY].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_TRAY);
     pages[SETTINGS_TRAY].pfnDlgProc = trayProc;
+
+    pages[SETTINGS_BROWSER] = {sizeof(PROPSHEETPAGE)};
+    pages[SETTINGS_BROWSER].dwFlags = PSP_HASHELP;
+    pages[SETTINGS_BROWSER].hInstance = hInstance;
+    pages[SETTINGS_BROWSER].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_BROWSER);
+    pages[SETTINGS_BROWSER].pfnDlgProc = browserProc;
 
     pages[SETTINGS_ABOUT] = {sizeof(PROPSHEETPAGE)};
     pages[SETTINGS_ABOUT].hInstance = hInstance;

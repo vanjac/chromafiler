@@ -78,4 +78,7 @@ void setTraySize(SIZE value);
 TrayDirection getTrayDirection();
 void setTrayDirection(TrayDirection value);
 
+bool supportsDefaultBrowser();
+void setDefaultBrowser(bool value);
+
 }} // namespace
