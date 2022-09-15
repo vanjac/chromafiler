@@ -361,12 +361,10 @@ INT_PTR CALLBACK browserProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                 if (settings::supportsDefaultBrowser()) {
                     settings::setDefaultBrowser(true);
                     TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_SUCCESS_CAPTION),
-                        nullptr, MAKEINTRESOURCE(IDS_BROWSER_SET),
-                        TDCBF_OK_BUTTON, nullptr, nullptr);
+                        nullptr, MAKEINTRESOURCE(IDS_BROWSER_SET), 0, nullptr, nullptr);
                 } else {
                     TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_BROWSER_SET_FAILED),
-                        nullptr, MAKEINTRESOURCE(IDS_REQUIRE_CONTEXT),
-                        TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+                        nullptr, MAKEINTRESOURCE(IDS_REQUIRE_CONTEXT), 0, TD_ERROR_ICON, nullptr);
                 }
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_RESET_DEFAULT_BROWSER
@@ -374,12 +372,10 @@ INT_PTR CALLBACK browserProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                 if (settings::supportsDefaultBrowser()) {
                     settings::setDefaultBrowser(false);
                     TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_SUCCESS_CAPTION),
-                        nullptr, MAKEINTRESOURCE(IDS_BROWSER_RESET),
-                        TDCBF_OK_BUTTON, nullptr, nullptr);
+                        nullptr, MAKEINTRESOURCE(IDS_BROWSER_RESET), 0, nullptr, nullptr);
                 } else {
                     TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_BROWSER_SET_FAILED),
-                        nullptr, MAKEINTRESOURCE(IDS_REQUIRE_CONTEXT),
-                        TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr);
+                        nullptr, MAKEINTRESOURCE(IDS_REQUIRE_CONTEXT), 0, TD_ERROR_ICON, nullptr);
                 }
                 return TRUE;
             }
