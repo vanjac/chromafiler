@@ -6,6 +6,7 @@ namespace settings {
 
 const wchar_t KEY_SETTINGS[]            = L"Software\\chromafile";
 
+const wchar_t VAL_LAST_OPENED_VERSION[] = L"LastOpenedVersion";
 const wchar_t VAL_STARTING_FOLDER[]     = L"StartingFolder";
 const wchar_t VAL_SCRATCH_FOLDER[]      = L"ScratchFolder";
 const wchar_t VAL_SCRATCH_FILE_NAME[]   = L"ScratchFileName";
@@ -69,6 +70,16 @@ void setSettingsString(const wchar_t *name, DWORD type, const wchar_t *value) {
     setSettingsValue(name, type, value, (lstrlen(value) + 1) * sizeof(wchar_t));
 }
 
+
+DWORD getLastOpenedVersion() {
+    DWORD value = DEFAULT_LAST_OPENED_VERSION;
+    getSettingsValue(VAL_LAST_OPENED_VERSION, RRF_RT_DWORD, &value, sizeof(value));
+    return value;
+}
+
+void setLastOpenedVersion(DWORD value) {
+    setSettingsValue(VAL_LAST_OPENED_VERSION, REG_DWORD, &value, sizeof(value));
+}
 
 void getStartingFolder(CComHeapPtr<wchar_t> &value) {
     return getSettingsString(VAL_STARTING_FOLDER, RRF_RT_REG_SZ, DEFAULT_STARTING_FOLDER, value);

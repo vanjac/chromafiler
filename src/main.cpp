@@ -48,6 +48,9 @@ void logLastError(const char *file, int line, const char *expr) {
 }
 #endif
 
+DWORD WINAPI checkLastVersion(void *);
+void showWelcomeDialog();
+HRESULT welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LONG_PTR data);
 DWORD WINAPI updateJumpList(void *);
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
@@ -140,6 +143,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     }
     LocalFree(argv);
 
+    HANDLE versionThread;
+    SHCreateThreadWithHandle(checkLastVersion, nullptr, 0, nullptr, &versionThread);
+
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
         if (handleSettingsDialogMessage(&msg))
@@ -151,13 +157,82 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     }
 
     WaitForSingleObject(jumpListThread, INFINITE);
+    WaitForSingleObject(versionThread, INFINITE);
     checkLE(CloseHandle(jumpListThread));
+    checkLE(CloseHandle(versionThread));
 
     ItemWindow::uninit();
     PreviewWindow::uninit();
     OleUninitialize();
 
     return (int)msg.wParam;
+}
+
+DWORD WINAPI checkLastVersion(void *) {
+    DWORD lastVersion = settings::getLastOpenedVersion();
+    DWORD curVersion = settings::makeVersion(CHROMAFILE_VERSION);
+    if (lastVersion != curVersion) {
+        settings::setLastOpenedVersion(curVersion);
+        if (lastVersion == settings::DEFAULT_LAST_OPENED_VERSION)
+            showWelcomeDialog();
+    }
+    return 0;
+}
+
+void showWelcomeDialog() {
+    TASKDIALOGCONFIG config = {sizeof(config)};
+    config.hInstance = GetModuleHandle(nullptr);
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
+    config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+    config.pszWindowTitle = MAKEINTRESOURCE(IDS_WELCOME_CAPTION);
+    config.pszMainIcon = MAKEINTRESOURCE(IDR_APP_ICON);
+    config.pszMainInstruction = MAKEINTRESOURCE(IDS_WELCOME_HEADER);
+    config.pszContent = MAKEINTRESOURCE(IDS_WELCOME_BODY);
+    TASKDIALOG_BUTTON buttons[] = {
+        {IDS_WELCOME_TUTORIAL, MAKEINTRESOURCE(IDS_WELCOME_TUTORIAL)},
+        {IDS_WELCOME_TRAY, MAKEINTRESOURCE(IDS_WELCOME_TRAY)},
+        {IDS_WELCOME_BROWSER, MAKEINTRESOURCE(IDS_WELCOME_BROWSER)}};
+    config.cButtons = _countof(buttons);
+    config.pButtons = buttons;
+    config.nDefaultButton = IDCLOSE;
+    config.pfCallback = welcomeDialogCallback;
+    checkHR(TaskDialogIndirect(&config, nullptr, nullptr, nullptr));
+}
+
+HRESULT welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM, LONG_PTR) {
+    if (msg == TDN_BUTTON_CLICKED && wParam == IDS_WELCOME_TUTORIAL) {
+        ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile/wiki/Tutorial",
+            nullptr, nullptr, SW_SHOWNORMAL);
+        return S_FALSE;
+    } else if (msg == TDN_BUTTON_CLICKED && wParam == IDS_WELCOME_TRAY) {
+        if (!TrayWindow::findTray()) {
+            wchar_t exePath[MAX_PATH];
+            if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH))) {
+                STARTUPINFO startup = {sizeof(startup)};
+                PROCESS_INFORMATION info = {};
+                checkLE(CreateProcess(exePath, L"chromafile.exe /tray", nullptr, nullptr, FALSE,
+                    DETACHED_PROCESS, nullptr, nullptr, &startup, &info));
+                checkLE(CloseHandle(info.hProcess));
+                checkLE(CloseHandle(info.hThread));
+            }
+        }
+        return S_FALSE;
+    } else if (msg == TDN_BUTTON_CLICKED && wParam == IDS_WELCOME_BROWSER) {
+        HINSTANCE instance = GetModuleHandle(nullptr);
+        if (!settings::supportsDefaultBrowser()) {
+            TaskDialog(hwnd, instance, MAKEINTRESOURCE(IDS_BROWSER_SET_FAILED),
+                nullptr, MAKEINTRESOURCE(IDS_REQUIRE_CONTEXT), 0, TD_ERROR_ICON, nullptr);
+        } else {
+            int result = 0;
+            TaskDialog(hwnd, instance, MAKEINTRESOURCE(IDS_CONFIRM_CAPTION),
+                nullptr, MAKEINTRESOURCE(IDS_BROWSER_SET_CONFIRM),
+                TDCBF_YES_BUTTON | TDCBF_CANCEL_BUTTON, nullptr, &result);
+            if (result == IDYES)
+                settings::setDefaultBrowser(true);
+        }
+        return S_FALSE;
+    }
+    return S_OK;
 }
 
 DWORD WINAPI updateJumpList(void *) {

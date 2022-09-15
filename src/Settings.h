@@ -10,6 +10,7 @@ namespace settings {
 enum TrayDirection : DWORD { TRAY_UP, TRAY_DOWN, TRAY_RIGHT };
 
 // http://smallvoid.com/article/winnt-shell-keyword.html
+const DWORD     DEFAULT_LAST_OPENED_VERSION = 0;
 const wchar_t   DEFAULT_STARTING_FOLDER[]   = L"shell:Desktop";
 const wchar_t   DEFAULT_SCRATCH_FOLDER[]    = L"shell:Desktop";
 const wchar_t   DEFAULT_SCRATCH_FILE_NAME[] = L"scratch.txt";
@@ -31,6 +32,12 @@ const int       DEFAULT_TRAY_DPI            = 96;
 const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
 const SIZE      DEFAULT_TRAY_SIZE           = {520, 48};
 const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
+
+constexpr DWORD makeVersion(BYTE v1, BYTE v2, BYTE v3, BYTE v4) {
+    return (v1 << 24) | (v2 << 16) | (v3 << 8) | v4;
+}
+DWORD getLastOpenedVersion();
+void setLastOpenedVersion(DWORD value);
 
 void getStartingFolder(CComHeapPtr<wchar_t> &value);
 void setStartingFolder(wchar_t *value);

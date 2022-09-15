@@ -180,19 +180,31 @@ IDD_SETTINGS_ABOUT      DIALOGEX
 
 STRINGTABLE {
     IDS_SETTINGS_CAPTION,   "chromafile Settings"
+
     IDS_SETTINGS_COMMAND,   "Settings"
     IDS_REFRESH_COMMAND,    "Refresh"
     IDS_NEW_ITEM_COMMAND,   "New..."
     IDS_VIEW_COMMAND,       "View..."
     IDS_SAVE_COMMAND,       "Save"
     IDS_DELETE_COMMAND,     "Delete file"
+
     IDS_UNSAVED_CAPTION,    "Unsaved changes"
     IDS_SAVE_BUTTON,        "&Save"
     IDS_DONT_SAVE_BUTTON,   "Do&n't Save"
     IDS_DELETE_BUTTON,      "&Delete"
+
     IDS_SUCCESS_CAPTION     "Success"
+    IDS_CONFIRM_CAPTION     "Are you sure?"
     IDS_BROWSER_SET_FAILED  "Failed to set default browser"
     IDS_BROWSER_SET         "chromafile has been set as your default browser."
     IDS_BROWSER_RESET       "File Explorer has been restored as your default browser."
     IDS_REQUIRE_CONTEXT     "chromafile must be installed with the Folder Context Menu enabled to be able to change the default browser."
+    IDS_BROWSER_SET_CONFIRM "This will replace File Explorer as the default program for opening folders. Use at your own risk!"
+
+    IDS_WELCOME_CAPTION     "chromafile"
+    IDS_WELCOME_HEADER      "Welcome"
+    IDS_WELCOME_BODY        "This appears to be your first time using chromafile."
+    IDS_WELCOME_TUTORIAL    "Read Tutorial\nRecommended for first-time users"
+    IDS_WELCOME_TRAY        "Enable Tray\nToolbar with quick access to folders"
+    IDS_WELCOME_BROWSER     "Make default file browser\nReplace File Explorer as your default browser"
 }

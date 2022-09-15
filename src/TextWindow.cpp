@@ -385,7 +385,6 @@ bool TextWindow::confirmSave(bool willDelete) {
         {IDNO, MAKEINTRESOURCE(willDelete ? IDS_DELETE_BUTTON : IDS_DONT_SAVE_BUTTON)}};
     config.cButtons = _countof(buttons);
     config.pButtons = buttons;
-    config.nDefaultButton = 1;
     int result = 0;
     checkHR(TaskDialogIndirect(&config, &result, nullptr, nullptr));
 
