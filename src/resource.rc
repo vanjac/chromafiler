@@ -205,6 +205,6 @@ STRINGTABLE {
     IDS_WELCOME_HEADER      "Welcome"
     IDS_WELCOME_BODY        "This appears to be your first time using chromafile."
     IDS_WELCOME_TUTORIAL    "Read Tutorial\nRecommended for first-time users"
-    IDS_WELCOME_TRAY        "Enable Tray\nToolbar with quick access to folders"
+    IDS_WELCOME_TRAY        "Enable Tray\nFloating toolbar with quick access to folders"
     IDS_WELCOME_BROWSER     "Make default file browser\nReplace File Explorer as your default browser"
 }

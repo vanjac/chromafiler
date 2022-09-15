@@ -131,16 +131,6 @@ Section "un.Uninstall"
 	DeleteRegKey HKLM Software\Classes\CompressedFolder\shell\chromafile
 	DeleteRegKey HKLM Software\Classes\Drive\shell\chromafile
 
-	ReadRegStr $default_browser HKCU Software\Classes\Directory\Shell ""
-	StrCmp $default_browser "chromafile" 0 +2
-		WriteRegStr HKCU Software\Classes\Directory\Shell "" "none"
-	ReadRegStr $default_browser HKCU Software\Classes\CompressedFolder\Shell ""
-	StrCmp $default_browser "chromafile" 0 +2
-		WriteRegStr HKCU Software\Classes\CompressedFolder\Shell "" "none"
-	ReadRegStr $default_browser HKCU Software\Classes\Drive\Shell ""
-	StrCmp $default_browser "chromafile" 0 +2
-		WriteRegStr HKCU Software\Classes\Drive\Shell "" "none"
-
 	Delete $SMPROGRAMS\chromafile.lnk
 
 	${un.EnumUsersReg} un.CleanupUser chromafile.temp
@@ -150,6 +140,16 @@ Function un.CleanupUser
 	Pop $0
 	DeleteRegKey HKU "$0\Software\chromafile"
 	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "chromafile"
+
+	ReadRegStr $default_browser HKU "$0\Software\Classes\Directory\Shell" ""
+	StrCmp $default_browser "chromafile" 0 +2
+		WriteRegStr HKU "$0\Software\Classes\Directory\Shell" "" "none"
+	ReadRegStr $default_browser HKU "$0\Software\Classes\CompressedFolder\Shell" ""
+	StrCmp $default_browser "chromafile" 0 +2
+		WriteRegStr HKU "$0\Software\Classes\CompressedFolder\Shell" "" "none"
+	ReadRegStr $default_browser HKU "$0\Software\Classes\Drive\Shell" ""
+	StrCmp $default_browser "chromafile" 0 +2
+		WriteRegStr HKU "$0\Software\Classes\Drive\Shell" "" "none"
 FunctionEnd
 
 LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
