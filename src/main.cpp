@@ -216,6 +216,7 @@ HRESULT welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM, LONG_P
                 checkLE(CloseHandle(info.hThread));
             }
         }
+        settings::setTrayOpenOnStartup(true);
         return S_FALSE;
     } else if (msg == TDN_BUTTON_CLICKED && wParam == IDS_WELCOME_BROWSER) {
         HINSTANCE instance = GetModuleHandle(nullptr);
