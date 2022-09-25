@@ -54,7 +54,12 @@ HWND TrayWindow::findTray() {
 }
 
 POINT TrayWindow::requestedPosition() {
-    return pointMulDiv(settings::getTrayPosition(), systemDPI, settings::getTrayDPI());
+    POINT trayPos = settings::getTrayPosition();
+    if (trayPos.x == CW_USEDEFAULT && trayPos.y == CW_USEDEFAULT) {
+        return {0, GetSystemMetrics(SM_CYSCREEN) - requestedSize().cy};
+    } else {
+        return pointMulDiv(trayPos, systemDPI, settings::getTrayDPI());
+    }
 }
 
 SIZE TrayWindow::requestedSize() const {
