@@ -5,6 +5,7 @@
 #include "GDIUtils.h"
 #include "Settings.h"
 #include "DPI.h"
+#include "UIStrings.h"
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
@@ -42,8 +43,6 @@ const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
 
 static HANDLE symbolFontHandle = nullptr;
 static HFONT captionFont = nullptr, statusFont = nullptr, symbolFont = nullptr;
-// string resources
-static wchar_t STR_SETTINGS_COMMAND[64] = {0};
 
 // ItemWindow.h
 CComPtr<ItemWindow> activeWindow;
@@ -115,9 +114,6 @@ void ItemWindow::init() {
             symbolFont = CreateFontIndirect(&SYMBOL_LOGFONT);
         }
     }
-
-    LoadString(hInstance, IDS_SETTINGS_COMMAND,
-        STR_SETTINGS_COMMAND, _countof(STR_SETTINGS_COMMAND));
 
     accelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ITEM_ACCEL));
 }
@@ -508,7 +504,9 @@ void ItemWindow::onCreate() {
 
     if (HMENU systemMenu = GetSystemMenu(hwnd, FALSE)) {
         AppendMenu(systemMenu, MF_SEPARATOR, 0, nullptr);
-        AppendMenu(systemMenu, MF_STRING, IDM_SETTINGS, STR_SETTINGS_COMMAND);
+        LocalHeapPtr<wchar_t> settingsText;
+        formatMessage(settingsText, STR_SETTINGS_ITEM);
+        AppendMenu(systemMenu, MF_STRING, IDM_SETTINGS, settingsText);
     }
 
     if (!alwaysOnTop() && (!parent || parent->alwaysOnTop()))
