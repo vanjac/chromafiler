@@ -4,19 +4,19 @@
 LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
 
 1 VERSIONINFO
-    FILEVERSION     CHROMAFILE_VERSION
-    PRODUCTVERSION  CHROMAFILE_VERSION
+    FILEVERSION     CHROMAFILER_VERSION
+    PRODUCTVERSION  CHROMAFILER_VERSION
     FILEOS          VOS_NT_WINDOWS32
     FILETYPE        VFT_APP
 {
     BLOCK "StringFileInfo" {
         BLOCK "040904B0" {
             VALUE "CompanyName", "chroma zone\0"
-            VALUE "FileDescription", "chromafile\0"
-            VALUE "FileVersion", CHROMAFILE_VERSION_STRING
+            VALUE "FileDescription", "ChromaFiler\0"
+            VALUE "FileVersion", CHROMAFILER_VERSION_STRING
             VALUE "LegalCopyright", "Copyright (c) J. van't Hoog\0"
-            VALUE "ProductName", "chromafile\0"
-            VALUE "ProductVersion", CHROMAFILE_VERSION_STRING
+            VALUE "ProductName", "ChromaFiler\0"
+            VALUE "ProductVersion", CHROMAFILER_VERSION_STRING
         }
     }
     BLOCK "VarFileInfo" {
@@ -24,7 +24,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
     }
 }
 
-IDR_RT_MANIFEST1 RT_MANIFEST "res\\chromafile.exe.manifest"
+IDR_RT_MANIFEST1 RT_MANIFEST "res\\ChromaFiler.exe.manifest"
 
 IDR_APP_ICON    ICON    "res\\folder.ico"
 
@@ -110,7 +110,7 @@ IDD_SETTINGS_GENERAL    DIALOGEX
     GROUPBOX "Previews", -1, 117, 105, 103, 49
     AUTOCHECKBOX "Use Preview &Handlers", IDC_PREVIEWS_ENABLED, 124, 119, 89, 14
     GROUPBOX "File Explorer options", -1, 7, 161, 213, 35
-    LTEXT "Some File Explorer options also affect chromafile folder windows.", -1, 14, 175, 136, 16
+    LTEXT "Some File Explorer options also affect ChromaFiler folder windows.", -1, 14, 175, 136, 16
     PUSHBUTTON "&Options...", IDC_EXPLORER_SETTINGS, 157, 175, 56, 14
 }
 
@@ -170,16 +170,16 @@ IDD_SETTINGS_ABOUT      DIALOGEX
         CAPTION "About"
         FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
     ICON IDR_APP_ICON, -1, 7, 7, 0, 0
-    LTEXT "chromafile", -1, 35, 7, 49, 8
+    LTEXT "ChromaFiler", -1, 35, 7, 49, 8
     LTEXT "Version:", -1, 35, 15, 28, 8
-    LTEXT CHROMAFILE_VERSION_STRING, -1, 70, 15, 28, 8
+    LTEXT CHROMAFILER_VERSION_STRING, -1, 70, 15, 28, 8
     PUSHBUTTON "Latest updates", IDC_UPDATES_LINK, 7, 28, 66, 14
     PUSHBUTTON "Help", IDC_HELP_LINK, 80, 28, 66, 14
     PUSHBUTTON "Source code", IDC_SOURCE_LINK, 153, 28, 66, 14
 }
 
 STRINGTABLE {
-    IDS_SETTINGS_CAPTION,   "chromafile Settings"
+    IDS_SETTINGS_CAPTION,   "ChromaFiler Settings"
 
     IDS_SETTINGS_COMMAND,   "Settings"
     IDS_REFRESH_COMMAND,    "Refresh"
@@ -196,14 +196,14 @@ STRINGTABLE {
     IDS_SUCCESS_CAPTION     "Success"
     IDS_CONFIRM_CAPTION     "Are you sure?"
     IDS_BROWSER_SET_FAILED  "Failed to set default browser"
-    IDS_BROWSER_SET         "chromafile has been set as your default browser."
+    IDS_BROWSER_SET         "ChromaFiler has been set as your default browser."
     IDS_BROWSER_RESET       "File Explorer has been restored as your default browser."
-    IDS_REQUIRE_CONTEXT     "chromafile must be installed with the Folder Context Menu enabled to be able to change the default browser."
+    IDS_REQUIRE_CONTEXT     "ChromaFiler must be installed with the Folder Context Menu enabled to be able to change the default browser."
     IDS_BROWSER_SET_CONFIRM "This will replace File Explorer as the default program for opening folders. Use at your own risk!"
 
-    IDS_WELCOME_CAPTION     "chromafile"
+    IDS_WELCOME_CAPTION     "ChromaFiler"
     IDS_WELCOME_HEADER      "Welcome"
-    IDS_WELCOME_BODY        "This appears to be your first time using chromafile."
+    IDS_WELCOME_BODY        "This appears to be your first time using ChromaFiler."
     IDS_WELCOME_TUTORIAL    "Read Tutorial\nRecommended for first-time users"
     IDS_WELCOME_TRAY        "Enable Tray\nFloating toolbar with quick access to folders"
     IDS_WELCOME_BROWSER     "Make default file browser\nReplace File Explorer as your default browser"

@@ -10,7 +10,7 @@
 #include <shellapi.h>
 #include <strsafe.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 const wchar_t IPreviewHandlerIID[] = L"{8895b1c6-b41f-4c1c-a562-0d564250836f}";
 const wchar_t CONTROL_PANEL_PATH[] = L"::{26EE0668-A00A-44D7-9371-BEB064C98683}";

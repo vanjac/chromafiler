@@ -1,10 +1,10 @@
 #include "Settings.h"
 #include <strsafe.h>
 
-namespace chromafile {
+namespace chromafiler {
 namespace settings {
 
-const wchar_t KEY_SETTINGS[]            = L"Software\\chromafile";
+const wchar_t KEY_SETTINGS[]            = L"Software\\ChromaFiler";
 
 const wchar_t VAL_LAST_OPENED_VERSION[] = L"LastOpenedVersion";
 const wchar_t VAL_STARTING_FOLDER[]     = L"StartingFolder";
@@ -34,12 +34,12 @@ const wchar_t VAL_TRAY_H[]              = L"TrayHeight";
 const wchar_t VAL_TRAY_DIRECTION[]      = L"TrayDirection";
 
 const wchar_t KEY_STARTUP[]             = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
-const wchar_t VAL_STARTUP[]             = L"chromafile";
-const wchar_t KEY_DIRECTORY_VERB[]      = L"Directory\\shell\\chromafile";
+const wchar_t VAL_STARTUP[]             = L"ChromaFiler";
+const wchar_t KEY_DIRECTORY_VERB[]      = L"Directory\\shell\\chromafiler";
 const wchar_t KEY_DIRECTORY_BROWSER[]   = L"Software\\Classes\\Directory\\Shell";
 const wchar_t KEY_COMPRESSED_BROWSER[]  = L"Software\\Classes\\CompressedFolder\\Shell";
 const wchar_t KEY_DRIVE_BROWSER[]       = L"Software\\Classes\\Drive\\Shell";
-const wchar_t DATA_BROWSER_SET[]        = L"chromafile";
+const wchar_t DATA_BROWSER_SET[]        = L"chromafiler";
 const wchar_t DATA_BROWSER_CLEAR[]      = L"none";
 
 // type should be a RRF_RT_* constant

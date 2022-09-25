@@ -5,7 +5,7 @@
 #include <Richedit.h>
 #include <commdlg.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 class TextWindow : public ItemWindow {
 public:

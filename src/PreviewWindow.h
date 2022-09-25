@@ -3,7 +3,7 @@
 
 #include "ItemWindow.h"
 
-namespace chromafile {
+namespace chromafiler {
 
 class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
 

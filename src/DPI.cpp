@@ -1,6 +1,6 @@
 #include "DPI.h"
 
-namespace chromafile {
+namespace chromafiler {
 
 // https://github.com/tringi/win32-dpi
 

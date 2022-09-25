@@ -7,7 +7,7 @@
 #include <windowsx.h>
 #include <shlobj.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 const wchar_t TEXT_WINDOW_CLASS[] = L"Text Window";
 
@@ -30,7 +30,7 @@ void TextWindow::init() {
 
     textAccelTable = LoadAccelerators(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_ACCEL));
 
-    updateSettingsMessage = checkLE(RegisterWindowMessage(L"chromafile_TextUpdateSettings"));
+    updateSettingsMessage = checkLE(RegisterWindowMessage(L"chromafiler_TextUpdateSettings"));
     findReplaceMessage = checkLE(RegisterWindowMessage(FINDMSGSTRING));
 }
 

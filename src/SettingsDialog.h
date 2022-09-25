@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 enum SettingsPage {
     SETTINGS_GENERAL, SETTINGS_TEXT, SETTINGS_TRAY, SETTINGS_BROWSER, SETTINGS_ABOUT,

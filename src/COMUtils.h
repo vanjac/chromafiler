@@ -3,7 +3,7 @@
 
 #include <Unknwn.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 class IUnknownImpl : public IUnknown {
 public:

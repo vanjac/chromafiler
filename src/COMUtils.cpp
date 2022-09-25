@@ -1,7 +1,7 @@
 #include "COMUtils.h"
 #include <shlwapi.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 // https://docs.microsoft.com/en-us/office/client-developer/outlook/mapi/implementing-iunknown-in-c-plus-plus
 

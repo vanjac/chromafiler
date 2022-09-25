@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 constexpr int rectWidth(const RECT &rect) {
     return rect.right - rect.left;

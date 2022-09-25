@@ -1,7 +1,7 @@
 #pragma once
 #include <common.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 // app exits when all windows are closed
 void windowOpened();

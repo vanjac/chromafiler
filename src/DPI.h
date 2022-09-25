@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 // modern DPI scaling methods were added in Windows 10 1607, but we are targeting Windows 7
 

@@ -3,7 +3,7 @@
 
 #include "FolderWindow.h"
 
-namespace chromafile {
+namespace chromafiler {
 
 // about the name: https://devblogs.microsoft.com/oldnewthing/20030910-00/?p=42583
 class TrayWindow : public FolderWindow {

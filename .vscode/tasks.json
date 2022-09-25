@@ -50,12 +50,12 @@
 				"/Zi",      // debug only
 				"/EHsc",    // debug only
 				"/MTd",     // debug only
-				"/D", "CHROMAFILE_DEBUG", // debug only
-				// "/D", "CHROMAFILE_MEMLEAKS", // debug only
+				"/D", "CHROMAFILER_DEBUG", // debug only
+				// "/D", "CHROMAFILER_MEMLEAKS", // debug only
 				"/nologo",
 				"/MP", // https://randomascii.wordpress.com/2014/03/22/make-vc-compiles-fast-through-parallel-compilation/
 				"/W4",
-				"/Fe:", "${workspaceFolder}\\build\\chromafile.exe",
+				"/Fe:", "${workspaceFolder}\\build\\ChromaFiler.exe",
 				"/I", "${workspaceFolder}\\src",
 				"/I", "${workspaceFolder}\\build",	// for message.h
 				"${workspaceFolder}\\src\\*.cpp",
@@ -88,7 +88,7 @@
 				"/nologo",
 				"/MP",
 				"/W4",
-				"/Fe:", "${workspaceFolder}\\build\\chromafile.exe",
+				"/Fe:", "${workspaceFolder}\\build\\ChromaFiler.exe",
 				"/I", "${workspaceFolder}\\src",
 				"/I", "${workspaceFolder}\\build",
 				"${workspaceFolder}\\src\\*.cpp",

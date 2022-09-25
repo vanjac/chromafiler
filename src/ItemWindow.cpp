@@ -15,7 +15,7 @@
 #include <strsafe.h>
 #include <VersionHelpers.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 const wchar_t CHAIN_OWNER_CLASS[] = L"Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
@@ -729,7 +729,7 @@ bool ItemWindow::onCommand(WORD command) {
             return true;
         }
         case IDM_HELP:
-            ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile/wiki",
+            ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler/wiki",
                 nullptr, nullptr, SW_SHOWNORMAL);
             return true;
         case IDM_SETTINGS:

@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <atlbase.h>
 
-namespace chromafile {
+namespace chromafiler {
 namespace settings {
 
 enum TrayDirection : DWORD { TRAY_UP, TRAY_DOWN, TRAY_RIGHT };

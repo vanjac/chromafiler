@@ -21,12 +21,12 @@
 #pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Comdlg32.lib")
 
-using namespace chromafile;
+using namespace chromafiler;
 
 const wchar_t APP_ID[] = L"chroma.file";
 const wchar_t SHELL_PREFIX[] = L"shell:";
 
-#ifdef CHROMAFILE_DEBUG
+#ifdef CHROMAFILER_DEBUG
 int main(int, char**) {
     return wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
 }
@@ -56,7 +56,7 @@ DWORD WINAPI updateJumpList(void *);
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     OutputDebugString(L"hiiiii ^w^\n"); // DO NOT REMOVE!!
 
-#ifdef CHROMAFILE_MEMLEAKS
+#ifdef CHROMAFILER_MEMLEAKS
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
     debugPrintf(L"Compiled with memory leak detection\n");
 #endif
@@ -170,7 +170,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
 DWORD WINAPI checkLastVersion(void *) {
     DWORD lastVersion = settings::getLastOpenedVersion();
-    DWORD curVersion = settings::makeVersion(CHROMAFILE_VERSION);
+    DWORD curVersion = settings::makeVersion(CHROMAFILER_VERSION);
     if (lastVersion != curVersion) {
         settings::setLastOpenedVersion(curVersion);
         if (lastVersion == settings::DEFAULT_LAST_OPENED_VERSION)
@@ -201,7 +201,7 @@ void showWelcomeDialog() {
 
 HRESULT welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM, LONG_PTR) {
     if (msg == TDN_BUTTON_CLICKED && wParam == IDS_WELCOME_TUTORIAL) {
-        ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile/wiki/Tutorial",
+        ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler/wiki/Tutorial",
             nullptr, nullptr, SW_SHOWNORMAL);
         return S_FALSE;
     } else if (msg == TDN_BUTTON_CLICKED && wParam == IDS_WELCOME_TRAY) {
@@ -210,7 +210,7 @@ HRESULT welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM, LONG_P
             if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH))) {
                 STARTUPINFO startup = {sizeof(startup)};
                 PROCESS_INFORMATION info = {};
-                checkLE(CreateProcess(exePath, L"chromafile.exe /tray", nullptr, nullptr, FALSE,
+                checkLE(CreateProcess(exePath, L"ChromaFiler.exe /tray", nullptr, nullptr, FALSE,
                     DETACHED_PROCESS, nullptr, nullptr, &startup, &info));
                 checkLE(CloseHandle(info.hProcess));
                 checkLE(CloseHandle(info.hThread));
@@ -273,7 +273,7 @@ DWORD WINAPI updateJumpList(void *) {
     return 0;
 }
 
-namespace chromafile {
+namespace chromafiler {
     long numOpenWindows;
 
     void windowOpened() {

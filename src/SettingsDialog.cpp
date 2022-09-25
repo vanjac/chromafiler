@@ -13,7 +13,7 @@
 #include <shobjidl_core.h>
 #include <commdlg.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 const wchar_t *SPECIAL_PATHS[] = {
     L"shell:Desktop",
@@ -97,7 +97,7 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
                 ShellExecute(nullptr, L"open",
-                    L"https://github.com/vanjac/chromafile/wiki/Settings#general",
+                    L"https://github.com/vanjac/chromafiler/wiki/Settings#general",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             }
@@ -181,7 +181,7 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
                 ShellExecute(nullptr, L"open",
-                    L"https://github.com/vanjac/chromafile/wiki/Settings#text-editor",
+                    L"https://github.com/vanjac/chromafiler/wiki/Settings#text-editor",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             }
@@ -284,7 +284,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
                 ShellExecute(nullptr, L"open",
-                    L"https://github.com/vanjac/chromafile/wiki/Settings#tray",
+                    L"https://github.com/vanjac/chromafiler/wiki/Settings#tray",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             }
@@ -349,7 +349,7 @@ INT_PTR CALLBACK browserProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
                 ShellExecute(nullptr, L"open",
-                    L"https://github.com/vanjac/chromafile/wiki/Settings#default-browser",
+                    L"https://github.com/vanjac/chromafiler/wiki/Settings#default-browser",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             }
@@ -399,15 +399,15 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
         }
         case WM_COMMAND:
             if (LOWORD(wParam) == IDC_UPDATES_LINK && HIWORD(wParam) == BN_CLICKED) {
-                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile/releases",
+                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler/releases",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_HELP_LINK && HIWORD(wParam) == BN_CLICKED) {
-                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile/wiki",
+                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler/wiki",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_SOURCE_LINK && HIWORD(wParam) == BN_CLICKED) {
-                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafile",
+                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             }

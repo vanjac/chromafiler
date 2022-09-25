@@ -7,7 +7,7 @@
 #include <shobjidl.h>
 #include <atlbase.h>
 
-namespace chromafile {
+namespace chromafiler {
 
 class ItemWindow;
 

@@ -3,7 +3,7 @@
 #include <windowsx.h>
 #include <cstdint>
 
-namespace chromafile {
+namespace chromafiler {
 
 void makeBitmapOpaque(HDC hdc, const RECT &rect) {
     // https://devblogs.microsoft.com/oldnewthing/20210915-00/?p=105687

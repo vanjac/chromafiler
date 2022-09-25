@@ -3,7 +3,7 @@
 
 #include "ItemWindow.h"
 
-namespace chromafile {
+namespace chromafiler {
 
 void initCreateItemWindow();
 CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
