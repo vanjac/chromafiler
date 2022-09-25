@@ -22,8 +22,8 @@ struct std::hash<CLSID> {
 
 namespace chromafiler {
 
-const wchar_t PREVIEW_WINDOW_CLASS[] = L"Preview Window";
-const wchar_t PREVIEW_CONTAINER_CLASS[] = L"Preview Container";
+const wchar_t PREVIEW_WINDOW_CLASS[] = L"ChromaFile Preview";
+const wchar_t PREVIEW_CONTAINER_CLASS[] = L"ChromaFile Preview Container";
 
 enum WorkerUserMessage {
     MSG_INIT_PREVIEW_REQUEST = WM_USER,

@@ -5,7 +5,7 @@
 
 namespace chromafiler {
 
-const wchar_t THUMBNAIL_WINDOW_CLASS[] = L"Thumbnail Window";
+const wchar_t THUMBNAIL_WINDOW_CLASS[] = L"ChromaFile Thumbnail";
 
 void ThumbnailWindow::init() {
     WNDCLASS wndClass = createWindowClass(THUMBNAIL_WINDOW_CLASS);

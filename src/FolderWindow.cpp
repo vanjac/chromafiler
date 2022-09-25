@@ -14,7 +14,7 @@
 
 namespace chromafiler {
 
-const wchar_t FOLDER_WINDOW_CLASS[] = L"Folder Window";
+const wchar_t FOLDER_WINDOW_CLASS[] = L"ChromaFile Folder";
 
 const wchar_t PROP_VISITED[] = L"Visited";
 const wchar_t PROP_SIZE[] = L"Size";

@@ -9,7 +9,7 @@
 
 namespace chromafiler {
 
-const wchar_t TEXT_WINDOW_CLASS[] = L"Text Window";
+const wchar_t TEXT_WINDOW_CLASS[] = L"ChromaFile Text";
 
 const ULONG MAX_FILE_SIZE = 50'000'000;
 

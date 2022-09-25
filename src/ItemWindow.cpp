@@ -17,7 +17,7 @@
 
 namespace chromafiler {
 
-const wchar_t CHAIN_OWNER_CLASS[] = L"Chain";
+const wchar_t CHAIN_OWNER_CLASS[] = L"ChromaFile Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 
 // dimensions

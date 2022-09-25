@@ -8,8 +8,8 @@
 
 namespace chromafiler {
 
-const wchar_t TRAY_WINDOW_CLASS[] = L"Tray";
-const wchar_t MOVE_GRIP_CLASS[] = L"Move Grip";
+const wchar_t TRAY_WINDOW_CLASS[] = L"ChromaFile Tray";
+const wchar_t MOVE_GRIP_CLASS[] = L"ChromaFile Move Grip";
 
 const int HOTKEY_FOCUS_TRAY = 1;
 
