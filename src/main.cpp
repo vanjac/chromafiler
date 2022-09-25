@@ -50,7 +50,7 @@ void logLastError(const char *file, int line, const char *expr) {
 
 DWORD WINAPI checkLastVersion(void *);
 void showWelcomeDialog();
-HRESULT welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LONG_PTR data);
+HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LONG_PTR data);
 DWORD WINAPI updateJumpList(void *);
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
@@ -199,7 +199,7 @@ void showWelcomeDialog() {
     checkHR(TaskDialogIndirect(&config, nullptr, nullptr, nullptr));
 }
 
-HRESULT welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM, LONG_PTR) {
+HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM, LONG_PTR) {
     if (msg == TDN_BUTTON_CLICKED && wParam == IDS_WELCOME_TUTORIAL) {
         ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler/wiki/Tutorial",
             nullptr, nullptr, SW_SHOWNORMAL);
