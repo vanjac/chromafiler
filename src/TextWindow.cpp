@@ -183,27 +183,6 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 isUnsavedScratchFile = false;
             }
             return TRUE;
-        case WM_CONTEXTMENU: {
-            if (encoding == FAIL)
-                break;
-            POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-            if (pos.x == -1 && pos.y == -1) {
-                CHARRANGE sel;
-                SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
-                SendMessage(edit, EM_POSFROMCHAR, (WPARAM)&pos, sel.cpMin);
-                ClientToScreen(edit, &pos);
-            } else {
-                RECT body = windowBody();
-                MapWindowRect(hwnd, nullptr, &body);
-                if (!PtInRect(&body, pos))
-                    break;
-            }
-            HMENU menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_MENU));
-            checkLE(TrackPopupMenuEx(GetSubMenu(menu, 0), TPM_RIGHTBUTTON,
-                pos.x, pos.y, hwnd, nullptr));
-            checkLE(DestroyMenu(menu));
-            return 0;
-        }
         case WM_INITMENUPOPUP: {
             HMENU menu = (HMENU)wParam;
             if (!SendMessage(edit, EM_CANUNDO, 0, 0)) {
@@ -784,6 +763,21 @@ LRESULT CALLBACK TextWindow::richEditProc(HWND hwnd, UINT message,
         return 0;
     } else if (message == WM_CHAR && wParam == VK_TAB) {
         ((TextWindow *)refData)->indentSelection((GetKeyState(VK_SHIFT) < 0) ? -1 : 1);
+        return 0;
+    } else if (message == WM_CONTEXTMENU) {
+        if (SendMessage(hwnd, EM_GETOPTIONS, 0, 0) & ECO_READONLY)
+            return 0;
+        POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        if (pos.x == -1 && pos.y == -1) {
+            CHARRANGE sel;
+            SendMessage(hwnd, EM_EXGETSEL, 0, (LPARAM)&sel);
+            SendMessage(hwnd, EM_POSFROMCHAR, (WPARAM)&pos, sel.cpMin);
+            ClientToScreen(hwnd, &pos);
+        }
+        HMENU menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_MENU));
+        checkLE(TrackPopupMenuEx(GetSubMenu(menu, 0), TPM_RIGHTBUTTON,
+            pos.x, pos.y, GetParent(hwnd), nullptr));
+        checkLE(DestroyMenu(menu));
         return 0;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
