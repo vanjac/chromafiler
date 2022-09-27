@@ -81,7 +81,6 @@ POINT getTrayPosition(); // using TrayDPI
 void setTrayPosition(POINT value);
 SIZE getTraySize(); // using TrayDPI
 void setTraySize(SIZE value);
-
 TrayDirection getTrayDirection();
 void setTrayDirection(TrayDirection value);
 

@@ -6,32 +6,12 @@ namespace settings {
 
 const wchar_t KEY_SETTINGS[]            = L"Software\\ChromaFiler";
 
-const wchar_t VAL_LAST_OPENED_VERSION[] = L"LastOpenedVersion";
-const wchar_t VAL_STARTING_FOLDER[]     = L"StartingFolder";
-const wchar_t VAL_SCRATCH_FOLDER[]      = L"ScratchFolder";
-const wchar_t VAL_SCRATCH_FILE_NAME[]   = L"ScratchFileName";
-const wchar_t VAL_ITEM_WINDOW_W[]       = L"ItemWindowWidth";
-const wchar_t VAL_ITEM_WINDOW_H[]       = L"ItemWindowHeight";
-const wchar_t VAL_FOLDER_WINDOW_W[]     = L"FolderWindowWidth";
-const wchar_t VAL_FOLDER_WINDOW_H[]     = L"FolderWindowHeight";
-const wchar_t VAL_STATUS_TEXT_ENABLED[] = L"StatusTextEnabled";
-const wchar_t VAL_TOOLBAR_ENABLED[]     = L"ToolbarEnabled";
-const wchar_t VAL_PREVIEWS_ENABLED[]    = L"PreviewsEnabled";
-const wchar_t VAL_DESELECT_ON_OPEN[]    = L"DeselectOnOpen";
-const wchar_t VAL_TEXT_EDITOR_ENABLED[] = L"TextEditorEnabled2";
 const wchar_t VAL_TEXT_FONT_FACE[]      = L"TextFontFace";
 const wchar_t VAL_TEXT_FONT_SIZE[]      = L"TextFontSize";
 const wchar_t VAL_TEXT_FONT_WEIGHT[]    = L"TextFontWeight";
 const wchar_t VAL_TEXT_FONT_ITALIC[]    = L"TextFontItalic";
-const wchar_t VAL_TEXT_WRAP[]           = L"TextWrap";
-const wchar_t VAL_TEXT_AUTO_INDENT[]    = L"TextAutoIndent";
-const wchar_t VAL_TRAY_FOLDER[]         = L"TrayFolder";
-const wchar_t VAL_TRAY_DPI[]            = L"TrayDPI";
 const wchar_t VAL_TRAY_X[]              = L"TrayX";
 const wchar_t VAL_TRAY_Y[]              = L"TrayY";
-const wchar_t VAL_TRAY_W[]              = L"TrayWidth";
-const wchar_t VAL_TRAY_H[]              = L"TrayHeight";
-const wchar_t VAL_TRAY_DIRECTION[]      = L"TrayDirection";
 
 const wchar_t KEY_STARTUP[]             = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 const wchar_t VAL_STARTUP[]             = L"ChromaFiler";
@@ -70,120 +50,58 @@ void setSettingsString(const wchar_t *name, DWORD type, const wchar_t *value) {
     setSettingsValue(name, type, value, (lstrlen(value) + 1) * sizeof(wchar_t));
 }
 
-
-DWORD getLastOpenedVersion() {
-    DWORD value = DEFAULT_LAST_OPENED_VERSION;
-    getSettingsValue(VAL_LAST_OPENED_VERSION, RRF_RT_DWORD, &value, sizeof(value));
-    return value;
+#define SETTINGS_DWORD_VALUE(funcName, type, valueName, defaultValue)                   \
+type get##funcName() {                                                                  \
+    DWORD value = (defaultValue);                                                       \
+    getSettingsValue((valueName), RRF_RT_DWORD, &value, sizeof(value));                 \
+    return (type)value;                                                                 \
+}                                                                                       \
+void set##funcName(type value) {                                                        \
+    DWORD dwValue = (DWORD)value;                                                       \
+    setSettingsValue((valueName), REG_DWORD, &dwValue, sizeof(dwValue));                \
 }
 
-void setLastOpenedVersion(DWORD value) {
-    setSettingsValue(VAL_LAST_OPENED_VERSION, REG_DWORD, &value, sizeof(value));
+#define SETTINGS_BOOL_VALUE(funcName, valueName, defaultValue) \
+    SETTINGS_DWORD_VALUE(funcName, bool, valueName, defaultValue)
+
+#define SETTINGS_SIZE_VALUE(funcName, valueName, defaultValue)                          \
+SIZE get##funcName() {                                                                  \
+    SIZE value = (defaultValue);                                                        \
+    getSettingsValue(valueName L"Width", RRF_RT_DWORD, &value.cx, sizeof(value.cx));    \
+    getSettingsValue(valueName L"Height", RRF_RT_DWORD, &value.cy, sizeof(value.cy));   \
+    return value;                                                                       \
+}                                                                                       \
+void set##funcName(SIZE value) {                                                        \
+    setSettingsValue(valueName L"Width", REG_DWORD, &value.cx, sizeof(value.cx));       \
+    setSettingsValue(valueName L"Height", REG_DWORD, &value.cy, sizeof(value.cy));      \
 }
 
-void getStartingFolder(CComHeapPtr<wchar_t> &value) {
-    return getSettingsString(VAL_STARTING_FOLDER, RRF_RT_REG_SZ, DEFAULT_STARTING_FOLDER, value);
+#define SETTINGS_STRING_VALUE(funcName, regType, valueName, defaultValue)               \
+void get##funcName(CComHeapPtr<wchar_t> &value) {                                       \
+    return getSettingsString((valueName), RRF_RT_REG_SZ, (defaultValue), value);        \
+}                                                                                       \
+void set##funcName(wchar_t *value) {                                                    \
+    setSettingsString((valueName), (regType), value);                                   \
 }
 
-void setStartingFolder(wchar_t *value) {
-    setSettingsString(VAL_STARTING_FOLDER, REG_EXPAND_SZ, value);
-}
 
-void getScratchFolder(CComHeapPtr<wchar_t> &value) {
-    return getSettingsString(VAL_SCRATCH_FOLDER, RRF_RT_REG_SZ, DEFAULT_SCRATCH_FOLDER, value);
-}
+SETTINGS_DWORD_VALUE(LastOpenedVersion, DWORD, L"LastOpenedVersion", DEFAULT_LAST_OPENED_VERSION)
 
-void setScratchFolder(wchar_t *value) {
-    setSettingsString(VAL_SCRATCH_FOLDER, REG_EXPAND_SZ, value);
-}
+SETTINGS_STRING_VALUE(StartingFolder, REG_EXPAND_SZ, L"StartingFolder", DEFAULT_STARTING_FOLDER)
+SETTINGS_STRING_VALUE(ScratchFolder, REG_EXPAND_SZ, L"ScratchFolder", DEFAULT_SCRATCH_FOLDER)
+SETTINGS_STRING_VALUE(ScratchFileName, REG_SZ, L"ScratchFileName", DEFAULT_SCRATCH_FILE_NAME)
 
-void getScratchFileName(CComHeapPtr<wchar_t> &value) {
-    return getSettingsString(VAL_SCRATCH_FILE_NAME, RRF_RT_REG_SZ,
-        DEFAULT_SCRATCH_FILE_NAME, value);
-}
+SETTINGS_SIZE_VALUE(ItemWindowSize, L"ItemWindow", DEFAULT_ITEM_WINDOW_SIZE)
+SETTINGS_SIZE_VALUE(FolderWindowSize, L"FolderWindow", DEFAULT_FOLDER_WINDOW_SIZE);
 
-void setScratchFileName(wchar_t *value) {
-    setSettingsString(VAL_SCRATCH_FILE_NAME, REG_SZ, value); // not expanded
-}
+SETTINGS_BOOL_VALUE(StatusTextEnabled, L"StatusTextEnabled", DEFAULT_STATUS_TEXT_ENABLED)
+SETTINGS_BOOL_VALUE(ToolbarEnabled, L"ToolbarEnabled", DEFAULT_TOOLBAR_ENABLED)
 
-SIZE getItemWindowSize() {
-    SIZE value = DEFAULT_ITEM_WINDOW_SIZE;
-    getSettingsValue(VAL_ITEM_WINDOW_W, RRF_RT_DWORD, &value.cx, sizeof(value.cx));
-    getSettingsValue(VAL_ITEM_WINDOW_H, RRF_RT_DWORD, &value.cy, sizeof(value.cy));
-    return value;
-}
+SETTINGS_BOOL_VALUE(PreviewsEnabled, L"PreviewsEnabled", DEFAULT_PREVIEWS_ENABLED)
 
-void setItemWindowSize(SIZE value) {
-    setSettingsValue(VAL_ITEM_WINDOW_W, REG_DWORD, &value.cx, sizeof(value.cx));
-    setSettingsValue(VAL_ITEM_WINDOW_H, REG_DWORD, &value.cy, sizeof(value.cy));
-}
+SETTINGS_BOOL_VALUE(DeselectOnOpen, L"DeselectOnOpen", DEFAULT_DESELECT_ON_OPEN)
 
-SIZE getFolderWindowSize() {
-    SIZE value = DEFAULT_FOLDER_WINDOW_SIZE;
-    getSettingsValue(VAL_FOLDER_WINDOW_W, RRF_RT_DWORD, &value.cx, sizeof(value.cx));
-    getSettingsValue(VAL_FOLDER_WINDOW_H, RRF_RT_DWORD, &value.cy, sizeof(value.cy));
-    return value;
-}
-
-void setFolderWindowSize(SIZE value) {
-    setSettingsValue(VAL_FOLDER_WINDOW_W, REG_DWORD, &value.cx, sizeof(value.cx));
-    setSettingsValue(VAL_FOLDER_WINDOW_H, REG_DWORD, &value.cy, sizeof(value.cy));
-}
-
-bool getStatusTextEnabled() {
-    DWORD value = DEFAULT_STATUS_TEXT_ENABLED;
-    getSettingsValue(VAL_STATUS_TEXT_ENABLED, RRF_RT_DWORD, &value, sizeof(value));
-    return value;
-}
-
-void setStatusTextEnabled(bool value) {
-    DWORD dwValue = value;
-    setSettingsValue(VAL_STATUS_TEXT_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
-}
-
-bool getToolbarEnabled() {
-    DWORD value = DEFAULT_TOOLBAR_ENABLED;
-    getSettingsValue(VAL_TOOLBAR_ENABLED, RRF_RT_DWORD, &value, sizeof(value));
-    return value;
-}
-
-void setToolbarEnabled(bool value) {
-    DWORD dwValue = value;
-    setSettingsValue(VAL_TOOLBAR_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
-}
-
-bool getPreviewsEnabled() {
-    DWORD value = DEFAULT_PREVIEWS_ENABLED;
-    getSettingsValue(VAL_PREVIEWS_ENABLED, RRF_RT_DWORD, &value, sizeof(value));
-    return value;
-}
-
-void setPreviewsEnabled(bool value) {
-    DWORD dwValue = value;
-    setSettingsValue(VAL_PREVIEWS_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
-}
-
-bool getDeselectOnOpen() {
-    DWORD value = DEFAULT_DESELECT_ON_OPEN;
-    getSettingsValue(VAL_DESELECT_ON_OPEN, RRF_RT_DWORD, &value, sizeof(value));
-    return value;
-}
-
-void setDeselectOnOpen(bool value) {
-    DWORD dwValue = value;
-    setSettingsValue(VAL_DESELECT_ON_OPEN, REG_DWORD, &dwValue, sizeof(dwValue));
-}
-
-bool getTextEditorEnabled() {
-    DWORD value = DEFAULT_TEXT_EDITOR_ENABLED;
-    getSettingsValue(VAL_TEXT_EDITOR_ENABLED, RRF_RT_DWORD, &value, sizeof(value));
-    return value;
-}
-
-void setTextEditorEnabled(bool value) {
-    DWORD dwValue = value;
-    setSettingsValue(VAL_TEXT_EDITOR_ENABLED, REG_DWORD, &dwValue, sizeof(dwValue));
-}
+SETTINGS_BOOL_VALUE(TextEditorEnabled, L"TextEditorEnabled2", DEFAULT_TEXT_EDITOR_ENABLED)
 
 LOGFONT getTextFont() {
     LOGFONT value = DEFAULT_TEXT_FONT;
@@ -205,27 +123,8 @@ void setTextFont(const LOGFONT &value) {
     setSettingsValue(VAL_TEXT_FONT_ITALIC, REG_DWORD, &italic, sizeof(italic));
 }
 
-bool getTextWrap() {
-    DWORD value = DEFAULT_TEXT_WRAP;
-    getSettingsValue(VAL_TEXT_WRAP, RRF_RT_DWORD, &value, sizeof(value));
-    return value;
-}
-
-void setTextWrap(bool value) {
-    DWORD dwValue = value;
-    setSettingsValue(VAL_TEXT_WRAP, REG_DWORD, &dwValue, sizeof(dwValue));
-}
-
-bool getTextAutoIndent() {
-    DWORD value = DEFAULT_TEXT_AUTO_INDENT;
-    getSettingsValue(VAL_TEXT_AUTO_INDENT, RRF_RT_DWORD, &value, sizeof(value));
-    return value;
-}
-
-void setTextAutoIndent(bool value) {
-    DWORD dwValue = value;
-    setSettingsValue(VAL_TEXT_AUTO_INDENT, REG_DWORD, &dwValue, sizeof(dwValue));
-}
+SETTINGS_BOOL_VALUE(TextWrap, L"TextWrap", DEFAULT_TEXT_WRAP);
+SETTINGS_BOOL_VALUE(TextAutoIndent, L"TextAutoIndent", DEFAULT_TEXT_AUTO_INDENT);
 
 bool getTrayOpenOnStartup() {
     return !RegGetValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP,
@@ -248,23 +147,8 @@ void setTrayOpenOnStartup(bool value) {
     }
 }
 
-void getTrayFolder(CComHeapPtr<wchar_t> &value) {
-    return getSettingsString(VAL_TRAY_FOLDER, RRF_RT_REG_SZ, DEFAULT_TRAY_FOLDER, value);
-}
-
-void setTrayFolder(wchar_t *value) {
-    setSettingsString(VAL_TRAY_FOLDER, REG_EXPAND_SZ, value);
-}
-
-int getTrayDPI() {
-    DWORD value = DEFAULT_TRAY_DPI;
-    getSettingsValue(VAL_TRAY_DPI, RRF_RT_DWORD, &value, sizeof(value));
-    return value;
-}
-
-void setTrayDPI(int value) {
-    setSettingsValue(VAL_TRAY_DPI, REG_DWORD, &value, sizeof(value));
-}
+SETTINGS_STRING_VALUE(TrayFolder, REG_EXPAND_SZ, L"TrayFolder", DEFAULT_TRAY_FOLDER)
+SETTINGS_DWORD_VALUE(TrayDPI, int, L"TrayDPI", DEFAULT_TRAY_DPI)
 
 POINT getTrayPosition() {
     POINT value = DEFAULT_TRAY_POSITION;
@@ -278,27 +162,8 @@ void setTrayPosition(POINT value) {
     setSettingsValue(VAL_TRAY_Y, REG_DWORD, &value.y, sizeof(value.y));
 }
 
-SIZE getTraySize() {
-    SIZE value = DEFAULT_TRAY_SIZE;
-    getSettingsValue(VAL_TRAY_W, RRF_RT_DWORD, &value.cx, sizeof(value.cx));
-    getSettingsValue(VAL_TRAY_H, RRF_RT_DWORD, &value.cy, sizeof(value.cy));
-    return value;
-}
-
-void setTraySize(SIZE value) {
-    setSettingsValue(VAL_TRAY_W, REG_DWORD, &value.cx, sizeof(value.cx));
-    setSettingsValue(VAL_TRAY_H, REG_DWORD, &value.cy, sizeof(value.cy));
-}
-
-TrayDirection getTrayDirection() {
-    DWORD value = DEFAULT_TRAY_DIRECTION;
-    getSettingsValue(VAL_TRAY_DIRECTION, RRF_RT_DWORD, &value, sizeof(value));
-    return (TrayDirection)value;
-}
-
-void setTrayDirection(TrayDirection value) {
-    setSettingsValue(VAL_TRAY_DIRECTION, REG_DWORD, &value, sizeof(value));
-}
+SETTINGS_SIZE_VALUE(TraySize, L"Tray", DEFAULT_TRAY_SIZE)
+SETTINGS_DWORD_VALUE(TrayDirection, TrayDirection, L"TrayDirection", DEFAULT_TRAY_DIRECTION)
 
 bool supportsDefaultBrowser() {
     return !RegGetValue(HKEY_CLASSES_ROOT, KEY_DIRECTORY_VERB, L"",
