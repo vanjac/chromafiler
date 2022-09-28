@@ -10,8 +10,6 @@ const wchar_t VAL_TEXT_FONT_FACE[]      = L"TextFontFace";
 const wchar_t VAL_TEXT_FONT_SIZE[]      = L"TextFontSize";
 const wchar_t VAL_TEXT_FONT_WEIGHT[]    = L"TextFontWeight";
 const wchar_t VAL_TEXT_FONT_ITALIC[]    = L"TextFontItalic";
-const wchar_t VAL_TRAY_X[]              = L"TrayX";
-const wchar_t VAL_TRAY_Y[]              = L"TrayY";
 
 const wchar_t KEY_STARTUP[]             = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 const wchar_t VAL_STARTUP[]             = L"ChromaFiler";
@@ -50,39 +48,51 @@ void setSettingsString(const wchar_t *name, DWORD type, const wchar_t *value) {
     setSettingsValue(name, type, value, (lstrlen(value) + 1) * sizeof(wchar_t));
 }
 
-#define SETTINGS_DWORD_VALUE(funcName, type, valueName, defaultValue)                   \
-type get##funcName() {                                                                  \
-    DWORD value = (defaultValue);                                                       \
-    getSettingsValue((valueName), RRF_RT_DWORD, &value, sizeof(value));                 \
-    return (type)value;                                                                 \
-}                                                                                       \
-void set##funcName(type value) {                                                        \
-    DWORD dwValue = (DWORD)value;                                                       \
-    setSettingsValue((valueName), REG_DWORD, &dwValue, sizeof(dwValue));                \
-}
+#define SETTINGS_DWORD_VALUE(funcName, type, valueName, defaultValue) \
+    type get##funcName() {                                                                  \
+        DWORD value = (defaultValue);                                                       \
+        getSettingsValue((valueName), RRF_RT_DWORD, &value, sizeof(value));                 \
+        return (type)value;                                                                 \
+    }                                                                                       \
+    void set##funcName(type value) {                                                        \
+        DWORD dwValue = (DWORD)value;                                                       \
+        setSettingsValue((valueName), REG_DWORD, &dwValue, sizeof(dwValue));                \
+    }
 
 #define SETTINGS_BOOL_VALUE(funcName, valueName, defaultValue) \
     SETTINGS_DWORD_VALUE(funcName, bool, valueName, defaultValue)
 
-#define SETTINGS_SIZE_VALUE(funcName, valueName, defaultValue)                          \
-SIZE get##funcName() {                                                                  \
-    SIZE value = (defaultValue);                                                        \
-    getSettingsValue(valueName L"Width", RRF_RT_DWORD, &value.cx, sizeof(value.cx));    \
-    getSettingsValue(valueName L"Height", RRF_RT_DWORD, &value.cy, sizeof(value.cy));   \
-    return value;                                                                       \
-}                                                                                       \
-void set##funcName(SIZE value) {                                                        \
-    setSettingsValue(valueName L"Width", REG_DWORD, &value.cx, sizeof(value.cx));       \
-    setSettingsValue(valueName L"Height", REG_DWORD, &value.cy, sizeof(value.cy));      \
-}
+#define SETTINGS_SIZE_VALUE(funcName, valueName, defaultValue) \
+    SIZE get##funcName() {                                                                  \
+        SIZE value = (defaultValue);                                                        \
+        getSettingsValue(valueName L"Width", RRF_RT_DWORD, &value.cx, sizeof(value.cx));    \
+        getSettingsValue(valueName L"Height", RRF_RT_DWORD, &value.cy, sizeof(value.cy));   \
+        return value;                                                                       \
+    }                                                                                       \
+    void set##funcName(SIZE value) {                                                        \
+        setSettingsValue(valueName L"Width", REG_DWORD, &value.cx, sizeof(value.cx));       \
+        setSettingsValue(valueName L"Height", REG_DWORD, &value.cy, sizeof(value.cy));      \
+    }
 
-#define SETTINGS_STRING_VALUE(funcName, regType, valueName, defaultValue)               \
-void get##funcName(CComHeapPtr<wchar_t> &value) {                                       \
-    return getSettingsString((valueName), RRF_RT_REG_SZ, (defaultValue), value);        \
-}                                                                                       \
-void set##funcName(wchar_t *value) {                                                    \
-    setSettingsString((valueName), (regType), value);                                   \
-}
+#define SETTINGS_POINT_VALUE(funcName, valueName, defaultValue) \
+    POINT get##funcName() {                                                                 \
+        POINT value = (defaultValue);                                                       \
+        getSettingsValue(valueName L"X", RRF_RT_DWORD, &value.x, sizeof(value.x));          \
+        getSettingsValue(valueName L"Y", RRF_RT_DWORD, &value.y, sizeof(value.y));          \
+        return value;                                                                       \
+    }                                                                                       \
+    void set##funcName(POINT value) {                                                       \
+        setSettingsValue(valueName L"X", REG_DWORD, &value.x, sizeof(value.x));             \
+        setSettingsValue(valueName L"Y", REG_DWORD, &value.y, sizeof(value.y));             \
+    }
+
+#define SETTINGS_STRING_VALUE(funcName, regType, valueName, defaultValue) \
+    void get##funcName(CComHeapPtr<wchar_t> &value) {                                       \
+        return getSettingsString((valueName), RRF_RT_REG_SZ, (defaultValue), value);        \
+    }                                                                                       \
+    void set##funcName(wchar_t *value) {                                                    \
+        setSettingsString((valueName), (regType), value);                                   \
+    }
 
 
 SETTINGS_DWORD_VALUE(LastOpenedVersion, DWORD, L"LastOpenedVersion", DEFAULT_LAST_OPENED_VERSION)
@@ -149,19 +159,7 @@ void setTrayOpenOnStartup(bool value) {
 
 SETTINGS_STRING_VALUE(TrayFolder, REG_EXPAND_SZ, L"TrayFolder", DEFAULT_TRAY_FOLDER)
 SETTINGS_DWORD_VALUE(TrayDPI, int, L"TrayDPI", DEFAULT_TRAY_DPI)
-
-POINT getTrayPosition() {
-    POINT value = DEFAULT_TRAY_POSITION;
-    getSettingsValue(VAL_TRAY_X, RRF_RT_DWORD, &value.x, sizeof(value.x));
-    getSettingsValue(VAL_TRAY_Y, RRF_RT_DWORD, &value.y, sizeof(value.y));
-    return value;
-}
-
-void setTrayPosition(POINT value) {
-    setSettingsValue(VAL_TRAY_X, REG_DWORD, &value.x, sizeof(value.x));
-    setSettingsValue(VAL_TRAY_Y, REG_DWORD, &value.y, sizeof(value.y));
-}
-
+SETTINGS_POINT_VALUE(TrayPosition, L"Tray", DEFAULT_TRAY_POSITION)
 SETTINGS_SIZE_VALUE(TraySize, L"Tray", DEFAULT_TRAY_SIZE)
 SETTINGS_DWORD_VALUE(TrayDirection, TrayDirection, L"TrayDirection", DEFAULT_TRAY_DIRECTION)
 
