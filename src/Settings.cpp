@@ -6,11 +6,6 @@ namespace settings {
 
 const wchar_t KEY_SETTINGS[]            = L"Software\\ChromaFiler";
 
-const wchar_t VAL_TEXT_FONT_FACE[]      = L"TextFontFace";
-const wchar_t VAL_TEXT_FONT_SIZE[]      = L"TextFontSize";
-const wchar_t VAL_TEXT_FONT_WEIGHT[]    = L"TextFontWeight";
-const wchar_t VAL_TEXT_FONT_ITALIC[]    = L"TextFontItalic";
-
 const wchar_t KEY_STARTUP[]             = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 const wchar_t VAL_STARTUP[]             = L"ChromaFiler";
 const wchar_t KEY_DIRECTORY_VERB[]      = L"Directory\\shell\\chromafiler";
@@ -49,49 +44,69 @@ void setSettingsString(const wchar_t *name, DWORD type, const wchar_t *value) {
 }
 
 #define SETTINGS_DWORD_VALUE(funcName, type, valueName, defaultValue) \
-    type get##funcName() {                                                                  \
-        DWORD value = (defaultValue);                                                       \
-        getSettingsValue((valueName), RRF_RT_DWORD, &value, sizeof(value));                 \
-        return (type)value;                                                                 \
-    }                                                                                       \
-    void set##funcName(type value) {                                                        \
-        DWORD dwValue = (DWORD)value;                                                       \
-        setSettingsValue((valueName), REG_DWORD, &dwValue, sizeof(dwValue));                \
+    type get##funcName() {                                                                         \
+        DWORD value = (defaultValue);                                                              \
+        getSettingsValue((valueName), RRF_RT_DWORD, &value, sizeof(value));                        \
+        return (type)value;                                                                        \
+    }                                                                                              \
+    void set##funcName(type value) {                                                               \
+        DWORD dwValue = (DWORD)value;                                                              \
+        setSettingsValue((valueName), REG_DWORD, &dwValue, sizeof(dwValue));                       \
     }
 
 #define SETTINGS_BOOL_VALUE(funcName, valueName, defaultValue) \
     SETTINGS_DWORD_VALUE(funcName, bool, valueName, defaultValue)
 
 #define SETTINGS_SIZE_VALUE(funcName, valueName, defaultValue) \
-    SIZE get##funcName() {                                                                  \
-        SIZE value = (defaultValue);                                                        \
-        getSettingsValue(valueName L"Width", RRF_RT_DWORD, &value.cx, sizeof(value.cx));    \
-        getSettingsValue(valueName L"Height", RRF_RT_DWORD, &value.cy, sizeof(value.cy));   \
-        return value;                                                                       \
-    }                                                                                       \
-    void set##funcName(SIZE value) {                                                        \
-        setSettingsValue(valueName L"Width", REG_DWORD, &value.cx, sizeof(value.cx));       \
-        setSettingsValue(valueName L"Height", REG_DWORD, &value.cy, sizeof(value.cy));      \
+    SIZE get##funcName() {                                                                         \
+        SIZE value = (defaultValue);                                                               \
+        getSettingsValue(valueName L"Width", RRF_RT_DWORD, &value.cx, sizeof(value.cx));           \
+        getSettingsValue(valueName L"Height", RRF_RT_DWORD, &value.cy, sizeof(value.cy));          \
+        return value;                                                                              \
+    }                                                                                              \
+    void set##funcName(SIZE value) {                                                               \
+        setSettingsValue(valueName L"Width", REG_DWORD, &value.cx, sizeof(value.cx));              \
+        setSettingsValue(valueName L"Height", REG_DWORD, &value.cy, sizeof(value.cy));             \
     }
 
 #define SETTINGS_POINT_VALUE(funcName, valueName, defaultValue) \
-    POINT get##funcName() {                                                                 \
-        POINT value = (defaultValue);                                                       \
-        getSettingsValue(valueName L"X", RRF_RT_DWORD, &value.x, sizeof(value.x));          \
-        getSettingsValue(valueName L"Y", RRF_RT_DWORD, &value.y, sizeof(value.y));          \
-        return value;                                                                       \
-    }                                                                                       \
-    void set##funcName(POINT value) {                                                       \
-        setSettingsValue(valueName L"X", REG_DWORD, &value.x, sizeof(value.x));             \
-        setSettingsValue(valueName L"Y", REG_DWORD, &value.y, sizeof(value.y));             \
+    POINT get##funcName() {                                                                        \
+        POINT value = (defaultValue);                                                              \
+        getSettingsValue(valueName L"X", RRF_RT_DWORD, &value.x, sizeof(value.x));                 \
+        getSettingsValue(valueName L"Y", RRF_RT_DWORD, &value.y, sizeof(value.y));                 \
+        return value;                                                                              \
+    }                                                                                              \
+    void set##funcName(POINT value) {                                                              \
+        setSettingsValue(valueName L"X", REG_DWORD, &value.x, sizeof(value.x));                    \
+        setSettingsValue(valueName L"Y", REG_DWORD, &value.y, sizeof(value.y));                    \
     }
 
 #define SETTINGS_STRING_VALUE(funcName, regType, valueName, defaultValue) \
-    void get##funcName(CComHeapPtr<wchar_t> &value) {                                       \
-        return getSettingsString((valueName), RRF_RT_REG_SZ, (defaultValue), value);        \
-    }                                                                                       \
-    void set##funcName(wchar_t *value) {                                                    \
-        setSettingsString((valueName), (regType), value);                                   \
+    void get##funcName(CComHeapPtr<wchar_t> &value) {                                              \
+        return getSettingsString((valueName), RRF_RT_REG_SZ, (defaultValue), value);               \
+    }                                                                                              \
+    void set##funcName(wchar_t *value) {                                                           \
+        setSettingsString((valueName), (regType), value);                                          \
+    }
+
+#define SETTINGS_FONT_VALUE(funcName, valueName, defaultValue) \
+    LOGFONT get##funcName() {                                                                      \
+        LOGFONT value = (defaultValue);                                                            \
+        getSettingsValue( /* NOT getSettingsString since lfFaceName has a fixed size */            \
+            valueName L"Face", RRF_RT_REG_SZ, value.lfFaceName, sizeof(value.lfFaceName));         \
+        getSettingsValue(valueName L"Size", REG_DWORD, &value.lfHeight, sizeof(value.lfHeight));   \
+        getSettingsValue(valueName L"Weight", REG_DWORD, &value.lfWeight, sizeof(value.lfWeight)); \
+        DWORD italic = value.lfItalic;                                                             \
+        getSettingsValue(valueName L"Italic", REG_DWORD, &italic, sizeof(italic));                 \
+        value.lfItalic = (BYTE)italic;                                                             \
+        return value;                                                                              \
+    }                                                                                              \
+    void set##funcName(const LOGFONT &value) {                                                     \
+        setSettingsString(valueName L"Face", REG_SZ, value.lfFaceName);                            \
+        setSettingsValue(valueName L"Size", REG_DWORD, &value.lfHeight, sizeof(value.lfHeight));   \
+        setSettingsValue(valueName L"Weight", REG_DWORD, &value.lfWeight, sizeof(value.lfWeight)); \
+        DWORD italic = value.lfItalic;                                                             \
+        setSettingsValue(valueName L"Italic", REG_DWORD, &italic, sizeof(italic));                 \
     }
 
 
@@ -112,27 +127,7 @@ SETTINGS_BOOL_VALUE(PreviewsEnabled, L"PreviewsEnabled", DEFAULT_PREVIEWS_ENABLE
 SETTINGS_BOOL_VALUE(DeselectOnOpen, L"DeselectOnOpen", DEFAULT_DESELECT_ON_OPEN)
 
 SETTINGS_BOOL_VALUE(TextEditorEnabled, L"TextEditorEnabled2", DEFAULT_TEXT_EDITOR_ENABLED)
-
-LOGFONT getTextFont() {
-    LOGFONT value = DEFAULT_TEXT_FONT;
-    // NOT getSettingsString since lfFaceName has a fixed size
-    getSettingsValue(VAL_TEXT_FONT_FACE, RRF_RT_REG_SZ, value.lfFaceName, sizeof(value.lfFaceName));
-    getSettingsValue(VAL_TEXT_FONT_SIZE, REG_DWORD, &value.lfHeight, sizeof(value.lfHeight));
-    getSettingsValue(VAL_TEXT_FONT_WEIGHT, REG_DWORD, &value.lfWeight, sizeof(value.lfWeight));
-    DWORD italic = value.lfItalic;
-    getSettingsValue(VAL_TEXT_FONT_ITALIC, REG_DWORD, &italic, sizeof(italic));
-    value.lfItalic = (BYTE)italic;
-    return value;
-}
-
-void setTextFont(const LOGFONT &value) {
-    setSettingsString(VAL_TEXT_FONT_FACE, REG_SZ, value.lfFaceName);
-    setSettingsValue(VAL_TEXT_FONT_SIZE, REG_DWORD, &value.lfHeight, sizeof(value.lfHeight));
-    setSettingsValue(VAL_TEXT_FONT_WEIGHT, REG_DWORD, &value.lfWeight, sizeof(value.lfWeight));
-    DWORD italic = value.lfItalic;
-    setSettingsValue(VAL_TEXT_FONT_ITALIC, REG_DWORD, &italic, sizeof(italic));
-}
-
+SETTINGS_FONT_VALUE(TextFont, L"TextFont", DEFAULT_TEXT_FONT)
 SETTINGS_BOOL_VALUE(TextWrap, L"TextWrap", DEFAULT_TEXT_WRAP);
 SETTINGS_BOOL_VALUE(TextAutoIndent, L"TextAutoIndent", DEFAULT_TEXT_AUTO_INDENT);
 
