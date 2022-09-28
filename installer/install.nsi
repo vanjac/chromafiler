@@ -91,15 +91,15 @@ Section "Add to folder context menu" SecContext
 	SetRegView 64
 
 	Var /GLOBAL default_browser
-	; clear shell defaults if NOT chromafiler
+	; clear shell defaults if empty / not defined
 	ReadRegStr $default_browser SHCTX "Software\Classes\Directory\Shell" ""
-	StrCmp $default_browser "chromafiler" +2 0
+	StrCmp $default_browser "" 0 +2
 		WriteRegStr SHCTX "Software\Classes\Directory\Shell" "" "none"
 	ReadRegStr $default_browser SHCTX "Software\Classes\CompressedFolder\Shell" ""
-	StrCmp $default_browser "chromafiler" +2 0
+	StrCmp $default_browser "" 0 +2
 		WriteRegStr SHCTX "Software\Classes\CompressedFolder\Shell" "" "none"
 	ReadRegStr $default_browser SHCTX "Software\Classes\Drive\Shell" ""
-	StrCmp $default_browser "chromafiler" +2 0
+	StrCmp $default_browser "" 0 +2
 		WriteRegStr SHCTX "Software\Classes\Drive\Shell" "" "none"
 
 	WriteRegStr SHCTX Software\Classes\Directory\shell\chromafiler "" "${CONTEXT_MENU_TEXT}"
@@ -152,7 +152,7 @@ Function un.CleanupCurrentUser
 	DeleteRegKey HKCU "Software\ChromaFiler"
 	DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
-	; clear shell defaults if set to chromafiler (reverse of SecContext)
+	; clear shell defaults if set to chromafiler
 	ReadRegStr $default_browser HKCU "Software\Classes\Directory\Shell" ""
 	StrCmp $default_browser "chromafiler" 0 +2
 		WriteRegStr HKCU "Software\Classes\Directory\Shell" "" "none"
@@ -169,7 +169,7 @@ Function un.CleanupUser
 	DeleteRegKey HKU "$0\Software\ChromaFiler"
 	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
-	; clear shell defaults if set to chromafiler (reverse of SecContext)
+	; clear shell defaults if set to chromafiler
 	ReadRegStr $default_browser HKU "$0\Software\Classes\Directory\Shell" ""
 	StrCmp $default_browser "chromafiler" 0 +2
 		WriteRegStr HKU "$0\Software\Classes\Directory\Shell" "" "none"
