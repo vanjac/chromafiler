@@ -2,7 +2,6 @@ Name "ChromaFiler"
 OutFile "..\build\ChromaFiler-install.exe"
 Unicode True
 SetCompressor LZMA
-!addplugindir plugins
 
 !define MULTIUSER_EXECUTIONLEVEL Highest
 !define MULTIUSER_MUI
@@ -24,8 +23,6 @@ SetCompressor LZMA
 
 !define MUI_ICON "..\src\res\folder.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
-!define MUI_FINISHPAGE_RUN
-!define MUI_FINISHPAGE_RUN_FUNCTION StartProgram
 
 !getdllversion /productversion ..\build\ChromaFiler.exe PRODUCT_VERSION_
 BrandingText "ChromaFiler v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3}"
@@ -119,13 +116,6 @@ Section "Add to folder context menu" SecContext
 	WriteRegStr SHCTX Software\Classes\CompressedFolder\shell\chromafiler\command "" '$context_menu_command'
 	WriteRegStr SHCTX Software\Classes\Drive\shell\chromafiler\command "" '$context_menu_command'
 SectionEnd
-
-Function StartProgram
-	; TODO will this work on non-English systems?
-	InitPluginsDir
-	File "/ONAME=$PLUGINSDIR\ShellExecAsUser.dll" "plugins\ShellExecAsUser.dll"
-	CallAnsiPlugin::Call "$PLUGINSDIR\ShellExecAsUser.dll" ShellExecAsUser 2 "" '$INSTDIR\ChromaFiler.exe'
-FunctionEnd
 
 Section "un.Uninstall"
 	Delete $INSTDIR\*.exe

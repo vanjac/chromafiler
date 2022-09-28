@@ -1,2 +1,0 @@
-https://nsis.sourceforge.io/ShellExecAsUser_plug-in
-(Ansi only version)
