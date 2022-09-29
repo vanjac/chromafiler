@@ -9,10 +9,6 @@
 
 namespace chromafiler {
 
-class ItemWindow;
-
-extern CComPtr<ItemWindow> activeWindow;
-
 class ItemWindow : public IUnknownImpl, public IDropSource, public IDropTarget {
 protected:
     static HACCEL accelTable;

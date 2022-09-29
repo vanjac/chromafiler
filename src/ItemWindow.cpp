@@ -44,9 +44,6 @@ const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
 static HANDLE symbolFontHandle = nullptr;
 static HFONT captionFont = nullptr, statusFont = nullptr, symbolFont = nullptr;
 
-// ItemWindow.h
-CComPtr<ItemWindow> activeWindow;
-
 BOOL compositionEnabled = FALSE;
 HACCEL ItemWindow::accelTable;
 

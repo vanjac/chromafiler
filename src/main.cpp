@@ -273,7 +273,10 @@ DWORD WINAPI updateJumpList(void *) {
     return 0;
 }
 
-namespace chromafiler {
+namespace chromafiler {    
+    // main.h
+    CComPtr<ItemWindow> activeWindow;
+
     long numOpenWindows;
 
     void windowOpened() {
