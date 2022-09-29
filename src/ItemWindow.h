@@ -16,7 +16,6 @@ protected:
 public:
     static void init();
     static void uninit();
-    static WNDCLASS createWindowClass(const wchar_t *name);
 
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
@@ -24,7 +23,6 @@ public:
     virtual SIZE requestedSize() const;
 
     bool create(RECT rect, int showCommand);
-    void setPos(POINT pos);
 
     virtual bool handleTopLevelMessage(MSG *msg);
 
@@ -49,7 +47,7 @@ protected:
         MSG_SET_STATUS_TEXT = WM_USER,
         MSG_LAST
     };
-    static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+    static WNDCLASS createWindowClass(const wchar_t *name);
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
     virtual bool alwaysOnTop() const;
@@ -80,9 +78,6 @@ protected:
     POINT parentPos(SIZE size);
     void enableChain(bool enabled);
 
-    void addChainPreview();
-    void removeChainPreview();
-
     virtual void onItemChanged();
     virtual void refresh();
 
@@ -96,6 +91,7 @@ protected:
     SIZE storedChildSize;
 
 private:
+    static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     virtual const wchar_t * className() = 0;
 
     // extension points for TrayWindow
@@ -109,6 +105,7 @@ private:
 
     void close();
     void activate();
+    void setPos(POINT pos);
     void move(int x, int y);
 
     HWND createChainOwner(int showCommand);
@@ -120,6 +117,9 @@ private:
     void clearParent();
     void detachFromParent(bool closeParent); // updates UI state
     void detachAndMove(bool closeParent);
+
+    void addChainPreview();
+    void removeChainPreview();
 
     bool resolveItem();
 
