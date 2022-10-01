@@ -76,7 +76,7 @@ void TextWindow::onCreate() {
     }
     SendMessage(edit, EM_SETMODIFY, FALSE, 0);
     if (hasStatusText())
-        updateStatus({0, 0});
+        updateStatus();
 }
 
 HWND TextWindow::createRichEdit(bool wordWrap) {
@@ -95,6 +95,14 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
     SendMessage(control, EM_EXLIMITTEXT, 0, MAX_FILE_SIZE);
     // TODO: SES_XLTCRCRLFTOCR?
     return control;
+}
+
+CComPtr<ITextDocument> TextWindow::getTOMDocument() {
+    CComPtr<IUnknown> ole;
+    if (!SendMessage(edit, EM_GETOLEINTERFACE, 0, (LPARAM)&ole))
+        return nullptr;
+    CComQIPtr<ITextDocument> document(ole);
+    return document;
 }
 
 void TextWindow::updateFont() {
@@ -317,23 +325,35 @@ bool TextWindow::onControlCommand(HWND controlHwnd, WORD notif) {
 
 LRESULT TextWindow::onNotify(NMHDR *nmHdr) {
     if (nmHdr->hwndFrom == edit && nmHdr->code == EN_SELCHANGE && hasStatusText()) {
-        updateStatus(((SELCHANGE *)nmHdr)->chrg);
+        updateStatus();
         return 0;
     }
     return ItemWindow::onNotify(nmHdr);
 }
 
-void TextWindow::updateStatus(CHARRANGE range) {
+void TextWindow::updateStatus() {
     if (encoding == FAIL)
         return;
-    LONG line = 1 + (LONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
-    LONG lineIndex = (LONG)SendMessage(edit, EM_LINEINDEX, (WPARAM)-1, 0);
-    LONG col = range.cpMin - lineIndex + 1;
+    CComPtr<ITextDocument> document = getTOMDocument();
+    if (!document)
+        return;
+    CComPtr<ITextSelection> selection;
+    if (!checkHR(document->GetSelection(&selection)))
+        return;
+    long start = 0, end = 0, line = 0, col = 0;
+    checkHR(selection->GetStart(&start));
+    checkHR(selection->GetEnd(&end));
+    checkHR(selection->GetIndex(tomParagraph, &line));
+    CComPtr<ITextRange> paraStart;
+    if (checkHR(selection->GetDuplicate(&paraStart))) {
+        checkHR(paraStart->StartOf(tomParagraph, tomMove, &col));
+        col = 1 - col;
+    }
     LocalHeapPtr<wchar_t> status;
-    if (range.cpMin == range.cpMax) {
+    if (start == end) {
         formatMessage(status, STR_TEXT_STATUS, line, col);
     } else {
-        formatMessage(status, STR_TEXT_STATUS_SEL, line, col, range.cpMax - range.cpMin);
+        formatMessage(status, STR_TEXT_STATUS_SEL, line, col, end - start);
     }
     setStatusText(status);
 }

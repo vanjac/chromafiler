@@ -4,6 +4,7 @@
 #include "ItemWindow.h"
 #include <Richedit.h>
 #include <commdlg.h>
+#include <TOM.h>
 
 namespace chromafiler {
 
@@ -38,8 +39,9 @@ private:
     SettingsPage settingsStartPage() const override;
 
     HWND createRichEdit(bool wordWrap);
+    CComPtr<ITextDocument> getTOMDocument();
     void updateFont();
-    void updateStatus(CHARRANGE range);
+    void updateStatus();
     void userSave();
     bool confirmSave(bool willDelete);
 
