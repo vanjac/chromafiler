@@ -443,8 +443,7 @@ void TextWindow::newLine() {
     CComPtr<ITextRange> range;
     if (!checkHR(selection->GetDuplicate(&range))) return;
     checkHR(range->StartOf(tomParagraph, tomMove, nullptr));
-    VARIANT charMatch = {};
-    if (!checkHR(InitVariantFromString(L" \t", &charMatch))) return;
+    CComVariant charMatch(L" \t");
     checkHR(range->MoveEndWhile(&charMatch, tomForward, nullptr));
     CComBSTR indentStr;
     if (!checkHR(range->GetText(&indentStr))) return;
