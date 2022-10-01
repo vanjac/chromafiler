@@ -6,6 +6,7 @@
 #include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
+#include <propvarutil.h>
 
 namespace chromafiler {
 
@@ -335,20 +336,17 @@ void TextWindow::updateStatus() {
     if (encoding == FAIL)
         return;
     CComPtr<ITextDocument> document = getTOMDocument();
-    if (!document)
-        return;
+    if (!document) return;
     CComPtr<ITextSelection> selection;
-    if (!checkHR(document->GetSelection(&selection)))
-        return;
+    if (!checkHR(document->GetSelection(&selection))) return;
+    CComPtr<ITextRange> range;
+    if (!checkHR(selection->GetDuplicate(&range))) return;
     long start = 0, end = 0, line = 0, col = 0;
-    checkHR(selection->GetStart(&start));
-    checkHR(selection->GetEnd(&end));
-    checkHR(selection->GetIndex(tomParagraph, &line));
-    CComPtr<ITextRange> paraStart;
-    if (checkHR(selection->GetDuplicate(&paraStart))) {
-        checkHR(paraStart->StartOf(tomParagraph, tomMove, &col));
-        col = 1 - col;
-    }
+    checkHR(range->GetStart(&start));
+    checkHR(range->GetEnd(&end));
+    checkHR(range->GetIndex(tomParagraph, &line));
+    checkHR(range->StartOf(tomParagraph, tomMove, &col));
+    col = 1 - col;
     LocalHeapPtr<wchar_t> status;
     if (start == end) {
         formatMessage(status, STR_TEXT_STATUS, line, col);
@@ -438,18 +436,26 @@ void TextWindow::setWordWrap(bool wordWrap) {
 }
 
 void TextWindow::newLine() {
-    LONG line = (LONG)SendMessage(edit, EM_LINEFROMCHAR, (WPARAM)-1, 0);
-    wchar_t newLineBuffer[256];
-    newLineBuffer[0] = '\n';
-    newLineBuffer[1] = _countof(newLineBuffer) - 2; // allow room for null
-    LRESULT lineLen = SendMessage(edit, EM_GETLINE, line, (LPARAM)(newLineBuffer + 1));
-    int endIndent = 1;
-    for (; endIndent < lineLen + 1; endIndent++) {
-        if (newLineBuffer[endIndent] != ' ' && newLineBuffer[endIndent] != '\t')
-            break;
-    }
-    newLineBuffer[endIndent] = 0;
-    SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)newLineBuffer);
+    CComPtr<ITextDocument> document = getTOMDocument();
+    if (!document) return;
+    CComPtr<ITextSelection> selection;
+    if (!checkHR(document->GetSelection(&selection))) return;
+    CComPtr<ITextRange> range;
+    if (!checkHR(selection->GetDuplicate(&range))) return;
+    checkHR(range->StartOf(tomParagraph, tomMove, nullptr));
+    VARIANT charMatch = {};
+    if (!checkHR(InitVariantFromString(L" \t", &charMatch))) return;
+    checkHR(range->MoveEndWhile(&charMatch, tomForward, nullptr));
+    CComBSTR indentStr;
+    if (!checkHR(range->GetText(&indentStr))) return;
+    long count;
+    checkHR(document->Freeze(&count));
+    checkHR(document->BeginEditCollection());
+    checkHR(selection->TypeText(CComBSTR(L"\n")));
+    if (indentStr.Length() != 0)
+        checkHR(selection->TypeText(indentStr));
+    checkHR(document->EndEditCollection());
+    checkHR(document->Unfreeze(&count));
 }
 
 void TextWindow::indentSelection(int dir) {
