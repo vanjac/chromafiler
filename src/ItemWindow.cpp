@@ -172,7 +172,12 @@ SIZE ItemWindow::requestedSize() const {
 }
 
 DWORD ItemWindow::windowStyle() const {
-    return WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX;
+    // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
+    return (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX) | WS_CLIPCHILDREN;
+}
+
+DWORD ItemWindow::windowExStyle() const {
+    return 0;
 }
 
 bool ItemWindow::useCustomFrame() const {
@@ -183,7 +188,7 @@ bool ItemWindow::allowToolbar() const {
     return true;
 }
 
-bool ItemWindow::alwaysOnTop() const {
+bool ItemWindow::paletteWindow() const {
     return false;
 }
 
@@ -205,7 +210,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     debugPrintf(L"Open %s\n", &*title);
 
     HWND owner;
-    if (parent && !parent->alwaysOnTop())
+    if (parent && !parent->paletteWindow())
         owner = checkLE(GetWindowOwner(parent->hwnd));
     else if (child)
         owner = checkLE(GetWindowOwner(child->hwnd));
@@ -213,9 +218,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         owner = createChainOwner(showCommand);
 
     HWND createHwnd = checkLE(CreateWindowEx(
-        alwaysOnTop() ? (WS_EX_TOPMOST | WS_EX_TOOLWINDOW) : 0,
-        // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
-        className(), title, windowStyle() | WS_CLIPCHILDREN,
+        windowExStyle(), className(), title, windowStyle(),
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
         owner, nullptr, GetModuleHandle(nullptr), this));
     if (!createHwnd)
@@ -223,8 +226,10 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) + 1);
 
     // https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-itaskbarlist2-markfullscreenwindow#remarks
-    if (alwaysOnTop())
+    if (windowExStyle() & WS_EX_TOPMOST) {
         checkLE(SetProp(hwnd, L"NonRudeHWND", (HANDLE)TRUE));
+        checkLE(SetProp(owner, L"NonRudeHWND", (HANDLE)TRUE));
+    }
 
     ShowWindow(createHwnd, showCommand);
 
@@ -506,7 +511,7 @@ void ItemWindow::onCreate() {
         AppendMenu(systemMenu, MF_STRING, IDM_SETTINGS, settingsText);
     }
 
-    if (!alwaysOnTop() && (!parent || parent->alwaysOnTop()))
+    if (!paletteWindow() && (!parent || parent->paletteWindow()))
         addChainPreview();
 
     HMODULE instance = GetWindowInstance(hwnd);
@@ -718,7 +723,7 @@ bool ItemWindow::onCommand(WORD command) {
             ItemWindow *rootParent = this;
             while (rootParent->parent)
                 rootParent = rootParent->parent;
-            if (!rootParent->alwaysOnTop()) {
+            if (!rootParent->paletteWindow()) {
                 POINT menuPos = {0, rootParent->useCustomFrame() ? CAPTION_HEIGHT : 0};
                 ClientToScreen(rootParent->hwnd, &menuPos);
                 rootParent->openParentMenu(menuPos);
@@ -792,7 +797,7 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
 void ItemWindow::onActivate(WORD state, HWND) {
     if (state != WA_INACTIVE) {
         activeWindow = this;
-        if (alwaysOnTop() && child) {
+        if (paletteWindow() && child) {
             SetWindowPos(child->hwnd, HWND_TOP, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         }
@@ -1027,7 +1032,7 @@ void ItemWindow::clearParent() {
 
 void ItemWindow::detachFromParent(bool closeParent) {
     ItemWindow *rootParent = parent;
-    if (!parent->alwaysOnTop()) {
+    if (!parent->paletteWindow()) {
         HWND prevOwner = checkLE(GetWindowOwner(hwnd));
         HWND owner = createChainOwner(SW_SHOWNORMAL);
         int numChildren = 0;
@@ -1046,9 +1051,9 @@ void ItemWindow::detachFromParent(bool closeParent) {
     if (parentButton && SUCCEEDED(item->GetParent(&parentItem)))
         ShowWindow(parentButton, SW_SHOW);
     if (closeParent) {
-        while (rootParent->parent && !rootParent->parent->alwaysOnTop())
+        while (rootParent->parent && !rootParent->parent->paletteWindow())
             rootParent = rootParent->parent;
-        if (!rootParent->alwaysOnTop())
+        if (!rootParent->paletteWindow())
             rootParent->close();
     }
     activate(); // bring this chain to front
@@ -1058,7 +1063,7 @@ void ItemWindow::onChildDetached() {}
 
 void ItemWindow::detachAndMove(bool closeParent) {
     ItemWindow *rootParent = this;
-    while (rootParent->parent && !rootParent->parent->alwaysOnTop())
+    while (rootParent->parent && !rootParent->parent->paletteWindow())
         rootParent = rootParent->parent;
     RECT rootRect = {};
     GetWindowRect(rootParent->hwnd, &rootRect);
@@ -1580,10 +1585,10 @@ STDMETHODIMP ItemWindow::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt
 BOOL CALLBACK ItemWindow::enumCloseChain(HWND hwnd, LPARAM lParam) {
     if (GetWindowOwner(hwnd) == (HWND)lParam) {
         ItemWindow *itemWindow = (ItemWindow *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-        if (itemWindow && itemWindow->alwaysOnTop())
+        if (itemWindow && itemWindow->paletteWindow())
             itemWindow = itemWindow->child;
         if (itemWindow) {
-            while (itemWindow->parent && !itemWindow->parent->alwaysOnTop())
+            while (itemWindow->parent && !itemWindow->parent->paletteWindow())
                 itemWindow = itemWindow->parent;
             itemWindow->close();
         }

@@ -67,7 +67,11 @@ SIZE TrayWindow::requestedSize() const {
 }
 
 DWORD TrayWindow::windowStyle() const {
-    return WS_POPUPWINDOW;
+    return WS_POPUPWINDOW | WS_CLIPCHILDREN;
+}
+
+DWORD TrayWindow::windowExStyle() const {
+    return WS_EX_TOPMOST | WS_EX_TOOLWINDOW;
 }
 
 bool TrayWindow::useCustomFrame() const {
@@ -78,7 +82,7 @@ bool TrayWindow::allowToolbar() const {
     return false;
 }
 
-bool TrayWindow::alwaysOnTop() const {
+bool TrayWindow::paletteWindow() const {
     return true;
 }
 

@@ -30,6 +30,8 @@ protected:
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
+    bool paletteWindow() const override;
+
     void onCreate() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
@@ -39,9 +41,9 @@ private:
     const wchar_t * className() override;
 
     DWORD windowStyle() const override;
+    DWORD windowExStyle() const override;
     bool useCustomFrame() const override;
     bool allowToolbar() const override;
-    bool alwaysOnTop() const override;
     bool stickToChild() const override;
     SettingsPage settingsStartPage() const override;
     POINT childPos(SIZE size) override;
