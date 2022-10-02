@@ -523,18 +523,7 @@ void TextWindow::handleFindReplace(FINDREPLACE *input) {
     } else if (input->Flags & FR_FINDNEXT) {
         findNext(input);
     } else if (input->Flags & FR_REPLACE) {
-        CHARRANGE sel;
-        SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
-        int compare = 1;
-        if (sel.cpMax != sel.cpMin && sel.cpMax - sel.cpMin < _countof(findBuffer) - 1) {
-            wchar_t selText[_countof(findBuffer)];
-            SendMessage(edit, EM_GETSELTEXT, 0, (LPARAM)selText);
-            compare = (input->Flags & FR_MATCHCASE) ?
-                lstrcmp(selText, input->lpstrFindWhat) : lstrcmpi(selText, input->lpstrFindWhat);
-        }
-        if (compare == 0)
-            SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)input->lpstrReplaceWith);
-        findNext(input);
+        replace(input);
     } else if (input->Flags & FR_REPLACEALL) {
         replaceAll(input);
     }
@@ -569,6 +558,21 @@ void TextWindow::findNext(FINDREPLACE *input) {
         }
     }
     range->Select();
+}
+
+void TextWindow::replace(FINDREPLACE *input) {
+    CComPtr<ITextDocument> document = getTOMDocument();
+    if (!document) return;
+    CComPtr<ITextSelection> selection;
+    if (!checkHR(document->GetSelection(&selection))) return;
+    CComBSTR selText;
+    if (checkHR(selection->GetText(&selText))) {
+        int compare = (input->Flags & FR_MATCHCASE) ?
+            lstrcmp(selText, input->lpstrFindWhat) : lstrcmpi(selText, input->lpstrFindWhat);
+        if (compare == 0)
+            selection->SetText(CComBSTR(input->lpstrReplaceWith));
+    }
+    findNext(input);
 }
 
 int TextWindow::replaceAll(FINDREPLACE *input) {

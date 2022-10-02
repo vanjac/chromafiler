@@ -54,6 +54,7 @@ private:
     void openFindDialog(bool replace);
     void handleFindReplace(FINDREPLACE *input);
     void findNext(FINDREPLACE *input);
+    void replace(FINDREPLACE *input);
     int replaceAll(FINDREPLACE *input);
 
     HRESULT loadText();
