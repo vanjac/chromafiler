@@ -343,17 +343,16 @@ void TextWindow::updateStatus() {
     CComPtr<ITextSelection> sel;
     CComPtr<ITextRange> range;
     if (!doc || !checkHR(doc->GetSelection(&sel)) || !checkHR(sel->GetDuplicate(&range))) return;
-    long start = 0, end = 0, line = 0, col = 0;
+    long start = 0, end = 0, line = 0, toStart = 0;
     checkHR(range->GetStart(&start));
     checkHR(range->GetEnd(&end));
     checkHR(range->GetIndex(tomParagraph, &line));
-    checkHR(range->StartOf(tomParagraph, tomMove, &col));
-    col = 1 - col;
+    checkHR(range->StartOf(tomParagraph, tomMove, &toStart));
     LocalHeapPtr<wchar_t> status;
     if (start == end) {
-        formatMessage(status, STR_TEXT_STATUS, line, col);
+        formatMessage(status, STR_TEXT_STATUS, line, 1 - toStart);
     } else {
-        formatMessage(status, STR_TEXT_STATUS_SEL, line, col, end - start);
+        formatMessage(status, STR_TEXT_STATUS_SEL, line, 1 - toStart, end - start);
     }
     setStatusText(status);
 }
