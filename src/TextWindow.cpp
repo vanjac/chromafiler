@@ -570,60 +570,41 @@ void TextWindow::replace(FINDREPLACE *input) {
         int compare = (input->Flags & FR_MATCHCASE) ?
             lstrcmp(selText, input->lpstrFindWhat) : lstrcmpi(selText, input->lpstrFindWhat);
         if (compare == 0)
-            selection->SetText(CComBSTR(input->lpstrReplaceWith));
+            checkHR(selection->SetText(CComBSTR(input->lpstrReplaceWith)));
     }
     findNext(input);
 }
 
 int TextWindow::replaceAll(FINDREPLACE *input) {
-    // count number of occurrences (to determine size of buffer)
-    FINDTEXTEX findText;
-    findText.lpstrText = input->lpstrFindWhat;
-    findText.chrg = {0, -1};
-    int numOccurrences = 0;
-    while (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
-        numOccurrences++;
-        findText.chrg.cpMin = findText.chrgText.cpMax;
-    }
-    if (numOccurrences == 0) {
-        if (hasStatusText()) {
-            LocalHeapPtr<wchar_t> status;
-            formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
-            setStatusText(status);
-        }
-        MessageBeep(MB_OK);
-        return numOccurrences;
-    }
+    CComPtr<ITextDocument> document = getTOMDocument();
+    if (!document) return 0;
+    CComPtr<ITextRange> range;
+    if (!checkHR(document->Range(0, 0, &range))) return 0;
+    CComBSTR replaceText(input->lpstrReplaceWith);
 
-    LONG textLength = getTextLength();
-    int findLen = lstrlen(input->lpstrFindWhat);
-    int replaceLen = lstrlen(input->lpstrReplaceWith);
-    CComHeapPtr<wchar_t> buffer;
-    buffer.Allocate(textLength + numOccurrences * (replaceLen - findLen) + 1);
-
-    findText.chrg.cpMin = 0; // search starting location
-    LONG bufferI = 0;
-    for (int i = 0; i < numOccurrences; i++) {
-        SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText);
-        CHARRANGE beforeMatch = {findText.chrg.cpMin, findText.chrgText.cpMin};
-        SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&beforeMatch);
-        bufferI += (LONG)SendMessage(edit, EM_GETSELTEXT, 0, (LPARAM)(buffer + bufferI));
-        CopyMemory(buffer + bufferI, input->lpstrReplaceWith, replaceLen * sizeof(wchar_t));
-        bufferI += replaceLen;
-        findText.chrg.cpMin = findText.chrgText.cpMax; // search after match
+    checkHR(document->BeginEditCollection());
+    int numOccurrences;
+    for (numOccurrences = 0; true; numOccurrences++) {
+        HRESULT hr;
+        checkHR(hr = range->FindText(CComBSTR(input->lpstrFindWhat), tomForward,
+            input->Flags & (tomMatchWord | tomMatchCase), nullptr));
+        if (hr != S_OK)
+            break;
+        checkHR(range->SetText(replaceText));
+        checkHR(range->Collapse(tomEnd));
     }
-    CHARRANGE afterLastMatch = {findText.chrg.cpMin, textLength};
-    SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&afterLastMatch);
-    bufferI += (LONG)SendMessage(edit, EM_GETSELTEXT, 0, (LPARAM)(buffer + bufferI));
-
-    SETTEXTEX setText = {ST_KEEPUNDO | ST_UNICODE, 1200};
-    SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)&*buffer);
+    checkHR(document->EndEditCollection());
 
     if (hasStatusText()) {
         LocalHeapPtr<wchar_t> status;
-        formatMessage(status, STR_TEXT_STATUS_REPLACED, numOccurrences);
+        if (numOccurrences == 0)
+            formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
+        else
+            formatMessage(status, STR_TEXT_STATUS_REPLACED, numOccurrences);
         setStatusText(status);
     }
+    if (numOccurrences == 0)
+        MessageBeep(MB_OK);
     return numOccurrences;
 }
 
