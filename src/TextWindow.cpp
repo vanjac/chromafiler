@@ -443,7 +443,7 @@ void TextWindow::newLine() {
     CComBSTR indentStr;
     if (!checkHR(range->GetText(&indentStr))) return;
 
-    checkHR(doc->BeginEditCollection());
+    checkHR(doc->BeginEditCollection()); // requires Windows 8!
     checkHR(sel->TypeText(CComBSTR(L"\n")));
     if (indentStr.Length() != 0)
         checkHR(sel->TypeText(indentStr));
