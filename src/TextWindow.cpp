@@ -541,35 +541,32 @@ void TextWindow::handleFindReplace(FINDREPLACE *input) {
 }
 
 void TextWindow::findNext(FINDREPLACE *input) {
-    FINDTEXTEX findText;
-    findText.lpstrText = input->lpstrFindWhat;
-    CHARRANGE sel;
-    SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
-    if (input->Flags & FR_DOWN) {
-        findText.chrg = {sel.cpMax, -1};
-    } else {
-        findText.chrg = {sel.cpMin, 0};
-    }
-    if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
-        SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
+    CComPtr<ITextDocument> document = getTOMDocument();
+    if (!document) return;
+    CComPtr<ITextSelection> selection;
+    if (!checkHR(document->GetSelection(&selection))) return;
+    long count = (input->Flags & FR_DOWN) ? tomForward : tomBackward;
+    long flags = input->Flags & (tomMatchWord | tomMatchCase);
+    HRESULT hr;
+    checkHR(hr = selection->FindText(CComBSTR(input->lpstrFindWhat), count, flags, nullptr));
+    if (hr == S_OK)
         return;
-    }
     // wrap around
-    if (input->Flags & FR_DOWN) {
-        findText.chrg.cpMin = 0;
+    CComPtr<ITextRange> range;
+    if (!checkHR(document->Range(0, 0, &range))) return;
+    if (!(input->Flags & FR_DOWN))
+        checkHR(range->EndOf(tomStory, tomMove, nullptr));
+    checkHR(hr = range->FindText(CComBSTR(input->lpstrFindWhat), count, flags, nullptr));
+    if (hr == S_OK) {
+        range->Select();
     } else {
-        findText.chrg.cpMin = getTextLength();
+        if (hasStatusText()) {
+            LocalHeapPtr<wchar_t> status;
+            formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
+            setStatusText(status);
+        }
+        MessageBeep(MB_OK);
     }
-    if (SendMessage(edit, EM_FINDTEXTEXW, input->Flags, (LPARAM)&findText) != -1) {
-        SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&findText.chrgText);
-        return;
-    }
-    if (hasStatusText()) {
-        LocalHeapPtr<wchar_t> status;
-        formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
-        setStatusText(status);
-    }
-    MessageBeep(MB_OK);
 }
 
 int TextWindow::replaceAll(FINDREPLACE *input) {
