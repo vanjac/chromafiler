@@ -20,6 +20,10 @@ const uint8_t BOM_UTF16BE[] = {0xFE, 0xFF};
 #define CHECK_BOM(buffer, size, bom) \
     ((size) >= sizeof(bom) && memcmp((buffer), (bom), sizeof(bom)) == 0)
 
+CComVariant MATCH_SPACE(L" \t");
+CComVariant MATCH_TAB(L"\t");
+CComVariant MATCH_NEWLINE(L"\n");
+
 static HACCEL textAccelTable;
 static UINT updateSettingsMessage, findReplaceMessage;
 
@@ -443,66 +447,52 @@ void TextWindow::newLine() {
     CComPtr<ITextRange> range;
     if (!checkHR(selection->GetDuplicate(&range))) return;
     checkHR(range->StartOf(tomParagraph, tomMove, nullptr));
-    CComVariant charMatch(L" \t");
-    checkHR(range->MoveEndWhile(&charMatch, tomForward, nullptr));
+    checkHR(range->MoveEndWhile(&MATCH_SPACE, tomForward, nullptr));
     CComBSTR indentStr;
     if (!checkHR(range->GetText(&indentStr))) return;
-    long count;
-    checkHR(document->Freeze(&count));
+
     checkHR(document->BeginEditCollection());
     checkHR(selection->TypeText(CComBSTR(L"\n")));
     if (indentStr.Length() != 0)
         checkHR(selection->TypeText(indentStr));
     checkHR(document->EndEditCollection());
-    checkHR(document->Unfreeze(&count));
 }
 
 void TextWindow::indentSelection(int dir) {
-    CHARRANGE sel;
-    SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
-    LONG startLine = (LONG)SendMessage(edit, EM_EXLINEFROMCHAR, 0, sel.cpMin);
-    LONG endLine = (LONG)SendMessage(edit, EM_EXLINEFROMCHAR, 0, sel.cpMax - 1);
+    CComPtr<ITextDocument> document = getTOMDocument();
+    if (!document) return;
+    CComPtr<ITextSelection> selection;
+    if (!checkHR(document->GetSelection(&selection))) return;
+    CComPtr<ITextRange> range;
+    if (!checkHR(selection->GetDuplicate(&range))) return;
+    long startLine = 0, endLine = 0;
+    checkHR(range->GetIndex(tomParagraph, &startLine));
+    checkHR(range->Collapse(tomEnd));
     if (dir == 1) {
-        LONG maxLine = (LONG)SendMessage(edit, EM_EXLINEFROMCHAR, 0, sel.cpMax);
-        if (startLine == maxLine) {
-            SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)L"\t");
+        checkHR(range->GetIndex(tomParagraph, &endLine));
+        if (startLine == endLine) {
+            selection->TypeText(CComBSTR(L"\t"));
             return;
         }
     }
-    LONG startIndex = (LONG)SendMessage(edit, EM_LINEINDEX, startLine, 0);
-    LONG endIndex = (LONG)SendMessage(edit, EM_LINEINDEX, endLine + 1, 0);
-    if (endIndex == -1) // last line
-        endIndex = getTextLength();
-    LONG bufferSize = endIndex - startIndex + 1; // include null
-    if (dir == 1)
-        bufferSize += endLine - startLine + 1; // enough for tabs on each line
-    CComHeapPtr<wchar_t> indentBuffer;
-    indentBuffer.Allocate(bufferSize);
-    LONG bufferI = 0;
-    for (LONG line = startLine; line <= endLine; line++) {
-        if (dir == 1)
-            indentBuffer[bufferI++] = '\t';
-        LONG availableSize = bufferSize - bufferI - 1;
-        indentBuffer[bufferI] = availableSize < 65536 ? (wchar_t)availableSize : 65535;
-        LONG lineLen = (LONG)SendMessage(edit, EM_GETLINE, line, (LPARAM)(indentBuffer + bufferI));
-        if (dir == -1 && lineLen != 0 && indentBuffer[bufferI] == '\t') {
-            MoveMemory(indentBuffer + bufferI, indentBuffer + bufferI + 1,
-                (lineLen - 1) * sizeof(wchar_t));
-            bufferI -= 1;
-            if (line == startLine && sel.cpMin > startIndex)
-                sel.cpMin -= 1;
-            sel.cpMax -= 1;
+    checkHR(range->Move(tomCharacter, -1, nullptr));
+    checkHR(range->GetIndex(tomParagraph, &endLine));
+    range = nullptr;
+    if (!checkHR(selection->GetDuplicate(&range))) return;
+    checkHR(range->StartOf(tomParagraph, tomMove, nullptr));
+
+    checkHR(document->BeginEditCollection());
+    for (int line = startLine; line <= endLine; line++) {
+        if (dir == 1) {
+            checkHR(range->SetText(CComBSTR(L"\t")));
+            checkHR(range->Collapse(tomStart));
+        } else if (dir == -1) {
+            checkHR(range->MoveEndWhile(&MATCH_TAB, 1, nullptr));
+            checkHR(range->Delete(tomCharacter, 0, nullptr));
         }
-        bufferI += lineLen;
+        range->Move(tomParagraph, 1, nullptr);
     }
-    indentBuffer[bufferI] = 0;
-    CHARRANGE indentRange = {startIndex, endIndex};
-    SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&indentRange);
-    SendMessage(edit, EM_REPLACESEL, TRUE, (LPARAM)&*indentBuffer);
-    // restore selection, now shifted by tab characters
-    if (dir == 1)
-        sel = {sel.cpMin + 1, sel.cpMax + (endLine - startLine) + 1};
-    SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
+    checkHR(document->EndEditCollection());
 }
 
 void TextWindow::openFindDialog(bool replace) {
