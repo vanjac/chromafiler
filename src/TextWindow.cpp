@@ -339,12 +339,10 @@ LRESULT TextWindow::onNotify(NMHDR *nmHdr) {
 void TextWindow::updateStatus() {
     if (encoding == FAIL)
         return;
-    CComPtr<ITextDocument> document = getTOMDocument();
-    if (!document) return;
-    CComPtr<ITextSelection> selection;
-    if (!checkHR(document->GetSelection(&selection))) return;
+    CComPtr<ITextDocument> doc = getTOMDocument();
+    CComPtr<ITextSelection> sel;
     CComPtr<ITextRange> range;
-    if (!checkHR(selection->GetDuplicate(&range))) return;
+    if (!doc || !checkHR(doc->GetSelection(&sel)) || !checkHR(sel->GetDuplicate(&range))) return;
     long start = 0, end = 0, line = 0, col = 0;
     checkHR(range->GetStart(&start));
     checkHR(range->GetEnd(&end));
@@ -440,48 +438,44 @@ void TextWindow::setWordWrap(bool wordWrap) {
 }
 
 void TextWindow::newLine() {
-    CComPtr<ITextDocument> document = getTOMDocument();
-    if (!document) return;
-    CComPtr<ITextSelection> selection;
-    if (!checkHR(document->GetSelection(&selection))) return;
+    CComPtr<ITextDocument> doc = getTOMDocument();
+    CComPtr<ITextSelection> sel;
     CComPtr<ITextRange> range;
-    if (!checkHR(selection->GetDuplicate(&range))) return;
+    if (!doc || !checkHR(doc->GetSelection(&sel)) || !checkHR(sel->GetDuplicate(&range))) return;
     checkHR(range->StartOf(tomParagraph, tomMove, nullptr));
     checkHR(range->MoveEndWhile(&MATCH_SPACE, tomForward, nullptr));
     CComBSTR indentStr;
     if (!checkHR(range->GetText(&indentStr))) return;
 
-    checkHR(document->BeginEditCollection());
-    checkHR(selection->TypeText(CComBSTR(L"\n")));
+    checkHR(doc->BeginEditCollection());
+    checkHR(sel->TypeText(CComBSTR(L"\n")));
     if (indentStr.Length() != 0)
-        checkHR(selection->TypeText(indentStr));
-    checkHR(document->EndEditCollection());
+        checkHR(sel->TypeText(indentStr));
+    checkHR(doc->EndEditCollection());
 }
 
 void TextWindow::indentSelection(int dir) {
-    CComPtr<ITextDocument> document = getTOMDocument();
-    if (!document) return;
-    CComPtr<ITextSelection> selection;
-    if (!checkHR(document->GetSelection(&selection))) return;
+    CComPtr<ITextDocument> doc = getTOMDocument();
+    CComPtr<ITextSelection> sel;
     CComPtr<ITextRange> range;
-    if (!checkHR(selection->GetDuplicate(&range))) return;
+    if (!doc || !checkHR(doc->GetSelection(&sel)) || !checkHR(sel->GetDuplicate(&range))) return;
     long startLine = 0, endLine = 0;
     checkHR(range->GetIndex(tomParagraph, &startLine));
     checkHR(range->Collapse(tomEnd));
     if (dir == 1) {
         checkHR(range->GetIndex(tomParagraph, &endLine));
         if (startLine == endLine) {
-            selection->TypeText(CComBSTR(L"\t"));
+            sel->TypeText(CComBSTR(L"\t"));
             return;
         }
     }
     checkHR(range->Move(tomCharacter, -1, nullptr));
     checkHR(range->GetIndex(tomParagraph, &endLine));
     range = nullptr;
-    if (!checkHR(selection->GetDuplicate(&range))) return;
+    if (!checkHR(sel->GetDuplicate(&range))) return;
     checkHR(range->StartOf(tomParagraph, tomMove, nullptr));
 
-    checkHR(document->BeginEditCollection());
+    checkHR(doc->BeginEditCollection());
     for (int line = startLine; line <= endLine; line++) {
         if (dir == 1) {
             checkHR(range->SetText(CComBSTR(L"\t")));
@@ -492,7 +486,7 @@ void TextWindow::indentSelection(int dir) {
         }
         range->Move(tomParagraph, 1, nullptr);
     }
-    checkHR(document->EndEditCollection());
+    checkHR(doc->EndEditCollection());
 }
 
 void TextWindow::openFindDialog(bool replace) {
@@ -530,12 +524,10 @@ void TextWindow::handleFindReplace(FINDREPLACE *input) {
 }
 
 void TextWindow::findNext(FINDREPLACE *input) {
-    CComPtr<ITextDocument> document = getTOMDocument();
-    if (!document) return;
-    CComPtr<ITextSelection> selection;
-    if (!checkHR(document->GetSelection(&selection))) return;
+    CComPtr<ITextDocument> doc = getTOMDocument();
+    CComPtr<ITextSelection> sel;
     CComPtr<ITextRange> range;
-    if (!checkHR(selection->GetDuplicate(&range))) return;
+    if (!doc || !checkHR(doc->GetSelection(&sel)) || !checkHR(sel->GetDuplicate(&range))) return;
     checkHR(range->Collapse((input->Flags & FR_DOWN) ? tomEnd : tomStart));
     long count = (input->Flags & FR_DOWN) ? tomForward : tomBackward;
     long flags = input->Flags & (tomMatchWord | tomMatchCase);
@@ -561,25 +553,23 @@ void TextWindow::findNext(FINDREPLACE *input) {
 }
 
 void TextWindow::replace(FINDREPLACE *input) {
-    CComPtr<ITextDocument> document = getTOMDocument();
-    if (!document) return;
-    CComPtr<ITextSelection> selection;
-    if (!checkHR(document->GetSelection(&selection))) return;
+    CComPtr<ITextDocument> doc = getTOMDocument();
+    CComPtr<ITextSelection> sel;
+    if (!doc || !checkHR(doc->GetSelection(&sel))) return;
     CComBSTR selText;
-    if (checkHR(selection->GetText(&selText))) {
+    if (checkHR(sel->GetText(&selText))) {
         int compare = (input->Flags & FR_MATCHCASE) ?
             lstrcmp(selText, input->lpstrFindWhat) : lstrcmpi(selText, input->lpstrFindWhat);
         if (compare == 0)
-            checkHR(selection->SetText(CComBSTR(input->lpstrReplaceWith)));
+            checkHR(sel->SetText(CComBSTR(input->lpstrReplaceWith)));
     }
     findNext(input);
 }
 
 int TextWindow::replaceAll(FINDREPLACE *input) {
     CComPtr<ITextDocument> document = getTOMDocument();
-    if (!document) return 0;
     CComPtr<ITextRange> range;
-    if (!checkHR(document->Range(0, 0, &range))) return 0;
+    if (!document || !checkHR(document->Range(0, 0, &range))) return 0;
     CComBSTR replaceText(input->lpstrReplaceWith);
 
     checkHR(document->BeginEditCollection());
