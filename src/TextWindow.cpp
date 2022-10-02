@@ -545,28 +545,30 @@ void TextWindow::findNext(FINDREPLACE *input) {
     if (!document) return;
     CComPtr<ITextSelection> selection;
     if (!checkHR(document->GetSelection(&selection))) return;
+    CComPtr<ITextRange> range;
+    if (!checkHR(selection->GetDuplicate(&range))) return;
+    checkHR(range->Collapse((input->Flags & FR_DOWN) ? tomEnd : tomStart));
     long count = (input->Flags & FR_DOWN) ? tomForward : tomBackward;
     long flags = input->Flags & (tomMatchWord | tomMatchCase);
     HRESULT hr;
-    checkHR(hr = selection->FindText(CComBSTR(input->lpstrFindWhat), count, flags, nullptr));
-    if (hr == S_OK)
-        return;
-    // wrap around
-    CComPtr<ITextRange> range;
-    if (!checkHR(document->Range(0, 0, &range))) return;
-    if (!(input->Flags & FR_DOWN))
-        checkHR(range->EndOf(tomStory, tomMove, nullptr));
     checkHR(hr = range->FindText(CComBSTR(input->lpstrFindWhat), count, flags, nullptr));
-    if (hr == S_OK) {
-        range->Select();
-    } else {
-        if (hasStatusText()) {
-            LocalHeapPtr<wchar_t> status;
-            formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
-            setStatusText(status);
+    if (hr != S_OK) { // wrap around
+        if (!(input->Flags & FR_DOWN))
+            checkHR(range->EndOf(tomStory, tomMove, nullptr));
+        else
+            checkHR(range->StartOf(tomStory, tomMove, nullptr));
+        checkHR(hr = range->FindText(CComBSTR(input->lpstrFindWhat), count, flags, nullptr));
+        if (hr != S_OK) {
+            if (hasStatusText()) {
+                LocalHeapPtr<wchar_t> status;
+                formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
+                setStatusText(status);
+            }
+            MessageBeep(MB_OK);
+            return;
         }
-        MessageBeep(MB_OK);
     }
+    range->Select();
 }
 
 int TextWindow::replaceAll(FINDREPLACE *input) {
