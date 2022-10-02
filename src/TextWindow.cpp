@@ -391,12 +391,6 @@ bool TextWindow::confirmSave(bool willDelete) {
     return result == IDYES;
 }
 
-LONG TextWindow::getTextLength() {
-    // can't use WM_GETTEXTLENGTH because it counts CRLFs instead of LFs
-    GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200};
-    return (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
-}
-
 void TextWindow::changeFontSize(int amount) {
     logFont.lfHeight = max(logFont.lfHeight + amount, 1);
     updateFont();
@@ -410,7 +404,9 @@ bool TextWindow::isWordWrap() {
 void TextWindow::setWordWrap(bool wordWrap) {
     if (encoding == FAIL)
         return;
-    LONG textLength = getTextLength();
+    // can't use WM_GETTEXTLENGTH because it counts CRLFs instead of LFs
+    GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200};
+    LONG textLength = (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
     CComHeapPtr<wchar_t> buffer;
     buffer.Allocate(textLength + 1);
     GETTEXTEX getText = {};

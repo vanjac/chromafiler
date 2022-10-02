@@ -45,7 +45,6 @@ private:
     void userSave();
     bool confirmSave(bool willDelete);
 
-    LONG getTextLength();
     void changeFontSize(int amount);
     bool isWordWrap();
     void setWordWrap(bool wordWrap);
