@@ -277,7 +277,7 @@ namespace chromafiler {
     // main.h
     CComPtr<ItemWindow> activeWindow;
 
-    long numOpenWindows;
+    static long numOpenWindows = 0;
 
     void windowOpened() {
         InterlockedIncrement(&numOpenWindows);

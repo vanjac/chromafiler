@@ -14,9 +14,9 @@ const wchar_t MOVE_GRIP_CLASS[] = L"ChromaFile Move Grip";
 const int HOTKEY_FOCUS_TRAY = 1;
 
 // dimensions
-int SNAP_DISTANCE = 8;
-int CLOSE_BOX_MARGIN = 4;
-SIZE MIN_TRAY_SIZE = {28, 28};
+static int SNAP_DISTANCE = 8;
+static int CLOSE_BOX_MARGIN = 4;
+static SIZE MIN_TRAY_SIZE = {28, 28};
 
 void snapAxis(LONG value, LONG edge, LONG *snapped, LONG *snapDist) {
     if (abs(value - edge) <= *snapDist) {

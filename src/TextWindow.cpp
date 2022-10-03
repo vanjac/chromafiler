@@ -20,9 +20,9 @@ const uint8_t BOM_UTF16BE[] = {0xFE, 0xFF};
 #define CHECK_BOM(buffer, size, bom) \
     ((size) >= sizeof(bom) && memcmp((buffer), (bom), sizeof(bom)) == 0)
 
-CComVariant MATCH_SPACE(L" \t");
-CComVariant MATCH_TAB(L"\t");
-CComVariant MATCH_NEWLINE(L"\n");
+static CComVariant MATCH_SPACE(L" \t");
+static CComVariant MATCH_TAB(L"\t");
+static CComVariant MATCH_NEWLINE(L"\n");
 
 static HACCEL textAccelTable;
 static UINT updateSettingsMessage, findReplaceMessage;

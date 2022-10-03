@@ -21,22 +21,22 @@ const wchar_t CHAIN_OWNER_CLASS[] = L"ChromaFile Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 
 // dimensions
-int PARENT_BUTTON_WIDTH = 34; // matches close button width in windows 10
-int PARENT_BUTTON_MARGIN = 1;
-int WINDOW_ICON_PADDING = 4;
-int TOOLBAR_HEIGHT = 24;
-int STATUS_TEXT_MARGIN = 4;
-int STATUS_TOOLTIP_OFFSET = 2; // TODO not correct at higher DPIs
-int DETACH_DISTANCE = 32;
+static int PARENT_BUTTON_WIDTH = 34; // matches close button width in windows 10
+static int PARENT_BUTTON_MARGIN = 1;
+static int WINDOW_ICON_PADDING = 4;
+static int TOOLBAR_HEIGHT = 24;
+static int STATUS_TEXT_MARGIN = 4;
+static int STATUS_TOOLTIP_OFFSET = 2; // TODO not correct at higher DPIs
+static int DETACH_DISTANCE = 32;
 
-int CAPTION_HEIGHT = 0; // calculated in init()
+static int CAPTION_HEIGHT = 0; // calculated in init()
 
-LOGFONT SYMBOL_LOGFONT = {14, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
+static LOGFONT SYMBOL_LOGFONT = {14, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
     ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
     DEFAULT_PITCH | FF_DONTCARE, L"Segoe MDL2 Assets"};
 
 // these are Windows metrics/colors that are not exposed through the API >:(
-int WIN10_CXSIZEFRAME = 8; // TODO not correct at higher DPIs
+static int WIN10_CXSIZEFRAME = 8; // TODO not correct at higher DPIs
 // this is the color used in every high-contrast theme
 // regular light mode theme uses #999999
 const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
@@ -44,7 +44,8 @@ const COLORREF WIN10_INACTIVE_CAPTION_COLOR = 0x636363;
 static HANDLE symbolFontHandle = nullptr;
 static HFONT captionFont = nullptr, statusFont = nullptr, symbolFont = nullptr;
 
-BOOL compositionEnabled = FALSE;
+static BOOL compositionEnabled = FALSE;
+
 HACCEL ItemWindow::accelTable;
 
 bool highContrastEnabled() {

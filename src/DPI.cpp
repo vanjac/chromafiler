@@ -5,7 +5,7 @@ namespace chromafiler {
 // https://github.com/tringi/win32-dpi
 
 // requires Windows 8.1
-HRESULT (WINAPI *ptrGetScaleFactorForMonitor)(HMONITOR hmonitor, int *scale) = nullptr;
+static HRESULT (WINAPI *ptrGetScaleFactorForMonitor)(HMONITOR hmonitor, int *scale) = nullptr;
 
 // DPI.h
 int systemDPI = USER_DEFAULT_SCREEN_DPI;
