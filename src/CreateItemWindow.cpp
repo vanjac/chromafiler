@@ -13,30 +13,16 @@
 namespace chromafiler {
 
 const wchar_t IPreviewHandlerIID[] = L"{8895b1c6-b41f-4c1c-a562-0d564250836f}";
-const wchar_t CONTROL_PANEL_PATH[] = L"::{26EE0668-A00A-44D7-9371-BEB064C98683}";
 // Windows TXT Previewer {1531d583-8375-4d3f-b5fb-d23bbd169f22}
 const CLSID TXT_PREVIEWER_CLSID =
     {0x1531d583, 0x8375, 0x4d3f, {0xb5, 0xfb, 0xd2, 0x3b, 0xbd, 0x16, 0x9f, 0x22}};
 
-static CComPtr<IShellItem> controlPanel;
-
 bool previewHandlerCLSID(wchar_t *ext, CLSID *previewID);
-
-void initCreateItemWindow() {
-    checkHR(SHCreateItemFromParsingName(CONTROL_PANEL_PATH, nullptr,
-        IID_PPV_ARGS(&controlPanel)));
-}
 
 CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item) {
     CComPtr<ItemWindow> window;
     SFGAOF attr;
     if (checkHR(item->GetAttributes(SFGAO_FOLDER, &attr)) && (attr & SFGAO_FOLDER)) {
-        int compare;
-        if (controlPanel && checkHR(item->Compare(controlPanel, SICHINT_CANONICAL, &compare))
-                && compare == 0) {
-            window.Attach(new ThumbnailWindow(parent, item));
-            return window;
-        }
         window.Attach(new FolderWindow(parent, item));
         return window;
     }

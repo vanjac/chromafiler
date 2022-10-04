@@ -20,6 +20,13 @@ const wchar_t PROP_VISITED[] = L"Visited";
 const wchar_t PROP_SIZE[] = L"Size";
 const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
 
+const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
+    L"::{26EE0668-A00A-44D7-9371-BEB064C98683}", // Control Panel
+    L"::{018D5C66-4533-4307-9B53-224DE2ED1FE6}", // OneDrive
+    L"::{031E4825-7B94-4DC3-B131-E946B44C8DD5}", // Libraries
+};
+static CComHeapPtr<ITEMID_CHILD> hiddenItemIDs[_countof(HIDDEN_ITEM_PARSE_NAMES)];
+
 // local property bags can be found at:
 // HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags
 CComPtr<IPropertyBag> getItemPropertyBag(CComPtr<IShellItem> item, const wchar_t *name) {
@@ -35,6 +42,15 @@ CComPtr<IPropertyBag> getItemPropertyBag(CComPtr<IShellItem> item, const wchar_t
 void FolderWindow::init() {
     WNDCLASS wndClass = createWindowClass(FOLDER_WINDOW_CLASS);
     RegisterClass(&wndClass);
+
+    for (int i = 0; i < _countof(HIDDEN_ITEM_PARSE_NAMES); i++) {
+        CComPtr<IShellItem> item;
+        if (checkHR(SHCreateItemFromParsingName(HIDDEN_ITEM_PARSE_NAMES[i], nullptr,
+                IID_PPV_ARGS(&item)))) {
+            checkHR(CComQIPtr<IParentAndItem>(item)
+                ->GetParentAndItem(nullptr, nullptr, &hiddenItemIDs[i]));
+        }
+    }
 }
 
 FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item,
@@ -312,7 +328,7 @@ void FolderWindow::onSize(int width, int height) {
 
 void FolderWindow::selectionChanged() {
     CComPtr<IFolderView2> folderView;
-    if (!checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+    if (!SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
         return;
     int numSelected;
     if (!checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected)))
@@ -349,7 +365,7 @@ void FolderWindow::selectionChanged() {
 void FolderWindow::updateStatus() {
     // TODO: duplicate work in selectionChanged()
     CComPtr<IFolderView2> folderView;
-    if (!checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+    if (!SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
         return;
     int numItems = 0, numSelected = 0;
     checkHR(folderView->ItemCount(SVGIO_ALLVIEW, &numItems));
@@ -584,8 +600,13 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
     return S_OK;
 }
 
-STDMETHODIMP FolderWindow::IncludeObject(IShellView *, PCUITEMID_CHILD) {
-    return S_OK; // include all objects
+STDMETHODIMP FolderWindow::IncludeObject(IShellView *, PCUITEMID_CHILD childID) {
+    // will only be called on Desktop, thanks to CDB2GVF_NOINCLUDEITEM
+    for (int i = 0; i < _countof(hiddenItemIDs); i++) {
+        if (ILIsEqual(childID, hiddenItemIDs[i]))
+            return S_FALSE;
+    }
+    return S_OK;
 }
 
 /* ICommDlgBrowser2 */

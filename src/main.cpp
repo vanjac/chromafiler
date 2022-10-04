@@ -72,7 +72,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     InitCommonControlsEx(&controls);
 
     initDPI();
-    initCreateItemWindow();
     ItemWindow::init();
     FolderWindow::init();
     ThumbnailWindow::init();
