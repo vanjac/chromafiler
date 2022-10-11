@@ -44,34 +44,51 @@ UninstPage Custom un.LockedListShow
 Function .onInit
 	SetRegView 64
 	!insertmacro MULTIUSER_INIT
+	File /oname=$PLUGINSDIR\LockedList64.dll `plugins\LockedList64.dll`
 FunctionEnd
 
 Function un.onInit
 	SetRegView 64
 	!insertmacro MULTIUSER_UNINIT
+	File /oname=$PLUGINSDIR\LockedList64.dll `plugins\LockedList64.dll`
 FunctionEnd
 
 Function LockedListShow
-	!insertmacro MUI_HEADER_TEXT "Close Programs" "Make sure ChromaFiler is not running before installing."
-	File /oname=$PLUGINSDIR\LockedList64.dll `plugins\LockedList64.dll`
+	!insertmacro MUI_HEADER_TEXT "Close Programs" "Make sure ChromaFiler isn't running before installing (including the tray)."
 	LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
 	LockedList::Dialog /autonext
 	Pop $R0
 FunctionEnd
 
 Function un.LockedListShow
-	!insertmacro MUI_HEADER_TEXT "Close Programs" "Make sure ChromaFiler is not running before uninstalling."
-	File /oname=$PLUGINSDIR\LockedList64.dll `plugins\LockedList64.dll`
+	!insertmacro MUI_HEADER_TEXT "Close Programs" "Make sure ChromaFiler isn't running before uninstalling (including the tray)."
 	LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
 	LockedList::Dialog /autonext
 	Pop $R0
 FunctionEnd
 
+Function SilentSearchCallback
+	Pop $R0
+	Pop $R1
+	Pop $R2
+	${If} $R0 != -1
+		Push autoclose
+	${EndIf}
+FunctionEnd
+
 Section "ChromaFiler" SecBase
 	SectionIn RO
 	SetOutPath $INSTDIR
-	WriteUninstaller "$INSTDIR\uninstall.exe"
 	SetRegView 64
+
+	${If} ${Silent}
+		LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
+		GetFunctionAddress $R0 SilentSearchCallback
+		LockedList::SilentSearch $R0
+		Pop $R0
+	${EndIf}
+
+	WriteUninstaller "$INSTDIR\uninstall.exe"
 
 	; MultiUser.nsh never actually writes this value
 	WriteRegStr SHCTX "${MULTIUSER_INSTALLMODE_DEFAULT_REGISTRY_KEY}" "${MULTIUSER_INSTALLMODE_DEFAULT_REGISTRY_VALUENAME}" $MultiUser.InstallMode
