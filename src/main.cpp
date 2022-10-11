@@ -51,7 +51,9 @@ void logLastError(const char *file, int line, const char *expr) {
 DWORD WINAPI checkLastVersion(void *);
 void showWelcomeDialog();
 HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LONG_PTR data);
+void startTrayProcess();
 DWORD WINAPI updateJumpList(void *);
+DWORD WINAPI recoveryCallback(void *);
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     OutputDebugString(L"hiiiii ^w^\n"); // DO NOT REMOVE!!
@@ -93,6 +95,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             settings::getTrayFolder(pathAlloc);
             path = pathAlloc;
             tray = true;
+            checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
+                RECOVERY_DEFAULT_PING_INTERVAL, 0));
         } else if (argc > 1 && lstrcmpi(argv[1], L"/scratch") == 0) {
             settings::getScratchFolder(pathAlloc);
             path = pathAlloc;
@@ -205,15 +209,7 @@ HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM,
         return S_FALSE;
     } else if (msg == TDN_BUTTON_CLICKED && wParam == IDS_WELCOME_TRAY) {
         if (!TrayWindow::findTray()) {
-            wchar_t exePath[MAX_PATH];
-            if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH))) {
-                STARTUPINFO startup = {sizeof(startup)};
-                PROCESS_INFORMATION info = {};
-                checkLE(CreateProcess(exePath, L"ChromaFiler.exe /tray", nullptr, nullptr, FALSE,
-                    DETACHED_PROCESS, nullptr, nullptr, &startup, &info));
-                checkLE(CloseHandle(info.hProcess));
-                checkLE(CloseHandle(info.hThread));
-            }
+            startTrayProcess();
         }
         settings::setTrayOpenOnStartup(true);
         return S_FALSE;
@@ -233,6 +229,18 @@ HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM,
         return S_FALSE;
     }
     return S_OK;
+}
+
+void startTrayProcess() {
+    wchar_t exePath[MAX_PATH];
+    if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH))) {
+        STARTUPINFO startup = {sizeof(startup)};
+        PROCESS_INFORMATION info = {};
+        checkLE(CreateProcess(exePath, L"ChromaFiler.exe /tray", nullptr, nullptr, FALSE,
+            DETACHED_PROCESS, nullptr, nullptr, &startup, &info));
+        checkLE(CloseHandle(info.hProcess));
+        checkLE(CloseHandle(info.hThread));
+    }
 }
 
 DWORD WINAPI updateJumpList(void *) {
@@ -269,6 +277,14 @@ DWORD WINAPI updateJumpList(void *) {
 
     checkHR(jumpList->AddUserTasks(tasks));
     checkHR(jumpList->CommitList());
+    return 0;
+}
+
+DWORD WINAPI recoveryCallback(void *) {
+    BOOL cancelled;
+    ApplicationRecoveryInProgress(&cancelled);
+    startTrayProcess();
+    ApplicationRecoveryFinished(true);
     return 0;
 }
 
