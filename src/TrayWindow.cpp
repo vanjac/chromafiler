@@ -18,6 +18,8 @@ static int SNAP_DISTANCE = 8;
 static int CLOSE_BOX_MARGIN = 4;
 static SIZE MIN_TRAY_SIZE = {28, 28};
 
+static UINT taskbarCreatedMessage;
+
 void snapAxis(LONG value, LONG edge, LONG *snapped, LONG *snapDist) {
     if (abs(value - edge) <= *snapDist) {
         *snapDist = abs(value - edge);
@@ -40,6 +42,8 @@ void TrayWindow::init() {
     SNAP_DISTANCE = scaleDPI(SNAP_DISTANCE);
     CLOSE_BOX_MARGIN = scaleDPI(CLOSE_BOX_MARGIN);
     MIN_TRAY_SIZE = scaleDPI(MIN_TRAY_SIZE);
+
+    taskbarCreatedMessage = checkLE(RegisterWindowMessage(L"TaskbarCreated"));
 }
 
 TrayWindow::TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
@@ -220,6 +224,13 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 return 0;
             }
             break;
+    }
+    if (taskbarCreatedMessage && message == taskbarCreatedMessage) {
+        // https://learn.microsoft.com/en-us/windows/win32/shell/taskbar#taskbar-creation-notification
+        // called when shell restarts or when DPI changes
+        APPBARDATA abData = {sizeof(abData), hwnd};
+        abData.uCallbackMessage = MSG_APPBAR_CALLBACK;
+        SHAppBarMessage(ABM_NEW, &abData); // ok to call this even if already registered
     }
     return FolderWindow::handleMessage(message, wParam, lParam);
 }
