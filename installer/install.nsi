@@ -2,6 +2,7 @@ Name "ChromaFiler"
 OutFile "..\build\ChromaFiler-install.exe"
 Unicode True
 SetCompressor LZMA
+!addplugindir plugins
 
 !define MULTIUSER_EXECUTIONLEVEL Highest
 !define MULTIUSER_MUI
@@ -30,10 +31,12 @@ BrandingText "ChromaFiler v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_V
 !insertmacro MULTIUSER_PAGE_INSTALLMODE
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
+Page Custom LockedListShow
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
+UninstPage Custom un.LockedListShow
 !insertmacro MUI_UNPAGE_INSTFILES
 
 !insertmacro MUI_LANGUAGE "English"
@@ -46,6 +49,22 @@ FunctionEnd
 Function un.onInit
 	SetRegView 64
 	!insertmacro MULTIUSER_UNINIT
+FunctionEnd
+
+Function LockedListShow
+	!insertmacro MUI_HEADER_TEXT "Close Programs" "Make sure ChromaFiler is not running before installing."
+	File /oname=$PLUGINSDIR\LockedList64.dll `plugins\LockedList64.dll`
+	LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
+	LockedList::Dialog /autonext
+	Pop $R0
+FunctionEnd
+
+Function un.LockedListShow
+	!insertmacro MUI_HEADER_TEXT "Close Programs" "Make sure ChromaFiler is not running before uninstalling."
+	File /oname=$PLUGINSDIR\LockedList64.dll `plugins\LockedList64.dll`
+	LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
+	LockedList::Dialog /autonext
+	Pop $R0
 FunctionEnd
 
 Section "ChromaFiler" SecBase
