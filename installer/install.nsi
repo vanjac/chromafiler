@@ -13,6 +13,7 @@ SetCompressor LZMA
 !define MULTIUSER_INSTALLMODE_INSTDIR "ChromaFiler"
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_KEY "Software\ChromaFiler"
 !define MULTIUSER_INSTALLMODE_INSTDIR_REGISTRY_VALUENAME "Install_Dir"
+!define MULTIUSER_INSTALLMODEPAGE_TEXT_TOP "$(MULTIUSER_INNERTEXT_INSTALLMODE_TOP)$\r$\n$\r$\nIf you already have $(^Name) installed, do not change this setting."
 !include MultiUser.nsh
 
 !include MUI2.nsh
@@ -26,7 +27,7 @@ SetCompressor LZMA
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
 !getdllversion /productversion ..\build\ChromaFiler.exe PRODUCT_VERSION_
-BrandingText "ChromaFiler v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3}"
+BrandingText "$(^Name) v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3}"
 
 !insertmacro MULTIUSER_PAGE_INSTALLMODE
 !insertmacro MUI_PAGE_COMPONENTS
@@ -41,6 +42,14 @@ UninstPage Custom un.LockedListShow
 
 !insertmacro MUI_LANGUAGE "English"
 
+LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
+LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the Start Menu to launch $(^Name)."
+LangString DESC_SecProgID ${LANG_ENGLISH} "Add an entry to the 'Open with' menu for all file types. (Does not change the default app for any file type.)"
+LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in $(^Name)' command when right-clicking a folder."
+LangString LOCKED_LIST_TITLE ${LANG_ENGLISH} "Close Programs"
+LangString LOCKED_LIST_SUBTITLE ${LANG_ENGLISH} "Make sure all $(^Name) windows are closed before continuing (including the tray)."
+
+
 Function .onInit
 	SetRegView 64
 	!insertmacro MULTIUSER_INIT
@@ -54,14 +63,14 @@ Function un.onInit
 FunctionEnd
 
 Function LockedListShow
-	!insertmacro MUI_HEADER_TEXT "Close Programs" "Make sure ChromaFiler isn't running before installing (including the tray)."
+	!insertmacro MUI_HEADER_TEXT $(LOCKED_LIST_TITLE) $(LOCKED_LIST_SUBTITLE)
 	LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
 	LockedList::Dialog /autonext
 	Pop $R0
 FunctionEnd
 
 Function un.LockedListShow
-	!insertmacro MUI_HEADER_TEXT "Close Programs" "Make sure ChromaFiler isn't running before uninstalling (including the tray)."
+	!insertmacro MUI_HEADER_TEXT $(LOCKED_LIST_TITLE) $(LOCKED_LIST_SUBTITLE)
 	LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
 	LockedList::Dialog /autonext
 	Pop $R0
@@ -206,11 +215,6 @@ Function un.CleanupUser
 	StrCmp $default_browser "chromafiler" 0 +2
 		WriteRegStr HKU "$0\Software\Classes\Drive\Shell" "" "none"
 FunctionEnd
-
-LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
-LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the Start Menu to launch ChromaFiler."
-LangString DESC_SecProgID ${LANG_ENGLISH} "Add an entry to the 'Open with' menu for all file types. (Does not change the default app for any file type.)"
-LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in ChromaFiler' command when right-clicking a folder."
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecBase} $(DESC_SecBase)
