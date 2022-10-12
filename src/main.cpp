@@ -63,9 +63,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     debugPrintf(L"Compiled with memory leak detection\n");
 #endif
 
-    int argc;
-    wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
-
     if (!checkHR(OleInitialize(0))) // needed for drag/drop
         return 0;
 
@@ -88,6 +85,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     SHCreateThreadWithHandle(updateJumpList, nullptr, CTF_COINIT_STA, nullptr, &jumpListThread);
 
     {
+        int argc;
+        wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
+
         CComHeapPtr<wchar_t> pathAlloc;
         wchar_t *path;
         bool tray = false, scratch = false;
@@ -95,8 +95,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             settings::getTrayFolder(pathAlloc);
             path = pathAlloc;
             tray = true;
-            checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
-                RECOVERY_DEFAULT_PING_INTERVAL, 0));
         } else if (argc > 1 && lstrcmpi(argv[1], L"/scratch") == 0) {
             settings::getScratchFolder(pathAlloc);
             path = pathAlloc;
@@ -131,6 +129,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         if (tray) {
             initialWindow.Attach(new TrayWindow(nullptr, startItem));
             pos = ((TrayWindow *)initialWindow.p)->requestedPosition();
+            checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
+                RECOVERY_DEFAULT_PING_INTERVAL, 0));
         } else if (scratch) {
             CComPtr<IShellItem> scratchFile = createScratchFile(startItem);
             if (!scratchFile)
@@ -143,8 +143,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         }
         SIZE size = initialWindow->requestedSize();
         initialWindow->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, showCommand);
+
+        LocalFree(argv);
     }
-    LocalFree(argv);
 
     HANDLE versionThread;
     SHCreateThreadWithHandle(checkLastVersion, nullptr, 0, nullptr, &versionThread);
