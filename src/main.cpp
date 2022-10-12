@@ -20,6 +20,7 @@
 #pragma comment(lib, "UxTheme.lib")
 #pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Comdlg32.lib")
+#pragma comment(lib, "Wininet.lib")
 
 using namespace chromafiler;
 

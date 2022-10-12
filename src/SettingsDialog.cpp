@@ -12,6 +12,7 @@
 #include <shellapi.h>
 #include <shobjidl_core.h>
 #include <commdlg.h>
+#include <wininet.h>
 
 namespace chromafiler {
 
@@ -22,6 +23,10 @@ const wchar_t *SPECIAL_PATHS[] = {
     L"shell:Recent",
     L"shell:::{679f85cb-0220-4080-b29b-5540cc05aab6}" // Quick access
 };
+
+const wchar_t UPDATE_URL[] =
+    L"https://raw.githubusercontent.com/vanjac/chromafiler/main/update-release.txt";
+const int MAX_DOWNLOAD_SIZE = 1024;
 
 static HWND settingsDialog = nullptr;
 
@@ -384,6 +389,71 @@ INT_PTR CALLBACK browserProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
     return FALSE;
 }
 
+DWORD checkForUpdates(HWND parentWindow) {
+    CComHeapPtr<char> data;
+    DWORD dataSize = 0;
+    DWORD error = (DWORD)E_FAIL;
+
+    // https://learn.microsoft.com/en-us/windows/win32/wininet/http-sessions
+    HINTERNET internet = InternetOpen(L"ChromaFiler/1.0", INTERNET_OPEN_TYPE_PRECONFIG,
+        nullptr, nullptr, 0);
+    if (!checkLE(internet))
+        return GetLastError();
+    HINTERNET connection = InternetOpenUrl(internet, UPDATE_URL, nullptr, 0,
+        INTERNET_FLAG_NO_CACHE_WRITE | INTERNET_FLAG_NO_COOKIES | INTERNET_FLAG_RELOAD, 0);
+    if (!checkLE(connection)) {
+        error = GetLastError();
+    } else {
+        while (dataSize < MAX_DOWNLOAD_SIZE) {
+            DWORD bufferSize, downloadedSize;
+            if (!checkLE(InternetQueryDataAvailable(connection, &bufferSize, 0, 0))) {
+                error = GetLastError();
+                break;
+            }
+            if (dataSize + bufferSize > MAX_DOWNLOAD_SIZE)
+                bufferSize = MAX_DOWNLOAD_SIZE - dataSize;
+            CComHeapPtr<char> buffer;
+            buffer.AllocateBytes(bufferSize);
+            if (!checkLE(InternetReadFile(connection, buffer, bufferSize, &downloadedSize))) {
+                error = GetLastError();
+                break;
+            }
+            if (downloadedSize == 0)
+                break;
+
+            data.ReallocateBytes(dataSize + downloadedSize + 1);
+            CopyMemory(data + dataSize, buffer, downloadedSize);
+            dataSize += downloadedSize;
+            error = 0;
+        }
+        data[dataSize] = 0; // null terminator
+        InternetCloseHandle(connection);
+    }
+    InternetCloseHandle(internet);
+
+    if (error)
+        return error;
+    debugPrintf(L"Downloaded content: %S\n", &*data);
+    if (dataSize < 26)
+        return (DWORD)E_FAIL;
+    char hexString[11] = "0x";
+    CopyMemory(hexString + 2, data, 8);
+    hexString[10] = 0;
+    DWORD updateVersion, curVersion = settings::makeVersion(CHROMAFILER_VERSION);
+    if (!StrToIntExA(hexString, STIF_SUPPORT_HEX, (int *)&updateVersion))
+        return (DWORD)E_FAIL;
+    if (updateVersion <= curVersion) {
+        TaskDialog(parentWindow, GetModuleHandle(nullptr), MAKEINTRESOURCE(IDS_NO_UPDATE_CAPTION),
+            nullptr, MAKEINTRESOURCE(IDS_NO_UPDATE), 0, nullptr, nullptr);
+    } else {
+        char *url = data + 9;
+        if (char *urlEnd = StrChrA(url, '\n'))
+            *urlEnd = 0;
+        ShellExecuteA(nullptr, "open", url, nullptr, nullptr, SW_SHOWNORMAL);
+    }
+    return S_OK;
+}
+
 INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_NOTIFY: {
@@ -399,8 +469,12 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
         }
         case WM_COMMAND:
             if (LOWORD(wParam) == IDC_UPDATES_LINK && HIWORD(wParam) == BN_CLICKED) {
-                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler/releases",
-                    nullptr, nullptr, SW_SHOWNORMAL);
+                if (DWORD error = checkForUpdates(GetParent(hwnd))) {
+                    LocalHeapPtr<wchar_t> content;
+                    formatErrorMessage(content, error);
+                    TaskDialog(GetParent(hwnd), GetModuleHandle(nullptr),
+                        MAKEINTRESOURCE(IDS_UPDATE_ERROR), nullptr, content, 0, nullptr, nullptr);
+                }
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_HELP_LINK && HIWORD(wParam) == BN_CLICKED) {
                 ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler/wiki",

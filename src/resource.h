@@ -119,3 +119,6 @@
 #define IDS_WELCOME_TRAY        221
 #define IDS_WELCOME_BROWSER     222
 #define IDS_CONFIRM_CAPTION     223
+#define IDS_NO_UPDATE_CAPTION   224
+#define IDS_NO_UPDATE           225
+#define IDS_UPDATE_ERROR        226

@@ -15,9 +15,12 @@ bool formatMessage(LocalHeapPtr<wchar_t> &message, DWORD messageId, ...) {
 
 void formatErrorMessage(LocalHeapPtr<wchar_t> &message, DWORD error) {
     // based on _com_error::ErrorMessage()  (comdef.h)
-    FormatMessage(
-        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr, error, 0, (wchar_t *)(wchar_t **)&message, 0, nullptr);
+    HMODULE mod = nullptr;
+    if (error >= 12000 && error <= 12190)
+        mod = GetModuleHandle(L"wininet.dll");
+    FormatMessage((mod ? FORMAT_MESSAGE_FROM_HMODULE : FORMAT_MESSAGE_FROM_SYSTEM)
+        | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
+        mod, error, 0, (wchar_t *)(wchar_t **)&message, 0, nullptr);
     if (message) {
         int len = lstrlen(message);
         if (len > 1 && message[len - 1] == '\n') {
