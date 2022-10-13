@@ -68,8 +68,11 @@ const wchar_t * TrayWindow::className() {
     return TRAY_WINDOW_CLASS;
 }
 
-HWND TrayWindow::findTray() {
-    return FindWindow(TRAY_WINDOW_CLASS, nullptr);
+TrayWindow * TrayWindow::findTray() {
+    HWND hwnd = FindWindow(TRAY_WINDOW_CLASS, nullptr);
+    if (hwnd)
+        return (TrayWindow *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+    return nullptr;
 }
 
 RECT getTaskbarRect() {

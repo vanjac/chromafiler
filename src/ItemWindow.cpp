@@ -139,11 +139,11 @@ LRESULT CALLBACK ItemWindow::windowProc(HWND hwnd, UINT message, WPARAM wParam, 
     ItemWindow *self = nullptr;
     if (message == WM_NCCREATE) {
         CREATESTRUCT *create = (CREATESTRUCT*)lParam;
-        self = (ItemWindow*)create->lpCreateParams;
+        self = (ItemWindow *)create->lpCreateParams;
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)self);
         self->hwnd = hwnd;
     } else {
-        self = (ItemWindow*)GetWindowLongPtr(hwnd, GWLP_USERDATA);
+        self = (ItemWindow *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
     }
     if (self) {
         if (self->useCustomFrame()) {
@@ -258,6 +258,11 @@ void ItemWindow::close() {
 
 void ItemWindow::activate() {
     SetActiveWindow(hwnd);
+}
+
+void ItemWindow::setRect(RECT rect) {
+    SetWindowPos(hwnd, nullptr, rect.left, rect.top, rectWidth(rect), rectHeight(rect),
+        SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 void ItemWindow::setPos(POINT pos) {

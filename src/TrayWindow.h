@@ -10,7 +10,7 @@ class TrayWindow : public FolderWindow {
 public:
     static void init();
 
-    static HWND findTray();
+    static TrayWindow * findTray();
 
     TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 

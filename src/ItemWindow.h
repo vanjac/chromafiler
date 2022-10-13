@@ -23,6 +23,8 @@ public:
     virtual SIZE requestedSize() const;
 
     bool create(RECT rect, int showCommand);
+    void close();
+    void setRect(RECT rect);
 
     virtual bool handleTopLevelMessage(MSG *msg);
 
@@ -104,7 +106,6 @@ private:
     virtual bool useDefaultStatusText() const;
     virtual SettingsPage settingsStartPage() const;
 
-    void close();
     void activate();
     void setPos(POINT pos);
     void move(int x, int y);
