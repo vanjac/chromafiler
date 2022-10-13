@@ -16,10 +16,23 @@ const int HOTKEY_FOCUS_TRAY = 1;
 // dimensions
 static int SNAP_DISTANCE = 8;
 static int CLOSE_BOX_MARGIN = 4;
-static int DEFAULT_DIMEN = 520;
+static int DEFAULT_DIMEN = 500;
 static SIZE MIN_TRAY_SIZE = {28, 28};
 
 static UINT taskbarCreatedMessage;
+
+// https://walbourn.github.io/windows-sdk-for-windows-11/
+inline bool IsWindows11OrGreater() {
+    OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
+    DWORDLONG const dwlConditionMask = VerSetConditionMask(VerSetConditionMask(VerSetConditionMask(
+            0, VER_MAJORVERSION, VER_GREATER_EQUAL),
+               VER_MINORVERSION, VER_GREATER_EQUAL),
+               VER_BUILDNUMBER, VER_GREATER_EQUAL);
+    osvi.dwMajorVersion = HIBYTE(_WIN32_WINNT_WIN10);
+    osvi.dwMinorVersion = LOBYTE(_WIN32_WINNT_WIN10);
+    osvi.dwBuildNumber = 22000;
+    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_BUILDNUMBER, dwlConditionMask) != FALSE;
+}
 
 void snapAxis(LONG value, LONG edge, LONG *snapped, LONG *snapDist) {
     if (abs(value - edge) <= *snapDist) {
@@ -69,7 +82,13 @@ POINT TrayWindow::requestedPosition() {
     POINT trayPos = settings::getTrayPosition();
     if (pointEqual(trayPos, settings::DEFAULT_TRAY_POSITION)) {
         RECT taskbarRect = getTaskbarRect();
-        return {taskbarRect.left, taskbarRect.top};
+        if (IsWindows11OrGreater())
+            return {taskbarRect.left, taskbarRect.top}; // assume centered taskbar
+        if (rectWidth(taskbarRect) > rectHeight(taskbarRect)) {
+            return {taskbarRect.left + rectWidth(taskbarRect) / 2, taskbarRect.top};
+        } else {
+            return {taskbarRect.left, taskbarRect.top + rectHeight(taskbarRect) / 2};
+        }
     } else {
         return pointMulDiv(trayPos, systemDPI, settings::getTrayDPI());
     }
