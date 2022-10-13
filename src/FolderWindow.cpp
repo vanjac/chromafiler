@@ -328,7 +328,7 @@ void FolderWindow::onSize(int width, int height) {
 
 void FolderWindow::selectionChanged() {
     CComPtr<IFolderView2> folderView;
-    if (!SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+    if (FAILED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
         return;
     int numSelected;
     if (!checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected)))
@@ -365,7 +365,7 @@ void FolderWindow::selectionChanged() {
 void FolderWindow::updateStatus() {
     // TODO: duplicate work in selectionChanged()
     CComPtr<IFolderView2> folderView;
-    if (!SUCCEEDED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+    if (FAILED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
         return;
     int numItems = 0, numSelected = 0;
     checkHR(folderView->ItemCount(SVGIO_ALLVIEW, &numItems));
