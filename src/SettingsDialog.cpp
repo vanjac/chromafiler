@@ -25,7 +25,7 @@ const wchar_t *SPECIAL_PATHS[] = {
 };
 
 const wchar_t UPDATE_URL[] =
-    L"https://raw.githubusercontent.com/vanjac/chromafiler/main/update-release.txt";
+    L"https://chroma.zone/dist/chromafiler-update-release.txt";
 const int MAX_DOWNLOAD_SIZE = 1024;
 
 static HWND settingsDialog = nullptr;
@@ -434,10 +434,12 @@ DWORD checkForUpdates(HWND parentWindow) {
     if (error)
         return error;
     debugPrintf(L"Downloaded content: %S\n", &*data);
-    if (dataSize < 26)
+    if (memcmp(data, "CFUP", 4))
+        return (DWORD)E_FAIL;
+    if (dataSize < 31)
         return (DWORD)E_FAIL;
     char hexString[11] = "0x";
-    CopyMemory(hexString + 2, data, 8);
+    CopyMemory(hexString + 2, data + 5, 8);
     hexString[10] = 0;
     DWORD updateVersion, curVersion = settings::makeVersion(CHROMAFILER_VERSION);
     if (!StrToIntExA(hexString, STIF_SUPPORT_HEX, (int *)&updateVersion))
@@ -446,7 +448,7 @@ DWORD checkForUpdates(HWND parentWindow) {
         TaskDialog(parentWindow, GetModuleHandle(nullptr), MAKEINTRESOURCE(IDS_NO_UPDATE_CAPTION),
             nullptr, MAKEINTRESOURCE(IDS_NO_UPDATE), 0, nullptr, nullptr);
     } else {
-        char *url = data + 9;
+        char *url = data + 14;
         if (char *urlEnd = StrChrA(url, '\n'))
             *urlEnd = 0;
         ShellExecuteA(nullptr, "open", url, nullptr, nullptr, SW_SHOWNORMAL);
