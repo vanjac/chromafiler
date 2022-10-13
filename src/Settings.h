@@ -30,7 +30,7 @@ const bool      DEFAULT_TEXT_AUTO_INDENT    = true;
 const wchar_t   DEFAULT_TRAY_FOLDER[]       = L"shell:Links";
 const int       DEFAULT_TRAY_DPI            = 96;
 const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
-const SIZE      DEFAULT_TRAY_SIZE           = {520, 48};
+const SIZE      DEFAULT_TRAY_SIZE           = {CW_USEDEFAULT, CW_USEDEFAULT};
 const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
 
 constexpr DWORD makeVersion(BYTE v1, BYTE v2, BYTE v3, BYTE v4) {

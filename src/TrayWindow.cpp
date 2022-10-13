@@ -16,6 +16,7 @@ const int HOTKEY_FOCUS_TRAY = 1;
 // dimensions
 static int SNAP_DISTANCE = 8;
 static int CLOSE_BOX_MARGIN = 4;
+static int DEFAULT_DIMEN = 520;
 static SIZE MIN_TRAY_SIZE = {28, 28};
 
 static UINT taskbarCreatedMessage;
@@ -41,6 +42,7 @@ void TrayWindow::init() {
 
     SNAP_DISTANCE = scaleDPI(SNAP_DISTANCE);
     CLOSE_BOX_MARGIN = scaleDPI(CLOSE_BOX_MARGIN);
+    DEFAULT_DIMEN = scaleDPI(DEFAULT_DIMEN);
     MIN_TRAY_SIZE = scaleDPI(MIN_TRAY_SIZE);
 
     taskbarCreatedMessage = checkLE(RegisterWindowMessage(L"TaskbarCreated"));
@@ -57,17 +59,34 @@ HWND TrayWindow::findTray() {
     return FindWindow(TRAY_WINDOW_CLASS, nullptr);
 }
 
+RECT getTaskbarRect() {
+    APPBARDATA abData {sizeof(abData)};
+    SHAppBarMessage(ABM_GETTASKBARPOS, &abData);
+    return abData.rc;
+}
+
 POINT TrayWindow::requestedPosition() {
     POINT trayPos = settings::getTrayPosition();
-    if (trayPos.x == CW_USEDEFAULT && trayPos.y == CW_USEDEFAULT) {
-        return {0, GetSystemMetrics(SM_CYSCREEN) - requestedSize().cy};
+    if (pointEqual(trayPos, settings::DEFAULT_TRAY_POSITION)) {
+        RECT taskbarRect = getTaskbarRect();
+        return {taskbarRect.left, taskbarRect.top};
     } else {
         return pointMulDiv(trayPos, systemDPI, settings::getTrayDPI());
     }
 }
 
 SIZE TrayWindow::requestedSize() const {
-    return sizeMulDiv(settings::getTraySize(), systemDPI, settings::getTrayDPI());
+    SIZE traySize = settings::getTraySize();
+    if (traySize.cy == settings::DEFAULT_TRAY_SIZE.cy) {
+        RECT taskbarRect = getTaskbarRect();
+        if (rectWidth(taskbarRect) > rectHeight(taskbarRect)) {
+            return {DEFAULT_DIMEN, rectHeight(taskbarRect)};
+        } else {
+            return {rectWidth(taskbarRect), DEFAULT_DIMEN};
+        }
+    } else {
+        return sizeMulDiv(traySize, systemDPI, settings::getTrayDPI());
+    }
 }
 
 DWORD TrayWindow::windowStyle() const {
