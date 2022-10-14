@@ -277,6 +277,9 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             settings::setTrayDPI(systemDPI);
             return 0;
         }
+        case WM_DISPLAYCHANGE: // resolution changed OR monitor connected/disconnected
+            setRect(requestedRect());
+            return 0;
         case WM_HOTKEY:
             if (wParam == HOTKEY_FOCUS_TRAY) {
                 SetForegroundWindow(hwnd);
