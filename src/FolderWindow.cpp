@@ -22,7 +22,7 @@ const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
 
 const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
     L"::{26EE0668-A00A-44D7-9371-BEB064C98683}", // Control Panel
-    L"::{018D5C66-4533-4307-9B53-224DE2ED1FE6}", // OneDrive
+    L"::{018D5C66-4533-4307-9B53-224DE2ED1FE6}", // OneDrive (may fail if not installed)
     L"::{031E4825-7B94-4DC3-B131-E946B44C8DD5}", // Libraries
 };
 static CComHeapPtr<ITEMID_CHILD> hiddenItemIDs[_countof(HIDDEN_ITEM_PARSE_NAMES)];
@@ -45,7 +45,7 @@ void FolderWindow::init() {
 
     for (int i = 0; i < _countof(HIDDEN_ITEM_PARSE_NAMES); i++) {
         CComPtr<IShellItem> item;
-        if (checkHR(SHCreateItemFromParsingName(HIDDEN_ITEM_PARSE_NAMES[i], nullptr,
+        if (SUCCEEDED(SHCreateItemFromParsingName(HIDDEN_ITEM_PARSE_NAMES[i], nullptr,
                 IID_PPV_ARGS(&item)))) {
             checkHR(CComQIPtr<IParentAndItem>(item)
                 ->GetParentAndItem(nullptr, nullptr, &hiddenItemIDs[i]));
@@ -603,7 +603,7 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
 STDMETHODIMP FolderWindow::IncludeObject(IShellView *, PCUITEMID_CHILD childID) {
     // will only be called on Desktop, thanks to CDB2GVF_NOINCLUDEITEM
     for (int i = 0; i < _countof(hiddenItemIDs); i++) {
-        if (ILIsEqual(childID, hiddenItemIDs[i]))
+        if (hiddenItemIDs[i] && ILIsEqual(childID, hiddenItemIDs[i]))
             return S_FALSE;
     }
     return S_OK;
