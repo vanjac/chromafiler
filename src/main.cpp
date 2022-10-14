@@ -126,10 +126,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         startItem = resolveLink(nullptr, startItem);
 
         CComPtr<ItemWindow> initialWindow;
-        POINT pos;
         if (tray) {
             initialWindow.Attach(new TrayWindow(nullptr, startItem));
-            pos = ((TrayWindow *)initialWindow.p)->requestedPosition();
             checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
                 RECOVERY_DEFAULT_PING_INTERVAL, 0));
         } else if (scratch) {
@@ -137,13 +135,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             if (!scratchFile)
                 return 0;
             initialWindow.Attach(new TextWindow(nullptr, scratchFile, true));
-            pos = {CW_USEDEFAULT, CW_USEDEFAULT};
         } else {
             initialWindow = createItemWindow(nullptr, startItem);
-            pos = {CW_USEDEFAULT, CW_USEDEFAULT};
         }
-        SIZE size = initialWindow->requestedSize();
-        initialWindow->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, showCommand);
+        RECT rect;
+        if (tray) {
+            rect = ((TrayWindow *)initialWindow.p)->requestedRect();
+        } else {
+            SIZE size = initialWindow->requestedSize();
+            rect = {CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
+        }
+        initialWindow->create(rect, showCommand);
 
         LocalFree(argv);
     }

@@ -14,8 +14,8 @@ public:
 
     TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
-    POINT requestedPosition();
     SIZE requestedSize() const override;
+    RECT requestedRect();
 
     bool handleTopLevelMessage(MSG *msg) override;
 

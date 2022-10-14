@@ -78,23 +78,7 @@ TrayWindow * TrayWindow::findTray() {
 RECT getTaskbarRect() {
     APPBARDATA abData {sizeof(abData)};
     SHAppBarMessage(ABM_GETTASKBARPOS, &abData);
-    return abData.rc;
-}
-
-POINT TrayWindow::requestedPosition() {
-    POINT trayPos = settings::getTrayPosition();
-    if (pointEqual(trayPos, settings::DEFAULT_TRAY_POSITION)) {
-        RECT taskbarRect = getTaskbarRect();
-        if (IsWindows11OrGreater())
-            return {taskbarRect.left, taskbarRect.top}; // assume centered taskbar
-        if (rectWidth(taskbarRect) > rectHeight(taskbarRect)) {
-            return {taskbarRect.left + rectWidth(taskbarRect) / 2, taskbarRect.top};
-        } else {
-            return {taskbarRect.left, taskbarRect.top + rectHeight(taskbarRect) / 2};
-        }
-    } else {
-        return pointMulDiv(trayPos, systemDPI, settings::getTrayDPI());
-    }
+    return abData.rc; // TODO this is incorrect if DPI changes while app is running
 }
 
 SIZE TrayWindow::requestedSize() const {
@@ -109,6 +93,40 @@ SIZE TrayWindow::requestedSize() const {
     } else {
         return sizeMulDiv(traySize, systemDPI, settings::getTrayDPI());
     }
+}
+
+RECT TrayWindow::requestedRect() {
+    SIZE traySize = requestedSize();
+    POINT trayPos = settings::getTrayPosition();
+    if (pointEqual(trayPos, settings::DEFAULT_TRAY_POSITION)) {
+        RECT taskbarRect = getTaskbarRect();
+        trayPos = {taskbarRect.left, taskbarRect.top};
+        if (!IsWindows11OrGreater()) { // center in taskbar
+            if (rectWidth(taskbarRect) > rectHeight(taskbarRect)) {
+                trayPos.x += (rectWidth(taskbarRect) - traySize.cx) / 2;;
+            } else {
+                trayPos.y += (rectHeight(taskbarRect) - traySize.cy) / 2;
+            }
+        }
+    } else {
+        trayPos = pointMulDiv(trayPos, systemDPI, settings::getTrayDPI());
+    }
+
+    RECT trayRect = {trayPos.x, trayPos.y, trayPos.x + traySize.cx, trayPos.y + traySize.cy};
+    HMONITOR curMonitor = MonitorFromRect(&trayRect, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+    GetMonitorInfo(curMonitor, &monitorInfo);
+    if (trayRect.left < monitorInfo.rcMonitor.left) {
+        OffsetRect(&trayRect, monitorInfo.rcMonitor.left - trayRect.left, 0);
+    } else if (trayRect.left + MIN_TRAY_SIZE.cx > monitorInfo.rcMonitor.right) {
+        OffsetRect(&trayRect, monitorInfo.rcMonitor.right - trayRect.right, 0);
+    }
+    if (trayRect.top < monitorInfo.rcMonitor.top) {
+        OffsetRect(&trayRect, 0, monitorInfo.rcMonitor.top - trayRect.top);
+    } else if (trayRect.top + MIN_TRAY_SIZE.cy > monitorInfo.rcMonitor.bottom) {
+        OffsetRect(&trayRect, 0, monitorInfo.rcMonitor.bottom - trayRect.bottom);
+    }
+    return trayRect;
 }
 
 DWORD TrayWindow::windowStyle() const {

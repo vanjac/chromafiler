@@ -236,9 +236,7 @@ void openTray(wchar_t *path) {
         return;
     CComPtr<TrayWindow> tray;
     tray.Attach(new TrayWindow(nullptr, item));
-    POINT pos = tray->requestedPosition();
-    SIZE size = tray->requestedSize();
-    tray->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNORMAL);
+    tray->create(tray->requestedRect(), SW_SHOWNORMAL);
 }
 
 INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -319,11 +317,8 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 settings::setTraySize(settings::DEFAULT_TRAY_SIZE);
                 settings::setTrayDPI(settings::DEFAULT_TRAY_DPI);
                 TrayWindow *tray = TrayWindow::findTray();
-                if (tray) {
-                    POINT pos = tray->requestedPosition();
-                    SIZE size = tray->requestedSize();
-                    tray->setRect({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy});
-                }
+                if (tray)
+                    tray->setRect(tray->requestedRect());
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_PATH
                     && (HIWORD(wParam) == CBN_EDITCHANGE || HIWORD(wParam) == CBN_SELCHANGE)) {
