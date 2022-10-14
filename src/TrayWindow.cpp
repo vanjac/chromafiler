@@ -23,15 +23,16 @@ static UINT taskbarCreatedMessage;
 
 // https://walbourn.github.io/windows-sdk-for-windows-11/
 inline bool IsWindows11OrGreater() {
-    OSVERSIONINFOEXW osvi = { sizeof(osvi), 0, 0, 0, 0, {0}, 0, 0 };
-    DWORDLONG const dwlConditionMask = VerSetConditionMask(VerSetConditionMask(VerSetConditionMask(
+    OSVERSIONINFOEXW version = { sizeof(version), 0, 0, 0, 0, {0}, 0, 0 };
+    DWORDLONG const conditionMask = VerSetConditionMask(VerSetConditionMask(VerSetConditionMask(
             0, VER_MAJORVERSION, VER_GREATER_EQUAL),
                VER_MINORVERSION, VER_GREATER_EQUAL),
                VER_BUILDNUMBER, VER_GREATER_EQUAL);
-    osvi.dwMajorVersion = HIBYTE(_WIN32_WINNT_WIN10);
-    osvi.dwMinorVersion = LOBYTE(_WIN32_WINNT_WIN10);
-    osvi.dwBuildNumber = 22000;
-    return VerifyVersionInfoW(&osvi, VER_MAJORVERSION | VER_MINORVERSION | VER_BUILDNUMBER, dwlConditionMask) != FALSE;
+    version.dwMajorVersion = HIBYTE(_WIN32_WINNT_WIN10);
+    version.dwMinorVersion = LOBYTE(_WIN32_WINNT_WIN10);
+    version.dwBuildNumber = 22000;
+    return !!VerifyVersionInfoW(&version,
+        VER_MAJORVERSION | VER_MINORVERSION | VER_BUILDNUMBER, conditionMask);
 }
 
 void snapAxis(LONG value, LONG edge, LONG *snapped, LONG *snapDist) {
