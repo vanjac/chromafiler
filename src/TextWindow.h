@@ -22,6 +22,7 @@ protected:
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     void onCreate() override;
+    bool onCloseRequest() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
     bool onControlCommand(HWND controlHwnd, WORD notif) override;

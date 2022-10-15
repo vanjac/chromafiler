@@ -60,6 +60,7 @@ protected:
 
     // message callbacks
     virtual void onCreate();
+    virtual bool onCloseRequest(); // return false to block close (probably a bad idea)
     virtual void onDestroy();
     virtual bool onCommand(WORD command);
     virtual bool onControlCommand(HWND controlHwnd, WORD notif);

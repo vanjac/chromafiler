@@ -306,10 +306,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
             return 0;
         case WM_CLOSE:
-            // if the chain is in the foreground make sure it stays in the foreground.
-            // once WM_DESTROY is called the active window will already be changed, so check here.
-            if (parent && GetActiveWindow() == hwnd)
-                parent->activate();
+            if (!onCloseRequest())
+                return 0; // don't close
             break; // pass to DefWindowProc
         case WM_DESTROY:
             onDestroy();
@@ -675,6 +673,14 @@ int ItemWindow::getToolbarTooltip(WORD command) {
             return IDS_SETTINGS_COMMAND;
     }
     return 0;
+}
+
+bool ItemWindow::onCloseRequest() {
+    // if the chain is in the foreground make sure it stays in the foreground.
+    // once onDestroy() is called the active window will already be changed, so check here instead
+    if (parent && GetActiveWindow() == hwnd)
+        parent->activate();
+    return true;
 }
 
 void ItemWindow::onDestroy() {

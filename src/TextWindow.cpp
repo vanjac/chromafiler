@@ -120,6 +120,16 @@ void TextWindow::updateFont() {
         SendMessage(edit, WM_SETFONT, (WPARAM)font, FALSE);
 }
 
+bool TextWindow::onCloseRequest() {
+    if (encoding != FAIL && SendMessage(edit, EM_GETMODIFY, 0, 0)) {
+        SFGAOF attr;
+        if (confirmSave(isUnsavedScratchFile
+                || FAILED(item->GetAttributes(SFGAO_VALIDATE, &attr)))) // doesn't exist
+            userSave();
+    }
+    return ItemWindow::onCloseRequest();
+}
+
 void TextWindow::onDestroy() {
     if (isUnsavedScratchFile)
         deleteProxy(false);
@@ -180,14 +190,6 @@ void undoNameToString(UNDONAMEID id, LocalHeapPtr<wchar_t> &str) {
 
 LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
-        case WM_CLOSE:
-            if (encoding != FAIL && SendMessage(edit, EM_GETMODIFY, 0, 0)) {
-                SFGAOF attr;
-                if (confirmSave(isUnsavedScratchFile
-                        || FAILED(item->GetAttributes(SFGAO_VALIDATE, &attr)))) // doesn't exist
-                    userSave();
-            }
-            break; // continue closing as normal
         case WM_QUERYENDSESSION:
             if (SendMessage(edit, EM_GETMODIFY, 0, 0)) {
                 userSave();
