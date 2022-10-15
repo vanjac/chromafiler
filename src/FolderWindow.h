@@ -13,8 +13,9 @@ public:
     FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item,
         const wchar_t *propBagOverride = nullptr);
 
-    bool preserveSize() const override;
+    bool persistSizeInParent() const override;
     SIZE requestedSize() const override;
+    SIZE requestedChildSize() const override;
 
     bool handleTopLevelMessage(MSG *msg) override;
 
@@ -57,6 +58,7 @@ protected:
     int getToolbarTooltip(WORD command) override;
 
     void onChildDetached() override;
+    void onChildResized(SIZE size) override;
 
     void onItemChanged() override;
     void refresh() override;
@@ -89,8 +91,6 @@ private:
     DWORD eventsCookie = 0;
 
     CComPtr<IShellItem> selected;
-
-    SIZE oldStoredChildSize;
 
     // jank flags
     bool ignoreNextSelection = false;

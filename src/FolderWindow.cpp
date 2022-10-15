@@ -58,22 +58,13 @@ FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item,
         : ItemWindow(parent, item) {
     // can't call virtual method in constructor!
     propBag = getItemPropertyBag(item, propBagOverride ? propBagOverride : propertyBag());
-    if (propBag) {
-        VARIANT sizeVar = {};
-        sizeVar.vt = VT_UI4;
-        if (SUCCEEDED(propBag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
-            // may be overwritten before create()
-            storedChildSize = scaleDPI({GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)});
-        }
-    }
-    oldStoredChildSize = storedChildSize;
 }
 
 const wchar_t * FolderWindow::className() {
     return FOLDER_WINDOW_CLASS;
 }
 
-bool FolderWindow::preserveSize() const {
+bool FolderWindow::persistSizeInParent() const {
     return false;
 }
 
@@ -90,6 +81,17 @@ SIZE FolderWindow::requestedSize() const {
         }
     }
     return scaleDPI(settings::getFolderWindowSize());
+}
+
+SIZE FolderWindow::requestedChildSize() const {
+    if (propBag) {
+        VARIANT sizeVar = {};
+        sizeVar.vt = VT_UI4;
+        if (SUCCEEDED(propBag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
+            return scaleDPI({GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)});
+        }
+    }
+    return ItemWindow::requestedChildSize();
 }
 
 wchar_t * FolderWindow::propertyBag() const {
@@ -230,13 +232,6 @@ void FolderWindow::onDestroy() {
             // view settings are only written when shell view closes
             checkHR(propBag->Write(PROP_VISITED, &var));
         }
-        if (!sizeEqual(storedChildSize, oldStoredChildSize)) {
-            if (checkHR(InitVariantFromUInt32(MAKELONG(invScaleDPI(storedChildSize.cx),
-                    invScaleDPI(storedChildSize.cy)), &var))) {
-                debugPrintf(L"Write child size\n");
-                checkHR(propBag->Write(PROP_CHILD_SIZE, &var));
-            }
-        }
     }
     ItemWindow::onDestroy();
     if (browser) {
@@ -315,7 +310,6 @@ void FolderWindow::onSize(int width, int height) {
 
 void FolderWindow::onExitSizeMove(bool moved, bool sized) {
     ItemWindow::onExitSizeMove(moved, sized);
-
     if (sized) {
         RECT windowRect = {};
         GetWindowRect(hwnd, &windowRect);
@@ -323,6 +317,13 @@ void FolderWindow::onExitSizeMove(bool moved, bool sized) {
         CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
         checkHR(propBag->Write(PROP_SIZE, &sizeVar));
     }
+}
+
+void FolderWindow::onChildResized(SIZE size) {
+    ItemWindow::onChildResized(size);
+    CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
+    debugPrintf(L"Write child size\n");
+    checkHR(propBag->Write(PROP_CHILD_SIZE, &sizeVar));
 }
 
 void FolderWindow::selectionChanged() {
@@ -384,6 +385,7 @@ void FolderWindow::clearSelection() {
 }
 
 void FolderWindow::onChildDetached() {
+    ItemWindow::onChildDetached();
     clearSelection();
 }
 

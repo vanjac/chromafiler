@@ -19,8 +19,9 @@ public:
 
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
-    virtual bool preserveSize() const; // if true, requested size will be ignored by parent
-    virtual SIZE requestedSize() const;
+    virtual SIZE requestedSize() const; // called if (! persistSizeInParent())
+    virtual SIZE requestedChildSize() const; // called if child->persistSizeInParent()
+    virtual bool persistSizeInParent() const;
 
     bool create(RECT rect, int showCommand);
     void close();
@@ -79,6 +80,7 @@ protected:
     void openChild(CComPtr<IShellItem> childItem);
     void closeChild();
     virtual void onChildDetached();
+    virtual void onChildResized(SIZE size); // only called if child->persistSizeInParent()
     virtual POINT childPos(SIZE size);
     POINT parentPos(SIZE size);
     void enableChain(bool enabled);
@@ -93,7 +95,6 @@ protected:
     CComHeapPtr<wchar_t> title;
 
     CComPtr<ItemWindow> parent, child;
-    SIZE storedChildSize;
 
 private:
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);

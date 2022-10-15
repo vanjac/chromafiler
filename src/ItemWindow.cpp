@@ -160,15 +160,17 @@ LRESULT CALLBACK ItemWindow::windowProc(HWND hwnd, UINT message, WPARAM wParam, 
 
 ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : parent(parent),
-          item(item) {
-    storedChildSize = scaleDPI(settings::getItemWindowSize());
-}
+          item(item) {}
 
-bool ItemWindow::preserveSize() const {
+bool ItemWindow::persistSizeInParent() const {
     return true;
 }
 
 SIZE ItemWindow::requestedSize() const {
+    return scaleDPI(settings::getItemWindowSize());
+}
+
+SIZE ItemWindow::requestedChildSize() const {
     return scaleDPI(settings::getItemWindowSize());
 }
 
@@ -838,12 +840,6 @@ void ItemWindow::onSize(int width, int) {
             0, 0, toolbarLeft - STATUS_TEXT_MARGIN * 2, TOOLBAR_HEIGHT,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
-
-    if (parent && preserveSize()) {
-        RECT rect = {};
-        GetWindowRect(hwnd, &rect);
-        parent->storedChildSize = rectSize(rect);
-    }
 }
 
 void ItemWindow::windowRectChanged() {
@@ -868,7 +864,13 @@ void ItemWindow::windowRectChanged() {
     }
 }
 
-void ItemWindow::onExitSizeMove(bool moved, bool sized) {}
+void ItemWindow::onExitSizeMove(bool, bool sized) {
+    if (sized && parent && persistSizeInParent()) {
+        RECT rect = {};
+        GetWindowRect(hwnd, &rect);
+        parent->onChildResized(rectSize(rect));
+    }
+}
 
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-c-hittestnca-function
@@ -1009,7 +1011,7 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
         closeChild();
     }
     child = createItemWindow(this, childItem);
-    SIZE size = child->preserveSize() ? storedChildSize : child->requestedSize();
+    SIZE size = child->persistSizeInParent() ? requestedChildSize() : child->requestedSize();
     POINT pos = childPos(size);
     // will flush message queue
     child->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNOACTIVATE);
@@ -1027,11 +1029,6 @@ void ItemWindow::openParent() {
     if (SUCCEEDED(item->GetParent(&parentItem))) {
         parent = createItemWindow(nullptr, parentItem);
         parent->child = this;
-        if (preserveSize()) {
-            RECT windowRect = {};
-            GetWindowRect(hwnd, &windowRect);
-            parent->storedChildSize = rectSize(windowRect);
-        }
 
         removeChainPreview();
         SIZE size = parent->requestedSize();
@@ -1039,6 +1036,12 @@ void ItemWindow::openParent() {
         parent->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNORMAL);
         if (parentButton)
             ShowWindow(parentButton, SW_HIDE);
+
+        if (persistSizeInParent()) {
+            RECT rect = {};
+            GetWindowRect(hwnd, &rect);
+            parent->onChildResized(rectSize(rect));
+        }
     }
 }
 
@@ -1080,6 +1083,7 @@ void ItemWindow::detachFromParent(bool closeParent) {
 }
 
 void ItemWindow::onChildDetached() {}
+void ItemWindow::onChildResized(SIZE) {}
 
 void ItemWindow::detachAndMove(bool closeParent) {
     ItemWindow *rootParent = this;
