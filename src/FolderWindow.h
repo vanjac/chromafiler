@@ -51,6 +51,7 @@ protected:
     LRESULT onNotify(NMHDR *nmHdr) override;
     void onActivate(WORD state, HWND prevWindow) override;
     void onSize(int width, int height) override;
+    void onExitSizeMove(bool moved, bool sized) override;
 
     void addToolbarButtons(HWND tb) override;
     int getToolbarTooltip(WORD command) override;
@@ -89,8 +90,6 @@ private:
 
     CComPtr<IShellItem> selected;
 
-    SIZE lastSize = {-1, -1};
-    bool sizeChanged = false;
     SIZE oldStoredChildSize;
 
     // jank flags

@@ -227,14 +227,8 @@ void FolderWindow::onDestroy() {
     if (propBag) {
         VARIANT var = {};
         if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
+            // view settings are only written when shell view closes
             checkHR(propBag->Write(PROP_VISITED, &var));
-        }
-        if (sizeChanged) {
-            if (checkHR(InitVariantFromUInt32(MAKELONG(invScaleDPI(lastSize.cx),
-                    invScaleDPI(lastSize.cy)), &var))) {
-                debugPrintf(L"Write window size\n");
-                checkHR(propBag->Write(PROP_SIZE, &var));
-            }
         }
         if (!sizeEqual(storedChildSize, oldStoredChildSize)) {
             if (checkHR(InitVariantFromUInt32(MAKELONG(invScaleDPI(storedChildSize.cx),
@@ -315,15 +309,20 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
 void FolderWindow::onSize(int width, int height) {
     ItemWindow::onSize(width, height);
 
-    RECT windowRect = {};
-    GetWindowRect(hwnd, &windowRect);
-    SIZE windowSize = rectSize(windowRect);
-    if (lastSize.cx != -1 && !sizeEqual(windowSize, lastSize))
-        sizeChanged = true;
-    lastSize = windowSize;
-
     if (browser)
         checkHR(browser->SetRect(nullptr, windowBody()));
+}
+
+void FolderWindow::onExitSizeMove(bool moved, bool sized) {
+    ItemWindow::onExitSizeMove(moved, sized);
+
+    if (sized) {
+        RECT windowRect = {};
+        GetWindowRect(hwnd, &windowRect);
+        SIZE size = rectSize(windowRect);
+        CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
+        checkHR(propBag->Write(PROP_SIZE, &sizeVar));
+    }
 }
 
 void FolderWindow::selectionChanged() {

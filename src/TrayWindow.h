@@ -36,6 +36,7 @@ protected:
     void onDestroy() override;
     bool onCommand(WORD command) override;
     void onSize(int width, int height) override;
+    void onExitSizeMove(bool moved, bool sized) override;
 
 private:
     const wchar_t * className() override;

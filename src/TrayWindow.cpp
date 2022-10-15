@@ -225,6 +225,17 @@ void TrayWindow::onSize(int width, int height) {
         SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
+void TrayWindow::onExitSizeMove(bool moved, bool sized) {
+    FolderWindow::onExitSizeMove(moved, sized); // note: moving with grip will NOT set moved
+
+    // save window position
+    RECT windowRect = {};
+    GetWindowRect(hwnd, &windowRect);
+    settings::setTrayPosition({windowRect.left, windowRect.top});
+    settings::setTraySize(rectSize(windowRect));
+    settings::setTrayDPI(systemDPI);
+}
+
 bool TrayWindow::handleTopLevelMessage(MSG *msg) {
     if (msg->message == WM_SYSKEYDOWN && msg->wParam == VK_F4)
         return true; // block Alt-F4
@@ -269,15 +280,6 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 snapAxis(pos.y, monitorInfo.rcWork.bottom,    &sizeRect->bottom, &snapDist.y);
             }
             break; // pass to FolderWindow
-        case WM_EXITSIZEMOVE: {
-            // save window position
-            RECT windowRect = {};
-            GetWindowRect(hwnd, &windowRect);
-            settings::setTrayPosition({windowRect.left, windowRect.top});
-            settings::setTraySize(rectSize(windowRect));
-            settings::setTrayDPI(systemDPI);
-            return 0;
-        }
         case WM_DISPLAYCHANGE: // resolution changed OR monitor connected/disconnected
             setRect(requestedRect());
             return 0;

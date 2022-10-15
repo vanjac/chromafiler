@@ -357,17 +357,28 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         }
         case WM_CTLCOLORSTATIC:
             return COLOR_WINDOW + 1;
-        case WM_ENTERSIZEMOVE:
+        case WM_ENTERSIZEMOVE: {
             moveAccum = {0, 0};
+            RECT windowRect = {};
+            GetWindowRect(hwnd, &windowRect);
+            lastSize = rectSize(windowRect);
             return 0;
-        case WM_MOVING:
+        }
+        case WM_EXITSIZEMOVE: {
+            RECT windowRect = {};
+            GetWindowRect(hwnd, &windowRect);
+            onExitSizeMove(!pointEqual(moveAccum, {0, 0}),
+                !sizeEqual(rectSize(windowRect), lastSize));
+            return 0;
+        }
+        case WM_MOVING: {
             // https://www.drdobbs.com/make-it-snappy/184416407
+            RECT *desiredRect = (RECT *)lParam;
+            RECT curRect = {};
+            GetWindowRect(hwnd, &curRect);
+            moveAccum.x += desiredRect->left - curRect.left;
+            moveAccum.y += desiredRect->top - curRect.top;
             if (parent) {
-                RECT *desiredRect = (RECT *)lParam;
-                RECT curRect = {};
-                GetWindowRect(hwnd, &curRect);
-                moveAccum.x += desiredRect->left - curRect.left;
-                moveAccum.y += desiredRect->top - curRect.top;
                 int moveAmount = max(abs(moveAccum.x), abs(moveAccum.y));
                 if (moveAmount > DETACH_DISTANCE) {
                     detachFromParent(GetKeyState(VK_SHIFT) < 0);
@@ -378,6 +389,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             // required for WM_ENTERSIZEMOVE to behave correctly
             return TRUE;
+        }
         case WM_MOVE:
             windowRectChanged();
             return 0;
@@ -855,6 +867,8 @@ void ItemWindow::windowRectChanged() {
             rectWidth(windowRect), rectHeight(windowRect), FALSE);
     }
 }
+
+void ItemWindow::onExitSizeMove(bool moved, bool sized) {}
 
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-c-hittestnca-function

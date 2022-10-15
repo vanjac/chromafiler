@@ -57,6 +57,7 @@ protected:
 
     RECT windowBody();
 
+    // message callbacks
     virtual void onCreate();
     virtual void onDestroy();
     virtual bool onCommand(WORD command);
@@ -64,6 +65,7 @@ protected:
     virtual LRESULT onNotify(NMHDR *nmHdr);
     virtual void onActivate(WORD state, HWND prevWindow);
     virtual void onSize(int width, int height);
+    virtual void onExitSizeMove(bool moved, bool sized);
     virtual void onPaint(PAINTSTRUCT paint);
 
     bool hasStatusText();
@@ -157,6 +159,7 @@ private:
     CComQIPtr<IContextMenu3> contextMenu3;
 
     POINT moveAccum;
+    SIZE lastSize;
     bool isChainPreview = false;
     // drop target state
     IDataObject *dropDataObject;
