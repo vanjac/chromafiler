@@ -227,11 +227,9 @@ LRESULT CALLBACK FolderWindow::scrollBarSubclassProc(HWND hwnd, UINT message,
 
 void FolderWindow::onDestroy() {
     if (propBag) {
-        VARIANT var = {};
-        if (checkHR(InitVariantFromBoolean(TRUE, &var))) {
-            // view settings are only written when shell view closes
-            checkHR(propBag->Write(PROP_VISITED, &var));
-        }
+        // view settings are only written when shell view is destroyed
+        CComVariant visitedVar(true);
+        checkHR(propBag->Write(PROP_VISITED, &visitedVar));
     }
     ItemWindow::onDestroy();
     if (browser) {
@@ -653,9 +651,12 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
             visited = !!var.boolVal;
     }
     if (!visited) {
+        debugPrintf(L"not visited!\n");
         CComQIPtr<IFolderView2> folderView(view);
         if (folderView)
             initDefaultView(folderView);
+    } else {
+        debugPrintf(L"visited!\n");
     }
 
     if (child) {
