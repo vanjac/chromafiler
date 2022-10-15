@@ -322,7 +322,6 @@ void FolderWindow::onExitSizeMove(bool moved, bool sized) {
 void FolderWindow::onChildResized(SIZE size) {
     ItemWindow::onChildResized(size);
     CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
-    debugPrintf(L"Write child size\n");
     checkHR(propBag->Write(PROP_CHILD_SIZE, &sizeVar));
 }
 
