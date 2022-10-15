@@ -30,6 +30,8 @@ protected:
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
+    DWORD windowStyle() const override;
+    DWORD windowExStyle() const override;
     bool paletteWindow() const override;
 
     void onCreate() override;
@@ -41,8 +43,6 @@ protected:
 private:
     const wchar_t * className() override;
 
-    DWORD windowStyle() const override;
-    DWORD windowExStyle() const override;
     bool useCustomFrame() const override;
     bool allowToolbar() const override;
     bool stickToChild() const override;

@@ -53,9 +53,16 @@ protected:
     static WNDCLASS createWindowClass(const wchar_t *name);
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
+    virtual DWORD windowStyle() const;
+    virtual DWORD windowExStyle() const;
     // a window that stays open and is not shown in taskbar. currently only used by TrayWindow
     virtual bool paletteWindow() const;
 
+    // general window commands
+    void activate();
+    void setPos(POINT pos);
+    void move(int x, int y);
+    RECT windowRect();
     RECT windowBody();
 
     // message callbacks
@@ -101,18 +108,12 @@ private:
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     virtual const wchar_t * className() = 0;
 
-    virtual DWORD windowStyle() const;
-    virtual DWORD windowExStyle() const;
     virtual bool useCustomFrame() const;
     virtual bool allowToolbar() const;
     virtual bool stickToChild() const; // for windows that override childPos
 
     virtual bool useDefaultStatusText() const;
     virtual SettingsPage settingsStartPage() const;
-
-    void activate();
-    void setPos(POINT pos);
-    void move(int x, int y);
 
     HWND createChainOwner(int showCommand);
 

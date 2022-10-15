@@ -309,9 +309,7 @@ void FolderWindow::onSize(int width, int height) {
 void FolderWindow::onExitSizeMove(bool moved, bool sized) {
     ItemWindow::onExitSizeMove(moved, sized);
     if (sized) {
-        RECT windowRect = {};
-        GetWindowRect(hwnd, &windowRect);
-        SIZE size = rectSize(windowRect);
+        SIZE size = rectSize(windowRect());
         CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
         checkHR(propBag->Write(PROP_SIZE, &sizeVar));
     }

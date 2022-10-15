@@ -272,9 +272,14 @@ void ItemWindow::setPos(POINT pos) {
 }
 
 void ItemWindow::move(int x, int y) {
+    RECT rect = windowRect();
+    setPos({rect.left + x, rect.top + y});
+}
+
+RECT ItemWindow::windowRect() {
     RECT rect = {};
     GetWindowRect(hwnd, &rect);
-    setPos({rect.left + x, rect.top + y});
+    return rect;
 }
 
 RECT ItemWindow::windowBody() {
@@ -359,23 +364,18 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return COLOR_WINDOW + 1;
         case WM_ENTERSIZEMOVE: {
             moveAccum = {0, 0};
-            RECT windowRect = {};
-            GetWindowRect(hwnd, &windowRect);
-            lastSize = rectSize(windowRect);
+            lastSize = rectSize(windowRect());
             return 0;
         }
         case WM_EXITSIZEMOVE: {
-            RECT windowRect = {};
-            GetWindowRect(hwnd, &windowRect);
             onExitSizeMove(!pointEqual(moveAccum, {0, 0}),
-                !sizeEqual(rectSize(windowRect), lastSize));
+                !sizeEqual(rectSize(windowRect()), lastSize));
             return 0;
         }
         case WM_MOVING: {
             // https://www.drdobbs.com/make-it-snappy/184416407
             RECT *desiredRect = (RECT *)lParam;
-            RECT curRect = {};
-            GetWindowRect(hwnd, &curRect);
+            RECT curRect = windowRect();
             moveAccum.x += desiredRect->left - curRect.left;
             moveAccum.y += desiredRect->top - curRect.top;
             if (parent) {
@@ -396,8 +396,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_SIZING:
             if (parent && parent->stickToChild()) {
                 RECT *desiredRect = (RECT *)lParam;
-                RECT curRect = {};
-                GetWindowRect(hwnd, &curRect);
+                RECT curRect = windowRect();
                 // constrain top-left corner
                 int moveX = 0, moveY = 0;
                 if (wParam == WMSZ_LEFT || wParam == WMSZ_TOPLEFT || wParam == WMSZ_BOTTOMLEFT)
@@ -849,33 +848,26 @@ void ItemWindow::onSize(int width, int) {
 }
 
 void ItemWindow::windowRectChanged() {
-    if (child) {
-        RECT childRect = {};
-        GetWindowRect(child->hwnd, &childRect);
-        child->setPos(childPos(rectSize(childRect)));
-    }
+    if (child)
+        child->setPos(childPos(rectSize(child->windowRect())));
     if (windowStyle() & WS_POPUP) {
         // unlike overlapped windows, popups do not use the current monitor DPI, instead they use
         // the DPI of the most recently active overlapped window. this will always be the owner if
         // it's visible and overlapped. here we move the owner to match the popup's position as it
         // moves so it uses the correct DPI
-        RECT windowRect = {};
-        GetWindowRect(hwnd, &windowRect);
+        RECT rect = windowRect();
         // must have visible client area to affect DPI scaling
         int minHeight = GetSystemMetrics(SM_CYMINTRACK) + 1;
-        if (rectHeight(windowRect) < minHeight)
-            windowRect.bottom = windowRect.top + minHeight;
-        MoveWindow(checkLE(GetWindowOwner(hwnd)), windowRect.left, windowRect.top,
-            rectWidth(windowRect), rectHeight(windowRect), FALSE);
+        if (rectHeight(rect) < minHeight)
+            rect.bottom = rect.top + minHeight;
+        MoveWindow(checkLE(GetWindowOwner(hwnd)), rect.left, rect.top,
+            rectWidth(rect), rectHeight(rect), FALSE);
     }
 }
 
 void ItemWindow::onExitSizeMove(bool, bool sized) {
-    if (sized && parent && persistSizeInParent()) {
-        RECT rect = {};
-        GetWindowRect(hwnd, &rect);
-        parent->onChildResized(rectSize(rect));
-    }
+    if (sized && parent && persistSizeInParent())
+        parent->onChildResized(rectSize(windowRect()));
 }
 
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {
@@ -1043,11 +1035,8 @@ void ItemWindow::openParent() {
         if (parentButton)
             ShowWindow(parentButton, SW_HIDE);
 
-        if (persistSizeInParent()) {
-            RECT rect = {};
-            GetWindowRect(hwnd, &rect);
-            parent->onChildResized(rectSize(rect));
-        }
+        if (persistSizeInParent())
+            parent->onChildResized(rectSize(windowRect()));
     }
 }
 
@@ -1095,8 +1084,7 @@ void ItemWindow::detachAndMove(bool closeParent) {
     ItemWindow *rootParent = this;
     while (rootParent->parent && !rootParent->parent->paletteWindow())
         rootParent = rootParent->parent;
-    RECT rootRect = {};
-    GetWindowRect(rootParent->hwnd, &rootRect);
+    RECT rootRect = rootParent->windowRect();
 
     detachFromParent(closeParent);
 
@@ -1117,12 +1105,11 @@ void ItemWindow::detachAndMove(bool closeParent) {
 }
 
 POINT ItemWindow::childPos(SIZE size) {
-    RECT windowRect = {}, clientRect = {};
     // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
     // GetWindowRect includes the drop shadow! (why??)
-    GetWindowRect(hwnd, &windowRect);
+    RECT rect = windowRect(), clientRect = {};
     GetClientRect(hwnd, &clientRect);
-    POINT pos = {windowRect.left + clientRect.right + windowBorderSize() * 2, windowRect.top};
+    POINT pos = {rect.left + clientRect.right + windowBorderSize() * 2, rect.top};
 
     HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     RECT childRect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
@@ -1131,11 +1118,10 @@ POINT ItemWindow::childPos(SIZE size) {
 }
 
 POINT ItemWindow::parentPos(SIZE size) {
-    RECT windowRect = {};
-    GetWindowRect(hwnd, &windowRect);
-    POINT shadow = {windowRect.left, windowRect.top};
+    RECT rect = windowRect();
+    POINT shadow = {rect.left, rect.top};
     ScreenToClient(hwnd, &shadow); // determine size of drop shadow
-    POINT pos = {windowRect.left - shadow.x * 2 - windowBorderSize() * 2 - size.cx, windowRect.top};
+    POINT pos = {rect.left - shadow.x * 2 - windowBorderSize() * 2 - size.cx, rect.top};
 
     HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo = {sizeof(monitorInfo)};

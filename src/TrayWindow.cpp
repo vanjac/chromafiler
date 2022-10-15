@@ -159,13 +159,12 @@ SettingsPage TrayWindow::settingsStartPage() const {
 }
 
 POINT TrayWindow::childPos(SIZE size) {
-    RECT windowRect = {};
-    GetWindowRect(hwnd, &windowRect);
+    RECT rect = windowRect();
     switch (settings::getTrayDirection()) {
         default: // TRAY_UP
-            return {windowRect.left, windowRect.top - size.cy}; // ignore drop shadow, space is ok
+            return {rect.left, rect.top - size.cy}; // ignore drop shadow, space is ok
         case settings::TRAY_DOWN:
-            return {windowRect.left, windowRect.bottom};
+            return {rect.left, rect.bottom};
         case settings::TRAY_RIGHT:
             return FolderWindow::childPos(size);
     }
@@ -229,10 +228,9 @@ void TrayWindow::onExitSizeMove(bool moved, bool sized) {
     FolderWindow::onExitSizeMove(moved, sized); // note: moving with grip will NOT set moved
 
     // save window position
-    RECT windowRect = {};
-    GetWindowRect(hwnd, &windowRect);
-    settings::setTrayPosition({windowRect.left, windowRect.top});
-    settings::setTraySize(rectSize(windowRect));
+    RECT rect = windowRect();
+    settings::setTrayPosition({rect.left, rect.top});
+    settings::setTraySize(rectSize(rect));
     settings::setTrayDPI(systemDPI);
 }
 
@@ -315,10 +313,8 @@ bool TrayWindow::onCommand(WORD command) {
 }
 
 void TrayWindow::forceTopmost() {
-    RECT windowRect = {};
-    GetWindowRect(hwnd, &windowRect);
-    POINT testPoint {(windowRect.left + windowRect.right) / 2,
-                     (windowRect.top + windowRect.bottom) / 2};
+    RECT rect = windowRect();
+    POINT testPoint {(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
     if (GetAncestor(WindowFromPoint(testPoint), GA_ROOT) == hwnd)
         return; // already on top
     SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
