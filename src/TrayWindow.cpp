@@ -19,7 +19,7 @@ static int CLOSE_BOX_MARGIN = 4;
 static int DEFAULT_DIMEN = 500;
 static SIZE MIN_TRAY_SIZE = {28, 28};
 
-static UINT taskbarCreatedMessage;
+static UINT resetPositionMessage, taskbarCreatedMessage;
 
 // https://walbourn.github.io/windows-sdk-for-windows-11/
 inline bool IsWindows11OrGreater() {
@@ -59,6 +59,7 @@ void TrayWindow::init() {
     DEFAULT_DIMEN = scaleDPI(DEFAULT_DIMEN);
     MIN_TRAY_SIZE = scaleDPI(MIN_TRAY_SIZE);
 
+    resetPositionMessage = checkLE(RegisterWindowMessage(L"chromafiler_TrayResetPosition"));
     taskbarCreatedMessage = checkLE(RegisterWindowMessage(L"TaskbarCreated"));
 }
 
@@ -69,11 +70,12 @@ const wchar_t * TrayWindow::className() {
     return TRAY_WINDOW_CLASS;
 }
 
-TrayWindow * TrayWindow::findTray() {
-    HWND hwnd = FindWindow(TRAY_WINDOW_CLASS, nullptr);
-    if (hwnd)
-        return (TrayWindow *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-    return nullptr;
+HWND TrayWindow::findTray() {
+    return FindWindow(TRAY_WINDOW_CLASS, nullptr);
+}
+
+void TrayWindow::resetTrayPosition() {
+    checkLE(SendNotifyMessage(HWND_BROADCAST, resetPositionMessage, 0, 0));
 }
 
 RECT getTaskbarRect() {
@@ -288,7 +290,10 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break;
     }
-    if (taskbarCreatedMessage && message == taskbarCreatedMessage) {
+    if (resetPositionMessage && message == resetPositionMessage) {
+        setRect(requestedRect());
+        return 0;
+    } else if (taskbarCreatedMessage && message == taskbarCreatedMessage) {
         // https://learn.microsoft.com/en-us/windows/win32/shell/taskbar#taskbar-creation-notification
         // called when shell restarts or when DPI changes
         APPBARDATA abData = {sizeof(abData), hwnd};

@@ -25,7 +25,6 @@ public:
 
     bool create(RECT rect, int showCommand);
     void close();
-    void setRect(RECT rect);
 
     virtual bool handleTopLevelMessage(MSG *msg);
 
@@ -60,6 +59,7 @@ protected:
 
     // general window commands
     void activate();
+    void setRect(RECT rect);
     void setPos(POINT pos);
     void move(int x, int y);
     RECT windowRect();

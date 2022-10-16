@@ -292,13 +292,13 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         case WM_COMMAND:
             if (LOWORD(wParam) == IDC_TRAY_ENABLED && HIWORD(wParam) == BN_CLICKED) {
                 bool checked = !!IsDlgButtonChecked(hwnd, IDC_TRAY_ENABLED);
-                TrayWindow *tray = TrayWindow::findTray();
+                HWND tray = TrayWindow::findTray();
                 if (checked && !tray) {
                     wchar_t path[MAX_PATH];
                     if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, path, _countof(path)))
                         openTray(path);
                 } else if (!checked && tray) {
-                    tray->close();
+                    PostMessage(tray, WM_CLOSE, 0, 0);
                 }
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_BROWSE && HIWORD(wParam) == BN_CLICKED) {
@@ -312,9 +312,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 settings::setTrayPosition(settings::DEFAULT_TRAY_POSITION);
                 settings::setTraySize(settings::DEFAULT_TRAY_SIZE);
                 settings::setTrayDPI(settings::DEFAULT_TRAY_DPI);
-                TrayWindow *tray = TrayWindow::findTray();
-                if (tray)
-                    tray->setRect(tray->requestedRect());
+                TrayWindow::resetTrayPosition();
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_PATH
                     && (HIWORD(wParam) == CBN_EDITCHANGE || HIWORD(wParam) == CBN_SELCHANGE)) {
