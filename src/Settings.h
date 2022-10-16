@@ -33,9 +33,6 @@ const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
 const SIZE      DEFAULT_TRAY_SIZE           = {CW_USEDEFAULT, CW_USEDEFAULT};
 const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
 
-constexpr DWORD makeVersion(BYTE v1, BYTE v2, BYTE v3, BYTE v4) {
-    return (v1 << 24) | (v2 << 16) | (v3 << 8) | v4;
-}
 DWORD getLastOpenedVersion();
 void setLastOpenedVersion(DWORD value);
 

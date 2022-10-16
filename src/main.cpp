@@ -7,6 +7,7 @@
 #include "CreateItemWindow.h"
 #include "Settings.h"
 #include "SettingsDialog.h"
+#include "Update.h"
 #include "DPI.h"
 #include "UIStrings.h"
 #include "resource.h"
@@ -177,7 +178,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
 DWORD WINAPI checkLastVersion(void *) {
     DWORD lastVersion = settings::getLastOpenedVersion();
-    DWORD curVersion = settings::makeVersion(CHROMAFILER_VERSION);
+    DWORD curVersion = makeVersion(CHROMAFILER_VERSION);
     if (lastVersion != curVersion) {
         settings::setLastOpenedVersion(curVersion);
         if (lastVersion == settings::DEFAULT_LAST_OPENED_VERSION)
