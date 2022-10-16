@@ -649,12 +649,9 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
             visited = !!var.boolVal;
     }
     if (!visited) {
-        debugPrintf(L"not visited!\n");
         CComQIPtr<IFolderView2> folderView(view);
         if (folderView)
             initDefaultView(folderView);
-    } else {
-        debugPrintf(L"visited!\n");
     }
 
     if (child) {
