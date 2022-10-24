@@ -6,7 +6,9 @@ ChromaFiler is an experimental file manager with a unique interface, borrowing i
 
 It functions similar to a column-view browser (eg. [Finder](https://en.wikipedia.org/wiki/Finder_(software))), but each column can be broken off into its own window by dragging and dropping. You can use it as a popup menu docked to your taskbar for quickly locating a file, or as a complete replacement for Windows File Explorer (and Notepad).
 
-ChromaFiler works on Windows 8 through 11. Windows 7 support may be added eventually.
+ChromaFiler works on Windows 8 through 11 (and [mostly](https://github.com/vanjac/chromafiler/issues?q=is%3Aopen+label%3Awindows7+label%3Abug) works on Windows 7).
+
+> Note: There is currently a bug with the new 22H2 update for Windows 11 causing unnecessary whitespace in the left margin of windows. This will be fixed in a future update.
 
 ## Download
 
