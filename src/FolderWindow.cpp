@@ -126,7 +126,8 @@ void FolderWindow::onCreate() {
 
     FOLDERSETTINGS folderSettings = {};
     folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see initDefaultView)
-    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
+    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS
+        | FWF_ALIGNLEFT; // use old ListView style!
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;
     checkHR(browser->SetOptions(EBO_NAVIGATEONCE | EBO_NOBORDER)); // no navigation
@@ -151,7 +152,7 @@ void FolderWindow::onCreate() {
         }
         return;
     }
-    setupScrollBarSubclass();
+    setupListView();
 }
 
 void FolderWindow::addToolbarButtons(HWND tb) {
@@ -179,48 +180,30 @@ void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     checkHR(folderView->SetViewModeAndIconSize(FVM_SMALLICON, SHELL_SMALL_ICON));
 }
 
-void FolderWindow::setupScrollBarSubclass() {
+void FolderWindow::setupListView() {
     if (!browser)
         return;
-    bool blockScrolling = true;
-    CComPtr<IFolderView> folderView;
-    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
-        UINT viewMode;
-        if (checkHR(folderView->GetCurrentViewMode(&viewMode)) && viewMode == FVM_LIST)
-            blockScrolling = false; // list view scrolls horizontally
-    }
-
     HWND browserControl = FindWindowEx(hwnd, nullptr, L"ExplorerBrowserControl", nullptr);
     if (!checkLE(browserControl)) return;
     HWND defView = FindWindowEx(browserControl, nullptr, L"SHELLDLL_DefView", nullptr);
     if (!checkLE(defView)) return;
-    HWND directUI = FindWindowEx(defView, nullptr, L"DirectUIHWND", nullptr);
-    if (!checkLE(directUI)) return;
-    HWND ctrlNotify = nullptr, scrollBar;
-    do {
-        ctrlNotify = FindWindowEx(directUI, ctrlNotify, L"CtrlNotifySink", nullptr);
-        if (!checkLE(ctrlNotify)) return;
-        scrollBar = FindWindowEx(ctrlNotify, nullptr, L"ScrollBar", nullptr);
-        if (!checkLE(scrollBar)) return;
-    } while (GetWindowLongPtr(scrollBar, GWL_STYLE) & SBS_VERT); // find the horizontal scroll bar
-    SetWindowSubclass(scrollBar, scrollBarSubclassProc, blockScrolling, (DWORD_PTR)hwnd);
+    HWND listView = FindWindowEx(defView, nullptr, L"SysListView32", nullptr);
+    if (!checkLE(listView)) return;
+    DWORD style = GetWindowLong(listView, GWL_STYLE);
+    style &= ~LVS_ALIGNLEFT;
+    style |= LVS_ALIGNTOP;
+    SetWindowLong(listView, GWL_STYLE, style);
+    SetWindowSubclass(defView, shellViewSubclassProc, 0, 0);
 }
 
-LRESULT CALLBACK FolderWindow::scrollBarSubclassProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData) {
-    if (message == SBM_SETSCROLLINFO && subclassID) { // subclassID = 1 for block scrolling
-        SCROLLINFO *scrollInfo = (SCROLLINFO *)lParam;
-        if (scrollInfo->fMask & SIF_POS) {
-            SCROLLINFO curScrollInfo = {sizeof(curScrollInfo), SIF_TRACKPOS};
-            SendMessage(hwnd, SBM_GETSCROLLINFO, 0, (LPARAM)&curScrollInfo);
-            if (scrollInfo->nPos != curScrollInfo.nTrackPos) {
-                SendMessage(GetParent(hwnd), WM_VSCROLL,
-                    MAKEWPARAM(SB_THUMBPOSITION, curScrollInfo.nTrackPos), (LPARAM)hwnd);
-                scrollInfo->nPos = curScrollInfo.nTrackPos;
-            }
+LRESULT CALLBACK FolderWindow::shellViewSubclassProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
+    if (message == WM_NOTIFY) {
+        NMHDR *nmHdr = (NMHDR *)lParam;
+        if (nmHdr->code == LVN_BEGINSCROLL || nmHdr->code == LVN_ENDSCROLL) {
+            if (ListView_GetView(nmHdr->hwndFrom) != LV_VIEW_LIST)
+                SendMessage(nmHdr->hwndFrom, WM_HSCROLL, SB_LEFT, 0);
         }
-    } else if (message == WM_DESTROY) { // view mode changed
-        PostMessage((HWND)refData, MSG_SETUP_SCROLLBAR_SUBCLASS, 0, 0);
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
@@ -238,16 +221,6 @@ void FolderWindow::onDestroy() {
         checkHR(browser->Destroy());
         browser = nullptr;
     }
-}
-
-LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
-    switch (message) {
-        case MSG_SETUP_SCROLLBAR_SUBCLASS:
-            debugPrintf(L"Setup scroll bar subclass\n");
-            setupScrollBarSubclass();
-            return 0;
-    }
-    return ItemWindow::handleMessage(message, wParam, lParam);
 }
 
 bool FolderWindow::onCommand(WORD command) {
