@@ -109,12 +109,6 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
     }
     if (shellView && shellView->TranslateAccelerator(msg) == S_OK)
         return true;
-    if (clickActivate && msg->message == WM_LBUTTONUP) {
-        clickActivate = false;
-        clickActivateRelease = true;
-    } else {
-        clickActivateRelease = false;
-    }
     return false;
 }
 
@@ -194,6 +188,7 @@ void FolderWindow::setupListView() {
     style |= LVS_ALIGNTOP;
     SetWindowLong(listView, GWL_STYLE, style);
     SetWindowSubclass(defView, shellViewSubclassProc, 0, 0);
+    SetWindowSubclass(listView, listViewSubclassProc, 0, (DWORD_PTR)this);
 }
 
 LRESULT CALLBACK FolderWindow::shellViewSubclassProc(HWND hwnd, UINT message,
@@ -203,6 +198,23 @@ LRESULT CALLBACK FolderWindow::shellViewSubclassProc(HWND hwnd, UINT message,
         if (nmHdr->code == LVN_BEGINSCROLL || nmHdr->code == LVN_ENDSCROLL) {
             if (ListView_GetView(nmHdr->hwndFrom) != LV_VIEW_LIST)
                 SendMessage(nmHdr->hwndFrom, WM_HSCROLL, SB_LEFT, 0);
+        }
+    }
+    return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
+LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
+    if (message == WM_LBUTTONDOWN) {
+        FolderWindow *window = (FolderWindow *)refData;
+        if (window->clickActivate) {
+            window->clickActivate = false;
+            LVHITTESTINFO hitTest = { {LOWORD(lParam), HIWORD(lParam)} };
+            if (!window->paletteWindow() && ListView_GetSelectedCount(hwnd) == 1
+                    && ListView_HitTest(hwnd, &hitTest) == -1) {
+                debugPrintf(L"Blocking deselection!\n");
+                return 0;
+            }
         }
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
@@ -317,12 +329,6 @@ void FolderWindow::selectionChanged() {
                     openChild(selected);
             }
         }
-    } else if (numSelected == 0 && clickActivateRelease && selected && !paletteWindow()) {
-        debugPrintf(L"Blocking deselection\n");
-        CComHeapPtr<ITEMID_CHILD> selectedID;
-        checkHR(CComQIPtr<IParentAndItem>(selected)
-            ->GetParentAndItem(nullptr, nullptr, &selectedID));
-        checkHR(shellView->SelectItem(selectedID, SVSI_SELECT | SVSI_NOTAKEFOCUS));
     } else {
         // 0 or more than 1 item selected
         selected = nullptr;

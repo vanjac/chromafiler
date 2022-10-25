@@ -68,6 +68,8 @@ private:
     void setupListView();
     static LRESULT CALLBACK shellViewSubclassProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
+    static LRESULT CALLBACK listViewSubclassProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     void selectionChanged();
     void clearSelection();
@@ -90,7 +92,7 @@ private:
     bool ignoreNextSelection = false;
     bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;
-    bool clickActivate = false, clickActivateRelease = false;
+    bool clickActivate = true;
 };
 
 } // namespace
