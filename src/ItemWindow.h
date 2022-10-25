@@ -120,6 +120,7 @@ private:
     void windowRectChanged();
     LRESULT hitTestNCA(POINT cursor);
 
+    void limitChainWindowRect(RECT *rect);
     void openParent();
     void clearParent();
     void detachFromParent(bool closeParent); // updates UI state

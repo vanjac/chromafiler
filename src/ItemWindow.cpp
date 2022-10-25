@@ -999,6 +999,16 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     DeleteDC(hdcPaint);
 }
 
+void ItemWindow::limitChainWindowRect(RECT *rect) {
+    RECT myRect = windowRect();
+    HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+    GetMonitorInfo(monitor, &monitorInfo);
+    LONG maxBottom = max(myRect.bottom, monitorInfo.rcWork.bottom);
+    if (rect->bottom > maxBottom)
+        rect->bottom = maxBottom;
+}
+
 void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     childItem = resolveLink(hwnd, childItem);
     if (child) {
@@ -1011,8 +1021,11 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
     child = createItemWindow(this, childItem);
     SIZE size = child->persistSizeInParent() ? requestedChildSize() : child->requestedSize();
     POINT pos = childPos(size);
+    RECT rect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
+    if (stickToChild())
+        limitChainWindowRect(&rect);
     // will flush message queue
-    child->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNOACTIVATE);
+    child->create(rect, SW_SHOWNOACTIVATE);
 }
 
 void ItemWindow::closeChild() {
@@ -1024,20 +1037,23 @@ void ItemWindow::closeChild() {
 
 void ItemWindow::openParent() {
     CComPtr<IShellItem> parentItem;
-    if (SUCCEEDED(item->GetParent(&parentItem))) {
-        parent = createItemWindow(nullptr, parentItem);
-        parent->child = this;
+    if (FAILED(item->GetParent(&parentItem)))
+        return;
+    parent = createItemWindow(nullptr, parentItem);
+    parent->child = this;
 
-        removeChainPreview();
-        SIZE size = parent->requestedSize();
-        POINT pos = parentPos(size);
-        parent->create({pos.x, pos.y, pos.x + size.cx, pos.y + size.cy}, SW_SHOWNORMAL);
-        if (parentButton)
-            ShowWindow(parentButton, SW_HIDE);
+    removeChainPreview();
+    SIZE size = parent->requestedSize();
+    POINT pos = parentPos(size);
+    RECT rect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
+    if (stickToChild())
+        limitChainWindowRect(&rect);
+    parent->create(rect, SW_SHOWNORMAL);
+    if (parentButton)
+        ShowWindow(parentButton, SW_HIDE);
 
-        if (persistSizeInParent())
-            parent->onChildResized(rectSize(windowRect()));
-    }
+    if (persistSizeInParent())
+        parent->onChildResized(rectSize(windowRect()));
 }
 
 void ItemWindow::clearParent() {
