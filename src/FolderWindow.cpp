@@ -196,7 +196,7 @@ void autoSizeListViewColumn(HWND listView) {
             if (Header_GetItemCount(header) == 1) {
                 RECT clientRect = {};
                 GetClientRect(listView, &clientRect);
-                int colWidth = rectWidth(clientRect) - GetSystemMetrics(SM_CXVSCROLL) - 1;
+                int colWidth = rectWidth(clientRect) - 1;
                 ListView_SetColumnWidth(listView, 0, colWidth);
             }
         }
