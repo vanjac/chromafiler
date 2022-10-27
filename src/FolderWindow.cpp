@@ -21,10 +21,20 @@ const wchar_t PROP_VISITED[] = L"Visited";
 const wchar_t PROP_SIZE[] = L"Size";
 const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
 
+// on the Desktop only
 const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
     L"::{26EE0668-A00A-44D7-9371-BEB064C98683}", // Control Panel
     L"::{018D5C66-4533-4307-9B53-224DE2ED1FE6}", // OneDrive (may fail if not installed)
     L"::{031E4825-7B94-4DC3-B131-E946B44C8DD5}", // Libraries
+    // added in build 22621.675  >:(
+    L"::{F874310E-B6B7-47DC-BC84-B9E6B38F5903}", // Home
+    L"::{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", // Desktop (why???)
+    L"::{A8CDFF1C-4878-43BE-B5FD-F8091C1C60D0}", // Documents
+    L"::{374DE290-123F-4565-9164-39C4925E467B}", // Downloads
+    L"::{1CF1260C-4DD0-4EBB-811F-33C572699FDE}", // Music
+    L"::{3ADD1653-EB32-4CB0-BBD7-DFA0ABB5ACCA}", // Pictures
+    L"::{A0953C92-50DC-43BF-BE83-3742FED03C9C}", // Videos
+    // special items that are NOT hidden: user folder, This PC, Network, Recycle Bin, Linux
 };
 static CComHeapPtr<ITEMID_CHILD> hiddenItemIDs[_countof(HIDDEN_ITEM_PARSE_NAMES)];
 
