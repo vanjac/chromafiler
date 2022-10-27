@@ -190,19 +190,6 @@ void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     }
 }
 
-void autoSizeListViewColumn(HWND listView) {
-    if (ListView_GetView(listView) == LV_VIEW_DETAILS) {
-        if (HWND header = ListView_GetHeader(listView)) {
-            if (Header_GetItemCount(header) == 1) {
-                RECT clientRect = {};
-                GetClientRect(listView, &clientRect);
-                int colWidth = rectWidth(clientRect) - 1;
-                ListView_SetColumnWidth(listView, 0, colWidth);
-            }
-        }
-    }
-}
-
 void FolderWindow::listViewCreated() {
     if (!browser)
         return;
@@ -217,7 +204,10 @@ void FolderWindow::listViewCreated() {
     style |= LVS_ALIGNTOP;
     SetWindowLong(listView, GWL_STYLE, style);
     SetWindowSubclass(listView, listViewSubclassProc, 0, (DWORD_PTR)this);
-    autoSizeListViewColumn(listView);
+    RECT clientRect = {};
+    GetClientRect(listView, &clientRect);
+    SendMessage(listView, WM_SIZE, SIZE_RESTORED,
+        MAKELPARAM(rectWidth(clientRect), rectHeight(clientRect)));
 }
 
 LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
@@ -234,7 +224,13 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
             }
         }
     } else if (message == WM_SIZE) {
-        autoSizeListViewColumn(hwnd);
+        if (ListView_GetView(hwnd) == LV_VIEW_DETAILS) {
+            if (HWND header = ListView_GetHeader(hwnd)) {
+                if (Header_GetItemCount(header) == 1) {
+                    ListView_SetColumnWidth(hwnd, 0, LOWORD(lParam) - 1);
+                }
+            }
+        }
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
