@@ -7,6 +7,7 @@
 #include <windowsx.h>
 #include <shlobj.h>
 #include <shellapi.h>
+#include <propkey.h>
 #include <Propvarutil.h>
 
 // Example of how to host an IExplorerBrowser:
@@ -95,7 +96,7 @@ SIZE FolderWindow::requestedChildSize() const {
 }
 
 wchar_t * FolderWindow::propertyBag() const {
-    return L"chromafile";
+    return L"chromafiler";
 }
 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
@@ -119,7 +120,7 @@ void FolderWindow::onCreate() {
     browserRect.bottom += browserRect.top; // initial rect is wrong
 
     FOLDERSETTINGS folderSettings = {};
-    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see initDefaultView)
+    folderSettings.ViewMode = FVM_DETAILS; // also set in initDefaultView
     folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS
         | FWF_ALIGNLEFT; // use old ListView style!
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
@@ -146,7 +147,7 @@ void FolderWindow::onCreate() {
         }
         return;
     }
-    setupListView();
+    listViewCreated();
 }
 
 void FolderWindow::addToolbarButtons(HWND tb) {
@@ -171,36 +172,42 @@ int FolderWindow::getToolbarTooltip(WORD command) {
 void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     // FVM_SMALLICON only seems to work if it's also specified with an icon size
     // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
-    checkHR(folderView->SetViewModeAndIconSize(FVM_SMALLICON, SHELL_SMALL_ICON));
+    checkHR(folderView->SetCurrentViewMode(FVM_DETAILS));
+    CComQIPtr<IColumnManager> columnMgr(folderView);
+    if (columnMgr) {
+        PROPERTYKEY keys[] = {PKEY_ItemNameDisplay};
+        columnMgr->SetColumns(keys, _countof(keys));
+    }
 }
 
-void FolderWindow::setupListView() {
+void autoSizeListViewColumn(HWND listView) {
+    if (ListView_GetView(listView) == LV_VIEW_DETAILS) {
+        if (HWND header = ListView_GetHeader(listView)) {
+            if (Header_GetItemCount(header) == 1) {
+                RECT clientRect = {};
+                GetClientRect(listView, &clientRect);
+                int colWidth = rectWidth(clientRect) - GetSystemMetrics(SM_CXVSCROLL) - 1;
+                ListView_SetColumnWidth(listView, 0, colWidth);
+            }
+        }
+    }
+}
+
+void FolderWindow::listViewCreated() {
     if (!browser)
         return;
     HWND browserControl = FindWindowEx(hwnd, nullptr, L"ExplorerBrowserControl", nullptr);
     if (!checkLE(browserControl)) return;
     HWND defView = FindWindowEx(browserControl, nullptr, L"SHELLDLL_DefView", nullptr);
     if (!checkLE(defView)) return;
-    HWND listView = FindWindowEx(defView, nullptr, L"SysListView32", nullptr);
+    listView = FindWindowEx(defView, nullptr, L"SysListView32", nullptr);
     if (!checkLE(listView)) return;
     DWORD style = GetWindowLong(listView, GWL_STYLE);
     style &= ~LVS_ALIGNLEFT;
     style |= LVS_ALIGNTOP;
     SetWindowLong(listView, GWL_STYLE, style);
-    SetWindowSubclass(defView, shellViewSubclassProc, 0, 0);
     SetWindowSubclass(listView, listViewSubclassProc, 0, (DWORD_PTR)this);
-}
-
-LRESULT CALLBACK FolderWindow::shellViewSubclassProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR) {
-    if (message == WM_NOTIFY) {
-        NMHDR *nmHdr = (NMHDR *)lParam;
-        if (nmHdr->code == LVN_BEGINSCROLL || nmHdr->code == LVN_ENDSCROLL) {
-            if (ListView_GetView(nmHdr->hwndFrom) != LV_VIEW_LIST)
-                SendMessage(nmHdr->hwndFrom, WM_HSCROLL, SB_LEFT, 0);
-        }
-    }
-    return DefSubclassProc(hwnd, message, wParam, lParam);
+    autoSizeListViewColumn(listView);
 }
 
 LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
@@ -216,6 +223,8 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
                 return 0;
             }
         }
+    } else if (message == WM_SIZE) {
+        autoSizeListViewColumn(hwnd);
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }

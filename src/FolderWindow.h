@@ -65,9 +65,7 @@ private:
     virtual wchar_t * propertyBag() const;
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
 
-    void setupListView();
-    static LRESULT CALLBACK shellViewSubclassProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
+    void listViewCreated();
     static LRESULT CALLBACK listViewSubclassProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
@@ -85,6 +83,7 @@ private:
     CComPtr<IShellView> shellView;
     CComPtr<IPropertyBag> propBag;
     DWORD eventsCookie = 0;
+    HWND listView = nullptr;
 
     CComPtr<IShellItem> selected;
 
