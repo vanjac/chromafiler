@@ -160,6 +160,17 @@ SettingsPage TrayWindow::settingsStartPage() const {
     return SETTINGS_TRAY;
 }
 
+RECT TrayWindow::windowBody() {
+    RECT clientRect = {};
+    GetClientRect(hwnd, &clientRect);
+    if (rectWidth(clientRect) > rectHeight(clientRect)) {
+        clientRect.left += GetSystemMetrics(SM_CXVSCROLL);
+    } else {
+        clientRect.top += GetSystemMetrics(SM_CYHSCROLL);
+    }
+    return clientRect;
+}
+
 POINT TrayWindow::childPos(SIZE size) {
     RECT rect = windowRect();
     switch (settings::getTrayDirection()) {

@@ -63,7 +63,7 @@ protected:
     void setPos(POINT pos);
     void move(int x, int y);
     RECT windowRect();
-    RECT windowBody();
+    virtual RECT windowBody();
 
     // message callbacks
     virtual void onCreate();

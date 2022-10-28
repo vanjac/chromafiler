@@ -35,6 +35,8 @@ protected:
     DWORD windowExStyle() const override;
     bool paletteWindow() const override;
 
+    RECT windowBody() override;
+
     void onCreate() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
