@@ -588,6 +588,10 @@ STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
         // updateStatus() will fail (often when visiting a folder for the first time)
         if (hasStatusText())
             updateStatus();
+    } else if (change == CDBOSC_RENAME) {
+        // TODO: remove this once there's an automatic system for tracking files
+        if (child)
+            child->resolveItem();
     }
     return S_OK;
 }

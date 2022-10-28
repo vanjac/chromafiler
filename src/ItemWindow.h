@@ -26,6 +26,9 @@ public:
     bool create(RECT rect, int showCommand);
     void close();
 
+    // attempt to relocate item if it has been renamed, moved, or deleted
+    bool resolveItem();
+
     virtual bool handleTopLevelMessage(MSG *msg);
 
     // IUnknown
@@ -128,8 +131,6 @@ private:
 
     void addChainPreview();
     void removeChainPreview();
-
-    bool resolveItem();
 
     void openParentMenu(POINT point);
 
