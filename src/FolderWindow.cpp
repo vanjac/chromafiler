@@ -391,11 +391,8 @@ void FolderWindow::onItemChanged() {
 
 void FolderWindow::refresh() {
     ItemWindow::refresh();
-    if (shellView) {
+    if (shellView)
         checkHR(shellView->Refresh());
-        // TODO: this is here to fix a crash (exception code c0000374 STATUS_HEAP_CORRUPTION)
-        ignoreNextSelection = true;
-    }
 }
 
 CComPtr<IContextMenu> FolderWindow::queryBackgroundMenu(HMENU *popupMenu) {
