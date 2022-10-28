@@ -231,6 +231,9 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
                 }
             }
         }
+    } else if (message == WM_CHAR && wParam == VK_ESCAPE) {
+        ((FolderWindow *)refData)->clearSelection();
+        // pass to superclass which will also cancel current cut operation
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
