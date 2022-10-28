@@ -332,11 +332,10 @@ void FolderWindow::selectionChanged() {
     if (!checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected)))
         return;
     if (numSelected == 1) {
-        int index;
-        // GetSelectedItem seems to ignore the iStart parameter!
-        if (folderView->GetSelectedItem(-1, &index) == S_OK) {
+        CComPtr<IShellItemArray> selection;
+        if (folderView->GetSelection(FALSE, &selection) == S_OK) {
             CComPtr<IShellItem> newSelected;
-            if (checkHR(folderView->GetItem(index, IID_PPV_ARGS(&newSelected)))) {
+            if (checkHR(selection->GetItemAt(0, &newSelected))) {
                 int compare = 1;
                 if (selected)
                     checkHR(newSelected->Compare(selected, SICHINT_CANONICAL, &compare));
