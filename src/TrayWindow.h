@@ -62,6 +62,7 @@ private:
 
     HWND traySizeGrip;
     bool fullScreen = false;
+    POINT movePos;
 };
 
 } // namespace

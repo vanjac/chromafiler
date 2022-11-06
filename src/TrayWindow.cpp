@@ -9,7 +9,6 @@
 namespace chromafiler {
 
 const wchar_t TRAY_WINDOW_CLASS[] = L"ChromaFile Tray";
-const wchar_t MOVE_GRIP_CLASS[] = L"ChromaFile Move Grip";
 
 const int HOTKEY_FOCUS_TRAY = 1;
 
@@ -35,24 +34,18 @@ inline bool IsWindows11OrGreater() {
         VER_MAJORVERSION | VER_MINORVERSION | VER_BUILDNUMBER, conditionMask);
 }
 
-void snapAxis(LONG value, LONG edge, LONG *snapped, LONG *snapDist) {
+void snapAxis(LONG value, LONG edge, LONG *snapOffset, LONG *snapDist) {
     if (abs(value - edge) <= *snapDist) {
         *snapDist = abs(value - edge);
-        *snapped = edge;
+        *snapOffset = edge - value;
     }
 }
 
 void TrayWindow::init() {
     WNDCLASS wndClass = createWindowClass(TRAY_WINDOW_CLASS);
     wndClass.style = 0; // clear redraw style
+    wndClass.hbrBackground = (HBRUSH)(COLOR_3DFACE + 1);
     RegisterClass(&wndClass);
-
-    WNDCLASS moveGripClass = {};
-    moveGripClass.lpszClassName = MOVE_GRIP_CLASS;
-    moveGripClass.lpfnWndProc = moveGripProc;
-    moveGripClass.hbrBackground = (HBRUSH)(COLOR_3DFACE + 1);
-    moveGripClass.hCursor = LoadCursor(nullptr, IDC_SIZEALL);
-    RegisterClass(&moveGripClass);
 
     SNAP_DISTANCE = scaleDPI(SNAP_DISTANCE);
     CLOSE_BOX_MARGIN = scaleDPI(CLOSE_BOX_MARGIN);
@@ -194,10 +187,6 @@ void TrayWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
 void TrayWindow::onCreate() {
     HMODULE instance = GetWindowInstance(hwnd);
 
-    checkLE(CreateWindow(MOVE_GRIP_CLASS, nullptr,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
-        0, 0, GetSystemMetrics(SM_CXVSCROLL), GetSystemMetrics(SM_CYHSCROLL),
-        hwnd, nullptr, instance, nullptr));
     RECT clientRect = {};
     GetClientRect(hwnd, &clientRect);
     traySizeGrip = checkLE(CreateWindow(L"SCROLLBAR", nullptr,
@@ -238,7 +227,7 @@ void TrayWindow::onSize(int width, int height) {
 }
 
 void TrayWindow::onExitSizeMove(bool moved, bool sized) {
-    FolderWindow::onExitSizeMove(moved, sized); // note: moving with grip will NOT set moved
+    FolderWindow::onExitSizeMove(moved, sized);
 
     // save window position
     RECT rect = windowRect();
@@ -253,8 +242,40 @@ bool TrayWindow::handleTopLevelMessage(MSG *msg) {
     return FolderWindow::handleTopLevelMessage(msg);
 }
 
+void snapWindowPosition(HWND hwnd, RECT *rect) {
+    HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+    GetMonitorInfo(curMonitor, &monitorInfo);
+
+    POINT snap = {0, 0};
+    POINT snapDist = {SNAP_DISTANCE, SNAP_DISTANCE};
+    // left edge
+    snapAxis(rect->left,   monitorInfo.rcMonitor.left,   &snap.x, &snapDist.x);
+    snapAxis(rect->left,   monitorInfo.rcWork.left,      &snap.x, &snapDist.x);
+    if (monitorInfo.rcWork.right < monitorInfo.rcMonitor.right)
+        snapAxis(rect->left, monitorInfo.rcWork.right,   &snap.x, &snapDist.x);
+    // top edge
+    snapAxis(rect->top,    monitorInfo.rcMonitor.top,    &snap.y, &snapDist.y);
+    snapAxis(rect->top,    monitorInfo.rcWork.top,       &snap.y, &snapDist.y);
+    if (monitorInfo.rcWork.bottom < monitorInfo.rcMonitor.bottom)
+        snapAxis(rect->top, monitorInfo.rcWork.bottom,   &snap.y, &snapDist.y);
+    // right edge
+    snapAxis(rect->right,  monitorInfo.rcMonitor.right,  &snap.x, &snapDist.x);
+    snapAxis(rect->right,  monitorInfo.rcWork.right,     &snap.x, &snapDist.x);
+    // bottom edge
+    snapAxis(rect->bottom, monitorInfo.rcMonitor.bottom, &snap.y, &snapDist.y);
+    snapAxis(rect->bottom, monitorInfo.rcWork.bottom,    &snap.y, &snapDist.y);
+    OffsetRect(rect, snap.x, snap.y);
+}
+
 LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
+        case WM_SETCURSOR:
+            if (LOWORD(lParam) == HTCAPTION) {
+                SetCursor(LoadCursor(nullptr, IDC_SIZEALL));
+                return TRUE;
+            }
+            break;
         case WM_GETMINMAXINFO: {
             MINMAXINFO *minMax = (LPMINMAXINFO)lParam;
             minMax->ptMinTrackSize = *(POINT *)&MIN_TRAY_SIZE;
@@ -283,12 +304,13 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
                 MONITORINFO monitorInfo = {sizeof(monitorInfo)};
                 GetMonitorInfo(curMonitor, &monitorInfo);
-                POINT pos = {sizeRect->right, sizeRect->bottom};
+                POINT snap = {0, 0};
                 POINT snapDist = {SNAP_DISTANCE, SNAP_DISTANCE};
-                snapAxis(pos.x, monitorInfo.rcMonitor.right,  &sizeRect->right,  &snapDist.x);
-                snapAxis(pos.x, monitorInfo.rcWork.right,     &sizeRect->right,  &snapDist.x);
-                snapAxis(pos.y, monitorInfo.rcMonitor.bottom, &sizeRect->bottom, &snapDist.y);
-                snapAxis(pos.y, monitorInfo.rcWork.bottom,    &sizeRect->bottom, &snapDist.y);
+                snapAxis(sizeRect->right,  monitorInfo.rcMonitor.right,  &snap.x, &snapDist.x);
+                snapAxis(sizeRect->right,  monitorInfo.rcWork.right,     &snap.x, &snapDist.x);
+                snapAxis(sizeRect->bottom, monitorInfo.rcMonitor.bottom, &snap.y, &snapDist.y);
+                snapAxis(sizeRect->bottom, monitorInfo.rcWork.bottom,    &snap.y, &snapDist.y);
+                sizeRect->right += snap.x; sizeRect->bottom += snap.y;
             }
             break; // pass to FolderWindow
         case WM_DISPLAYCHANGE: // resolution changed OR monitor connected/disconnected
@@ -300,6 +322,19 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 return 0;
             }
             break;
+        case WM_ENTERSIZEMOVE: {
+            RECT curRect = windowRect();
+            movePos = {curRect.left, curRect.top};
+            break; // pass to ItemWindow
+        }
+        case WM_MOVING: {
+            RECT *desiredRect = (RECT *)lParam;
+            RECT curRect = windowRect();
+            OffsetRect(desiredRect, movePos.x - curRect.left, movePos.y - curRect.top);
+            movePos = {desiredRect->left, desiredRect->top};
+            snapWindowPosition(hwnd, desiredRect);
+            break; // pass to ItemWindow
+        }
     }
     if (resetPositionMessage && message == resetPositionMessage) {
         setRect(requestedRect());
@@ -344,81 +379,6 @@ void TrayWindow::forceTopmost() {
     SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
     checkLE(AttachThreadInput(fgThread, threadID, false));
     return;
-}
-
-POINT snapWindowPosition(HWND hwnd, POINT pos) {
-    RECT windowRect = {};
-    GetWindowRect(hwnd, &windowRect);
-    HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
-    GetMonitorInfo(curMonitor, &monitorInfo);
-
-    POINT snapped = pos;
-    POINT snapDist = {SNAP_DISTANCE, SNAP_DISTANCE};
-    // left edge
-    snapAxis(pos.x, monitorInfo.rcMonitor.left, &snapped.x, &snapDist.x);
-    snapAxis(pos.x, monitorInfo.rcWork.left,    &snapped.x, &snapDist.x);
-    if (monitorInfo.rcWork.right < monitorInfo.rcMonitor.right)
-        snapAxis(pos.x, monitorInfo.rcWork.right, &snapped.x, &snapDist.x);
-    // top edge
-    snapAxis(pos.y, monitorInfo.rcMonitor.top,  &snapped.y, &snapDist.y);
-    snapAxis(pos.y, monitorInfo.rcWork.top,     &snapped.y, &snapDist.y);
-    if (monitorInfo.rcWork.bottom < monitorInfo.rcMonitor.bottom)
-        snapAxis(pos.y, monitorInfo.rcWork.bottom, &snapped.y, &snapDist.y);
-    // right edge
-    snapAxis(pos.x, monitorInfo.rcMonitor.right - rectWidth(windowRect),   &snapped.x, &snapDist.x);
-    snapAxis(pos.x, monitorInfo.rcWork.right - rectWidth(windowRect),      &snapped.x, &snapDist.x);
-    // bottom edge
-    snapAxis(pos.y, monitorInfo.rcMonitor.bottom - rectHeight(windowRect), &snapped.y, &snapDist.y);
-    snapAxis(pos.y, monitorInfo.rcWork.bottom - rectHeight(windowRect),    &snapped.y, &snapDist.y);
-    return snapped;
-}
-
-LRESULT CALLBACK TrayWindow::moveGripProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    switch (message) {
-        case WM_LBUTTONDOWN:
-            SetCapture(hwnd);
-            SetWindowLongPtr(hwnd, GWLP_USERDATA, lParam); // cursor offset
-            SendMessage(GetParent(hwnd), WM_ENTERSIZEMOVE, 0, 0);
-            break;
-        case WM_MOUSEMOVE:
-            if (wParam & MK_LBUTTON) {
-                POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-                ClientToScreen(hwnd, &cursor);
-                LPARAM offsetParam = GetWindowLongPtr(hwnd, GWLP_USERDATA);
-                POINT offset = {GET_X_LPARAM(offsetParam), GET_Y_LPARAM(offsetParam)};
-                HWND parent = GetParent(hwnd);
-                MapWindowPoints(hwnd, parent, &offset, 1);
-                POINT pos = {cursor.x - offset.x - 1, cursor.y - offset.y - 1};
-                pos = snapWindowPosition(parent, pos);
-                SetWindowPos(parent, nullptr, pos.x, pos.y, 0, 0,
-                    SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-            }
-            break;
-        case WM_LBUTTONUP:
-            ReleaseCapture();
-            SendMessage(GetParent(hwnd), WM_EXITSIZEMOVE, 0, 0);
-            break;
-        case WM_RBUTTONUP:
-            PostMessage(GetParent(hwnd), WM_SYSCOMMAND, SC_KEYMENU, ' '); // show system menu
-            break;
-        case WM_PAINT: {
-            PAINTSTRUCT paint;
-            BeginPaint(hwnd, &paint);
-            RECT rect = {};
-            GetClientRect(hwnd, &rect);
-            InflateRect(&rect, -CLOSE_BOX_MARGIN, -CLOSE_BOX_MARGIN);
-            HBRUSH brush = GetSysColorBrush(COLOR_BTNTEXT);
-            HDC hdc = paint.hdc;
-            RECT f = {rect.left, rect.top, rect.right, rect.top + 1};   FillRect(hdc, &f, brush);
-            f = {rect.left, rect.bottom - 1, rect.right, rect.bottom};  FillRect(hdc, &f, brush);
-            f = {rect.left, rect.top, rect.left + 1, rect.bottom};      FillRect(hdc, &f, brush);
-            f = {rect.right - 1, rect.top, rect.right, rect.bottom};    FillRect(hdc, &f, brush);
-            EndPaint(hwnd, &paint);
-            break;
-        }
-    }
-    return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
 LRESULT CALLBACK TrayWindow::sizeGripProc(HWND hwnd, UINT message,
