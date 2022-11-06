@@ -175,8 +175,7 @@ SIZE ItemWindow::requestedChildSize() const {
 }
 
 DWORD ItemWindow::windowStyle() const {
-    // WS_CLIPCHILDREN fixes drawing glitches with the scrollbars
-    return (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX) | WS_CLIPCHILDREN;
+    return WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX;
 }
 
 DWORD ItemWindow::windowExStyle() const {
