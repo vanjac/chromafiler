@@ -43,6 +43,8 @@ protected:
     void onSize(int width, int height) override;
     void onExitSizeMove(bool moved, bool sized) override;
 
+    void refresh() override;
+
 private:
     const wchar_t * className() override;
 
@@ -54,6 +56,8 @@ private:
     wchar_t * propertyBag() const override;
     FOLDERSETTINGS folderSettings() const override;
     void initDefaultView(CComPtr<IFolderView2> folderView) override;
+
+    void fixListViewColors();
 
     void forceTopmost();
 

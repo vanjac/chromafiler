@@ -221,6 +221,12 @@ void TrayWindow::onCreate() {
             RevokeDragDrop(listView);
             RegisterDragDrop(listView, dropTarget);
         }
+    }
+    fixListViewColors();
+}
+
+void TrayWindow::fixListViewColors() {
+    if (listView) {
         ListView_SetBkColor(listView, GetSysColor(COLOR_WINDOW));
         ListView_SetTextColor(listView, GetSysColor(COLOR_WINDOWTEXT));
     }
@@ -380,6 +386,11 @@ bool TrayWindow::onCommand(WORD command) {
             return true; // suppress commands
     }
     return FolderWindow::onCommand(command);
+}
+
+void TrayWindow::refresh() {
+    FolderWindow::refresh();
+    fixListViewColors();
 }
 
 void TrayWindow::forceTopmost() {
