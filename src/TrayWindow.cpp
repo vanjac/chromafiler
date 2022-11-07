@@ -296,7 +296,7 @@ void snapWindowPosition(HWND hwnd, RECT *rect) {
 LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_SETCURSOR:
-            if (LOWORD(lParam) == HTCAPTION) {
+            if (LOWORD(lParam) == HTCAPTION && HIWORD(lParam) != 0) {
                 SetCursor(LoadCursor(nullptr, IDC_SIZEALL));
                 return TRUE;
             }
