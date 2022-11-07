@@ -57,12 +57,16 @@ protected:
     void onItemChanged() override;
     void refresh() override;
 
+    HWND listView = nullptr;
+    CComPtr<IShellView> shellView;
+
 private:
     const wchar_t * className() override;
 
     bool useDefaultStatusText() const override;
 
     virtual wchar_t * propertyBag() const;
+    virtual FOLDERSETTINGS folderSettings() const;
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
 
     void listViewCreated();
@@ -80,10 +84,8 @@ private:
     void openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu, POINT point);
 
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
-    CComPtr<IShellView> shellView;
     CComPtr<IPropertyBag> propBag;
     DWORD eventsCookie = 0;
-    HWND listView = nullptr;
 
     CComPtr<IShellItem> selected;
 

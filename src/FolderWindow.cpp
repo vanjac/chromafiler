@@ -129,14 +129,11 @@ void FolderWindow::onCreate() {
     RECT browserRect = windowBody();
     browserRect.bottom += browserRect.top; // initial rect is wrong
 
-    FOLDERSETTINGS folderSettings = {};
-    folderSettings.ViewMode = FVM_DETAILS; // also set in initDefaultView
-    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS
-        | FWF_ALIGNLEFT; // use old ListView style!
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;
     checkHR(browser->SetOptions(EBO_NAVIGATEONCE | EBO_NOBORDER)); // no navigation
-    if (!checkHR(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
+    FOLDERSETTINGS settings = folderSettings();
+    if (!checkHR(browser->Initialize(hwnd, &browserRect, &settings))) {
         browser = nullptr;
         return;
     }
@@ -177,6 +174,14 @@ int FolderWindow::getToolbarTooltip(WORD command) {
             return IDS_VIEW_COMMAND;
     }
     return ItemWindow::getToolbarTooltip(command);
+}
+
+FOLDERSETTINGS FolderWindow::folderSettings() const {
+    FOLDERSETTINGS settings = {};
+    settings.ViewMode = FVM_DETAILS; // also set in initDefaultView
+    // FWF_ALIGNLEFT forces old ListView style!
+    settings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS | FWF_ALIGNLEFT;
+    return settings;
 }
 
 void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {

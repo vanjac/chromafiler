@@ -177,11 +177,19 @@ POINT TrayWindow::childPos(SIZE size) {
 }
 
 wchar_t * TrayWindow::propertyBag() const {
-    return L"chromafile.tray";
+    return L"chromafiler.tray";
 }
 
 void TrayWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
-    checkHR(folderView->SetViewModeAndIconSize(FVM_LIST, SHELL_SMALL_ICON));
+    checkHR(folderView->SetViewModeAndIconSize(FVM_ICON, SHELL_SMALL_ICON));
+}
+
+FOLDERSETTINGS TrayWindow::folderSettings() const {
+    FOLDERSETTINGS settings = {};
+    settings.ViewMode = FVM_ICON;
+    settings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOCOLUMNHEADER | FWF_ALIGNLEFT
+        | FWF_DESKTOP;
+    return settings;
 }
 
 void TrayWindow::onCreate() {
@@ -205,6 +213,16 @@ void TrayWindow::onCreate() {
     checkLE(RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C'));
 
     FolderWindow::onCreate();
+
+    // must register drop target ourselves when using FWF_DESKTOP
+    // https://www.codeproject.com/Questions/191728/Can-t-drop-files-to-IShellView-when-FWF-DESKTOP-fl
+    if (shellView && listView) {
+        CComQIPtr<IDropTarget> dropTarget(shellView);
+        if (dropTarget) {
+            RevokeDragDrop(listView);
+            RegisterDragDrop(listView, dropTarget);
+        }
+    }
 }
 
 void TrayWindow::onDestroy() {

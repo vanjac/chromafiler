@@ -52,6 +52,7 @@ private:
     SettingsPage settingsStartPage() const override;
     POINT childPos(SIZE size) override;
     wchar_t * propertyBag() const override;
+    FOLDERSETTINGS folderSettings() const override;
     void initDefaultView(CComPtr<IFolderView2> folderView) override;
 
     void forceTopmost();
