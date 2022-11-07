@@ -194,7 +194,6 @@ FOLDERSETTINGS TrayWindow::folderSettings() const {
 
 void TrayWindow::onCreate() {
     HMODULE instance = GetWindowInstance(hwnd);
-
     RECT clientRect = {};
     GetClientRect(hwnd, &clientRect);
     traySizeGrip = checkLE(CreateWindow(L"SCROLLBAR", nullptr,
@@ -222,6 +221,8 @@ void TrayWindow::onCreate() {
             RevokeDragDrop(listView);
             RegisterDragDrop(listView, dropTarget);
         }
+        ListView_SetBkColor(listView, GetSysColor(COLOR_WINDOW));
+        ListView_SetTextColor(listView, GetSysColor(COLOR_WINDOWTEXT));
     }
 }
 
