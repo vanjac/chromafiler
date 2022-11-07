@@ -396,6 +396,8 @@ void FolderWindow::onItemChanged() {
 
 void FolderWindow::refresh() {
     ItemWindow::refresh();
+    if (listView && ListView_GetView(listView) == LV_VIEW_DETAILS)
+        SendMessage(listView, WM_VSCROLL, SB_TOP, 0); // fix drawing glitch on refresh
     if (shellView)
         checkHR(shellView->Refresh());
 }
