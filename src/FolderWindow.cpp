@@ -232,7 +232,8 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
         if (ListView_GetView(hwnd) == LV_VIEW_DETAILS) {
             if (HWND header = ListView_GetHeader(hwnd)) {
                 if (Header_GetItemCount(header) == 1) {
-                    ListView_SetColumnWidth(hwnd, 0, LOWORD(lParam) - 1);
+                    // post instead of send to reduce scrollbar flicker
+                    PostMessage(hwnd, LVM_SETCOLUMNWIDTH, 0, MAKELPARAM(LOWORD(lParam) - 1, 0));
                 }
             }
         }
