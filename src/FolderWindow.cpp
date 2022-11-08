@@ -202,7 +202,7 @@ void FolderWindow::listViewCreated() {
     if (!checkLE(browserControl)) return;
     HWND defView = FindWindowEx(browserControl, nullptr, L"SHELLDLL_DefView", nullptr);
     if (!checkLE(defView)) return;
-    listView = FindWindowEx(defView, nullptr, L"SysListView32", nullptr);
+    listView = FindWindowEx(defView, nullptr, WC_LISTVIEW, nullptr);
     if (!checkLE(listView)) return;
     DWORD style = GetWindowLong(listView, GWL_STYLE);
     style &= ~LVS_ALIGNLEFT;
