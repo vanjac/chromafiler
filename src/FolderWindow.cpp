@@ -237,11 +237,12 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
                 && abs(pos.x - window->clickPos.x) <= GetSystemMetrics(SM_CXDOUBLECLK)/2
                 && abs(pos.y - window->clickPos.y) <= GetSystemMetrics(SM_CYDOUBLECLK)/2) {
             debugPrintf(L"Recovered lost double-click\n");
-            window->clickTime = 0;
             return SendMessage(hwnd, WM_LBUTTONDBLCLK, wParam, lParam);
         }
         window->clickTime = time;
         window->clickPos = pos;
+    } else if (message == WM_LBUTTONDBLCLK) {
+        ((FolderWindow *)refData)->clickTime = 0;
     } else if (message == WM_SIZE) {
         if (ListView_GetView(hwnd) == LV_VIEW_DETAILS) {
             if (HWND header = ListView_GetHeader(hwnd)) {
