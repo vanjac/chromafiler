@@ -20,6 +20,8 @@ public:
 
     bool handleTopLevelMessage(MSG *msg) override;
 
+    STDMETHODIMP OnNavigationComplete(PCIDLIST_ABSOLUTE folder) override;
+
 protected:
     enum UserMessage {
         MSG_APPBAR_CALLBACK = FolderWindow::MSG_LAST,

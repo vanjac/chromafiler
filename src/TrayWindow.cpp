@@ -212,24 +212,6 @@ void TrayWindow::onCreate() {
     checkLE(RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C'));
 
     FolderWindow::onCreate();
-
-    // must register drop target ourselves when using FWF_DESKTOP
-    // https://www.codeproject.com/Questions/191728/Can-t-drop-files-to-IShellView-when-FWF-DESKTOP-fl
-    if (shellView && listView) {
-        CComQIPtr<IDropTarget> dropTarget(shellView);
-        if (dropTarget) {
-            RevokeDragDrop(listView);
-            RegisterDragDrop(listView, dropTarget);
-        }
-    }
-    fixListViewColors();
-}
-
-void TrayWindow::fixListViewColors() {
-    if (listView) {
-        ListView_SetBkColor(listView, GetSysColor(COLOR_WINDOW));
-        ListView_SetTextColor(listView, GetSysColor(COLOR_WINDOWTEXT));
-    }
 }
 
 void TrayWindow::onDestroy() {
@@ -393,6 +375,13 @@ void TrayWindow::refresh() {
     fixListViewColors();
 }
 
+void TrayWindow::fixListViewColors() {
+    if (listView) {
+        ListView_SetBkColor(listView, GetSysColor(COLOR_WINDOW));
+        ListView_SetTextColor(listView, GetSysColor(COLOR_WINDOWTEXT));
+    }
+}
+
 void TrayWindow::forceTopmost() {
     RECT rect = windowRect();
     POINT testPoint {(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
@@ -409,6 +398,21 @@ void TrayWindow::forceTopmost() {
     SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
     checkLE(AttachThreadInput(fgThread, threadID, false));
     return;
+}
+
+STDMETHODIMP TrayWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE idList) {
+    FolderWindow::OnNavigationComplete(idList);
+    // must register drop target ourselves when using FWF_DESKTOP
+    // https://www.codeproject.com/Questions/191728/Can-t-drop-files-to-IShellView-when-FWF-DESKTOP-fl
+    if (shellView && listView) {
+        CComQIPtr<IDropTarget> dropTarget(shellView);
+        if (dropTarget) {
+            RevokeDragDrop(listView);
+            RegisterDragDrop(listView, dropTarget);
+        }
+    }
+    fixListViewColors();
+    return S_OK;
 }
 
 LRESULT CALLBACK TrayWindow::sizeGripProc(HWND hwnd, UINT message,

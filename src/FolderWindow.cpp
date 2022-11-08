@@ -21,9 +21,11 @@ const wchar_t PROP_VISITED[] = L"Visited";
 const wchar_t PROP_SIZE[] = L"Size";
 const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
 
+const EXPLORER_BROWSER_OPTIONS BROWSER_OPTIONS = EBO_NOBORDER | EBO_NOTRAVELLOG;
+
 // on the Desktop only
 const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
-    L"::{26EE0668-A00A-44D7-9371-BEB064C98683}", // Control Panel
+    L"::{26EE0668-A00A-44D7-9371-BEB064C98683}", // Control Panel (must be 0)
     L"::{018D5C66-4533-4307-9B53-224DE2ED1FE6}", // OneDrive (may fail if not installed)
     L"::{031E4825-7B94-4DC3-B131-E946B44C8DD5}", // Libraries
     // added in build 22621.675  >:(
@@ -36,6 +38,7 @@ const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
     L"::{A0953C92-50DC-43BF-BE83-3742FED03C9C}", // Videos
     // special items that are NOT hidden: user folder, This PC, Network, Recycle Bin, Linux
 };
+static CComPtr<IShellItem> controlPanelItem;
 static CComHeapPtr<ITEMID_CHILD> hiddenItemIDs[_countof(HIDDEN_ITEM_PARSE_NAMES)];
 
 // local property bags can be found at:
@@ -60,6 +63,8 @@ void FolderWindow::init() {
                 IID_PPV_ARGS(&item)))) {
             checkHR(CComQIPtr<IParentAndItem>(item)
                 ->GetParentAndItem(nullptr, nullptr, &hiddenItemIDs[i]));
+            if (i == 0)
+                controlPanelItem = item;
         }
     }
 }
@@ -131,12 +136,17 @@ void FolderWindow::onCreate() {
 
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;
-    checkHR(browser->SetOptions(EBO_NAVIGATEONCE | EBO_NOBORDER)); // no navigation
+    checkHR(browser->SetOptions(BROWSER_OPTIONS));
     FOLDERSETTINGS settings = folderSettings();
     if (!checkHR(browser->Initialize(hwnd, &browserRect, &settings))) {
         browser = nullptr;
         return;
     }
+
+    // AWFUL HACK: IExplorerBrowser performs the first navigation synchronously and subsequent ones
+    // asynchronously. So to force it to browse asynchronously, we first tell it to browse to
+    // control panel, which it can't load since frames aren't enabled.
+    checkHR(browser->BrowseToObject(controlPanelItem, SBSP_ABSOLUTE));
 
     checkHR(IUnknown_SetSite(browser, (IServiceProvider *)this));
     checkHR(browser->Advise(this, &eventsCookie));
@@ -154,7 +164,7 @@ void FolderWindow::onCreate() {
         }
         return;
     }
-    listViewCreated();
+    checkHR(browser->SetOptions(BROWSER_OPTIONS | EBO_NAVIGATEONCE)); // no further navigation
 }
 
 void FolderWindow::addToolbarButtons(HWND tb) {
@@ -260,10 +270,13 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
 }
 
 void FolderWindow::onDestroy() {
-    if (propBag) {
+    if (shellView && propBag) {
         // view settings are only written when shell view is destroyed
         CComVariant visitedVar(true);
         checkHR(propBag->Write(PROP_VISITED, &visitedVar));
+    } else if (!shellView) {
+        // prevent view settings from being trashed before navigation complete
+        checkHR(browser->SetPropertyBag(L""));
     }
     ItemWindow::onDestroy();
     if (browser) {
@@ -405,9 +418,9 @@ void FolderWindow::onItemChanged() {
     ItemWindow::onItemChanged();
     propBag = getItemPropertyBag(item, propertyBag());
     shellView = nullptr;
-    checkHR(browser->SetOptions(EBO_NOBORDER));
+    checkHR(browser->SetOptions(BROWSER_OPTIONS)); // temporarily enable navigation
     checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE));
-    checkHR(browser->SetOptions(EBO_NAVIGATEONCE | EBO_NOBORDER));
+    checkHR(browser->SetOptions(BROWSER_OPTIONS | EBO_NAVIGATEONCE));
 }
 
 void FolderWindow::refresh() {
@@ -647,10 +660,25 @@ STDMETHODIMP FolderWindow::OnNavigationPending(PCIDLIST_ABSOLUTE) {
 }
 
 STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
+    listViewCreated();
+
+    if (child && shellView) {
+        // window was created by clicking the parent button OR onItemChanged was called
+        ignoreNextSelection = true; // TODO jank
+        CComHeapPtr<ITEMID_CHILD> childID;
+        checkHR(CComQIPtr<IParentAndItem>(child->item)
+            ->GetParentAndItem(nullptr, nullptr, &childID));
+        checkHR(shellView->SelectItem(childID,
+            SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
+    }
+
     // note: often the item count will be incorrect at this point (esp. if the folder is already
     // visited), but between this and OnStateChange, we'll usually end up with the right value.
     if (hasStatusText())
         updateStatus();
+
+    if (shellView && GetActiveWindow() == hwnd)
+        checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
     return S_OK;
 }
 
@@ -672,16 +700,6 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
         CComQIPtr<IFolderView2> folderView(view);
         if (folderView)
             initDefaultView(folderView);
-    }
-
-    if (child) {
-        // window was created by clicking the parent button OR onItemChanged was called
-        ignoreNextSelection = true; // TODO jank
-        CComHeapPtr<ITEMID_CHILD> childID;
-        checkHR(CComQIPtr<IParentAndItem>(child->item)
-            ->GetParentAndItem(nullptr, nullptr, &childID));
-        checkHR(view->SelectItem(childID,
-            SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
     }
 
     return S_OK;
