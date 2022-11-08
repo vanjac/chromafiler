@@ -228,6 +228,20 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
                 return 0;
             }
         }
+
+        // sometimes a double click isn't registered after a preview handler is opened
+        // https://devblogs.microsoft.com/oldnewthing/20041018-00/?p=37543
+        DWORD time = GetMessageTime();
+        POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        if (time - window->clickTime <= GetDoubleClickTime()
+                && abs(pos.x - window->clickPos.x) <= GetSystemMetrics(SM_CXDOUBLECLK)/2
+                && abs(pos.y - window->clickPos.y) <= GetSystemMetrics(SM_CYDOUBLECLK)/2) {
+            debugPrintf(L"Recovered lost double-click\n");
+            window->clickTime = 0;
+            return SendMessage(hwnd, WM_LBUTTONDBLCLK, wParam, lParam);
+        }
+        window->clickTime = time;
+        window->clickPos = pos;
     } else if (message == WM_SIZE) {
         if (ListView_GetView(hwnd) == LV_VIEW_DETAILS) {
             if (HWND header = ListView_GetHeader(hwnd)) {

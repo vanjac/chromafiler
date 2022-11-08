@@ -94,6 +94,9 @@ private:
     bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;
     bool clickActivate = true;
+
+    DWORD clickTime = 0;
+    POINT clickPos;
 };
 
 } // namespace
