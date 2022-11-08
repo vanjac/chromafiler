@@ -54,8 +54,11 @@ DWORD WINAPI checkLastVersion(void *);
 void showWelcomeDialog();
 HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LONG_PTR data);
 void startTrayProcess();
+DWORD WINAPI checkForUpdates(void *);
 DWORD WINAPI updateJumpList(void *);
 DWORD WINAPI recoveryCallback(void *);
+
+static UpdateInfo updateInfo;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     OutputDebugString(L"hiiiii ^w^\n"); // DO NOT REMOVE!!
@@ -82,9 +85,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));
-
-    HANDLE jumpListThread = nullptr;
-    SHCreateThreadWithHandle(updateJumpList, nullptr, CTF_COINIT_STA, nullptr, &jumpListThread);
 
     {
         int argc;
@@ -151,8 +151,21 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         LocalFree(argv);
     }
 
-    HANDLE versionThread;
+    HANDLE jumpListThread = nullptr, versionThread = nullptr, updateCheckThread = nullptr;
+    SHCreateThreadWithHandle(updateJumpList, nullptr, CTF_COINIT_STA, nullptr, &jumpListThread);
     SHCreateThreadWithHandle(checkLastVersion, nullptr, 0, nullptr, &versionThread);
+    if (settings::getUpdateCheckEnabled()) {
+        LONGLONG lastCheck = settings::getLastUpdateCheck();
+        LONGLONG interval = settings::getUpdateCheckRate();
+        FILETIME fileTime;
+        GetSystemTimeAsFileTime(&fileTime); // https://stackoverflow.com/a/1695332/11525734
+        LONGLONG curTime = (LONGLONG)fileTime.dwLowDateTime
+            + ((LONGLONG)(fileTime.dwHighDateTime) << 32LL);
+        if (curTime - lastCheck > interval) {
+            settings::setLastUpdateCheck(curTime);
+            SHCreateThreadWithHandle(checkForUpdates, nullptr, 0, nullptr, &updateCheckThread);
+        }
+    }
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
@@ -166,6 +179,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     WaitForSingleObject(jumpListThread, INFINITE);
     WaitForSingleObject(versionThread, INFINITE);
+    if (updateCheckThread) {
+        WaitForSingleObject(updateCheckThread, INFINITE);
+        checkLE(CloseHandle(updateCheckThread));
+    }
     checkLE(CloseHandle(jumpListThread));
     checkLE(CloseHandle(versionThread));
 
@@ -246,6 +263,69 @@ void startTrayProcess() {
         checkLE(CloseHandle(info.hProcess));
         checkLE(CloseHandle(info.hThread));
     }
+}
+
+LRESULT CALLBACK notifyWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == WM_USER) {
+        if (LOWORD(lParam) == NIN_BALLOONUSERCLICK) {
+            openUpdate(updateInfo);
+            PostQuitMessage(0);
+        } else if (LOWORD(lParam) == NIN_BALLOONTIMEOUT || LOWORD(lParam) == NIN_BALLOONHIDE) {
+            PostQuitMessage(0);
+        }
+        return 0;
+    }
+    return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+DWORD WINAPI checkForUpdates(void *) {
+    debugPrintf(L"Checking for updates...\n");
+    if (checkUpdate(&updateInfo))
+        return 0;
+    DWORD lastVersion = settings::getLastUpdateVersion();
+    settings::setLastUpdateVersion(updateInfo.version);
+    if (!updateInfo.isNewer || updateInfo.version <= lastVersion)
+        return 0;
+    debugPrintf(L"Update available!\n");
+
+    HINSTANCE instance = GetModuleHandle(nullptr);
+    WNDCLASS notifyClass = {};
+    notifyClass.lpfnWndProc = notifyWindowProc;
+    notifyClass.hInstance = instance;
+    notifyClass.lpszClassName = L"ChromaFile Update Notify";
+    if (!checkLE(RegisterClass(&notifyClass)))
+        return 0;
+    HWND messageWindow = checkLE(CreateWindow(notifyClass.lpszClassName, L"ChromaFiler", 0,
+        0, 0, 0, 0, HWND_MESSAGE, nullptr, instance, nullptr));
+    if (!messageWindow)
+        return 0;
+
+    // https://learn.microsoft.com/en-us/windows/win32/shell/notification-area
+    NOTIFYICONDATA notify = {sizeof(notify)};
+    notify.uFlags = NIF_INFO | NIF_ICON | NIF_MESSAGE;
+    notify.uCallbackMessage = WM_USER;
+    notify.hWnd = messageWindow;
+    notify.dwInfoFlags = NIIF_RESPECT_QUIET_TIME;
+    notify.uVersion = NOTIFYICON_VERSION_4;
+    wchar_t content[] =
+        L"A new version of ChromaFiler is available. Click the icon below to download.";
+    wchar_t title[] = L"ChromaFiler update";
+    CopyMemory(notify.szInfo, content, sizeof(content));
+    CopyMemory(notify.szInfoTitle, title, sizeof(title));
+    checkHR(LoadIconMetric(instance, MAKEINTRESOURCE(IDR_APP_ICON), LIM_SMALL,
+        &notify.hIcon));
+    if (!checkLE(Shell_NotifyIcon(NIM_ADD, &notify)))
+        return 0;
+    checkLE(Shell_NotifyIcon(NIM_SETVERSION, &notify));
+
+    // keep thread running to keep message window open
+    MSG msg;
+    while (GetMessage(&msg, nullptr, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    checkLE(Shell_NotifyIcon(NIM_DELETE, &notify));
+    return 0;
 }
 
 DWORD WINAPI updateJumpList(void *) {

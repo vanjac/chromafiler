@@ -399,7 +399,10 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
                     formatErrorMessage(content, error);
                     TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_UPDATE_ERROR),
                         nullptr, content, 0, nullptr, nullptr);
-                } else if (info.isNewer) {
+                    return TRUE;
+                }
+                settings::setLastUpdateVersion(info.version);
+                if (info.isNewer) {
                     openUpdate(info);
                 } else {
                     TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_NO_UPDATE_CAPTION),

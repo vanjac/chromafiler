@@ -53,15 +53,21 @@ DWORD checkUpdate(UpdateInfo *info) {
     if (error)
         return error;
     debugPrintf(L"Downloaded content: %S\n", &*data);
-    if (memcmp(data, "CFUP", 4))
+    if (memcmp(data, "CFUP", 4)) {
+        debugPrintf(L"Update data is missing prefix!\n");
         return (DWORD)E_FAIL;
-    if (dataSize < 31)
+    }
+    if (dataSize < 31) {
+        debugPrintf(L"Update data is too small!\n");
         return (DWORD)E_FAIL;
+    }
     char hexString[11] = "0x";
     CopyMemory(hexString + 2, data + 5, 8);
     hexString[10] = 0;
-    if (!StrToIntExA(hexString, STIF_SUPPORT_HEX, (int *)&info->version))
+    if (!StrToIntExA(hexString, STIF_SUPPORT_HEX, (int *)&info->version)) {
+        debugPrintf(L"Can't parse update version!\n");
         return (DWORD)E_FAIL;
+    }
     info->isNewer = info->version > makeVersion(CHROMAFILER_VERSION);
 
     char *url = data + 14, *urlEnd = StrChrA(url, '\n');

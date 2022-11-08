@@ -54,6 +54,17 @@ void setSettingsString(const wchar_t *name, DWORD type, const wchar_t *value) {
         setSettingsValue((valueName), REG_DWORD, &dwValue, sizeof(dwValue));                       \
     }
 
+#define SETTINGS_QWORD_VALUE(funcName, type, valueName, defaultValue) \
+    type get##funcName() {                                                                         \
+        ULONGLONG value = (defaultValue);                                                          \
+        getSettingsValue((valueName), RRF_RT_QWORD, &value, sizeof(value));                        \
+        return (type)value;                                                                        \
+    }                                                                                              \
+    void set##funcName(type value) {                                                               \
+        ULONGLONG dwValue = (ULONGLONG)value;                                                      \
+        setSettingsValue((valueName), REG_QWORD, &dwValue, sizeof(dwValue));                       \
+    }
+
 #define SETTINGS_BOOL_VALUE(funcName, valueName, defaultValue) \
     SETTINGS_DWORD_VALUE(funcName, bool, valueName, defaultValue)
 
@@ -111,6 +122,10 @@ void setSettingsString(const wchar_t *name, DWORD type, const wchar_t *value) {
 
 
 SETTINGS_DWORD_VALUE(LastOpenedVersion, DWORD, L"LastOpenedVersion", DEFAULT_LAST_OPENED_VERSION)
+SETTINGS_DWORD_VALUE(LastUpdateVersion, DWORD, L"LastUpdateVersion", DEFAULT_LAST_UPDATE_VERSION)
+SETTINGS_BOOL_VALUE(UpdateCheckEnabled, L"UpdateCheckEnabled", DEFAULT_UPDATE_CHECK_ENABLED);
+SETTINGS_QWORD_VALUE(LastUpdateCheck, LONGLONG, L"LastUpdateCheck", DEFAULT_LAST_UPDATE_CHECK)
+SETTINGS_QWORD_VALUE(UpdateCheckRate, LONGLONG, L"UpdateCheckRate", DEFAULT_UPDATE_CHECK_RATE)
 
 SETTINGS_STRING_VALUE(StartingFolder, REG_EXPAND_SZ, L"StartingFolder", DEFAULT_STARTING_FOLDER)
 SETTINGS_STRING_VALUE(ScratchFolder, REG_EXPAND_SZ, L"ScratchFolder", DEFAULT_SCRATCH_FOLDER)
