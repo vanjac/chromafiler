@@ -282,9 +282,7 @@ DWORD WINAPI checkForUpdates(void *) {
     debugPrintf(L"Checking for updates...\n");
     if (checkUpdate(&updateInfo))
         return 0;
-    DWORD lastVersion = settings::getLastUpdateVersion();
-    settings::setLastUpdateVersion(updateInfo.version);
-    if (!updateInfo.isNewer || updateInfo.version <= lastVersion)
+    if (!updateInfo.isNewer)
         return 0;
     debugPrintf(L"Update available!\n");
 
@@ -308,7 +306,7 @@ DWORD WINAPI checkForUpdates(void *) {
     notify.dwInfoFlags = NIIF_RESPECT_QUIET_TIME;
     notify.uVersion = NOTIFYICON_VERSION_4;
     wchar_t content[] =
-        L"A new version of ChromaFiler is available. Click the icon below to download.";
+        L"A new version of ChromaFiler is available. Click the purple icon below to download.";
     wchar_t title[] = L"ChromaFiler update";
     CopyMemory(notify.szInfo, content, sizeof(content));
     CopyMemory(notify.szInfoTitle, title, sizeof(title));

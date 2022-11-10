@@ -401,7 +401,6 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
                         nullptr, content, 0, nullptr, nullptr);
                     return TRUE;
                 }
-                settings::setLastUpdateVersion(info.version);
                 if (info.isNewer) {
                     openUpdate(info);
                 } else {

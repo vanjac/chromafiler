@@ -14,7 +14,7 @@ const DWORD     DEFAULT_LAST_OPENED_VERSION = 0;
 const DWORD     DEFAULT_LAST_UPDATE_VERSION = 0;
 const bool      DEFAULT_UPDATE_CHECK_ENABLED= false;
 const LONGLONG  DEFAULT_LAST_UPDATE_CHECK   = 0;
-const LONGLONG  DEFAULT_UPDATE_CHECK_RATE   = 10000000LL * 60 * 60 * 24; // 1 day
+const LONGLONG  DEFAULT_UPDATE_CHECK_RATE   = 10000000LL * 60 * 60 * 24 * 7; // 1 week
 const wchar_t   DEFAULT_STARTING_FOLDER[]   = L"shell:Desktop";
 const wchar_t   DEFAULT_SCRATCH_FOLDER[]    = L"shell:Desktop";
 const wchar_t   DEFAULT_SCRATCH_FILE_NAME[] = L"scratch.txt";
@@ -39,14 +39,12 @@ const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
 
 DWORD getLastOpenedVersion();
 void setLastOpenedVersion(DWORD value);
-DWORD getLastUpdateVersion();
-void setLastUpdateVersion(DWORD value);
 bool getUpdateCheckEnabled();
-void setUpdateCheckEnabled(bool value);
+void setUpdateCheckEnabled(bool value); // TODO: add to Settings
 LONGLONG getLastUpdateCheck();
 void setLastUpdateCheck(LONGLONG value);
 LONGLONG getUpdateCheckRate();
-void setUpdateCheckRate(LONGLONG value);
+void setUpdateCheckRate(LONGLONG value); // TODO: add to Settings
 
 void getStartingFolder(CComHeapPtr<wchar_t> &value);
 void setStartingFolder(wchar_t *value);
@@ -69,7 +67,7 @@ bool getPreviewsEnabled();
 void setPreviewsEnabled(bool value);
 
 bool getDeselectOnOpen();
-void setDeselectOnOpen(bool value);
+void setDeselectOnOpen(bool value); // TODO: add to Settings
 
 bool getTextEditorEnabled();
 void setTextEditorEnabled(bool value);
