@@ -825,6 +825,9 @@ void ItemWindow::onActivate(WORD state, HWND) {
             SetWindowPos(child->hwnd, HWND_TOP, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         }
+        if (firstActivate && !parent)
+            resolveItem();
+        firstActivate = true;
     }
 }
 
