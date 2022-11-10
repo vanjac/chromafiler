@@ -20,6 +20,8 @@ public:
 
     bool handleTopLevelMessage(MSG *msg) override;
 
+    STDMETHODIMP OnNavigationComplete(PCIDLIST_ABSOLUTE folder) override;
+
 protected:
     enum UserMessage {
         MSG_APPBAR_CALLBACK = FolderWindow::MSG_LAST,
@@ -35,11 +37,15 @@ protected:
     DWORD windowExStyle() const override;
     bool paletteWindow() const override;
 
+    RECT windowBody() override;
+
     void onCreate() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
     void onSize(int width, int height) override;
     void onExitSizeMove(bool moved, bool sized) override;
+
+    void refresh() override;
 
 private:
     const wchar_t * className() override;
@@ -50,16 +56,19 @@ private:
     SettingsPage settingsStartPage() const override;
     POINT childPos(SIZE size) override;
     wchar_t * propertyBag() const override;
+    FOLDERSETTINGS folderSettings() const override;
     void initDefaultView(CComPtr<IFolderView2> folderView) override;
+
+    void fixListViewColors();
 
     void forceTopmost();
 
-    static LRESULT CALLBACK moveGripProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     static LRESULT CALLBACK sizeGripProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     HWND traySizeGrip;
     bool fullScreen = false;
+    POINT movePos;
 };
 
 } // namespace

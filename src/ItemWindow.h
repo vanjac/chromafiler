@@ -26,6 +26,9 @@ public:
     bool create(RECT rect, int showCommand);
     void close();
 
+    // attempt to relocate item if it has been renamed, moved, or deleted
+    bool resolveItem();
+
     virtual bool handleTopLevelMessage(MSG *msg);
 
     // IUnknown
@@ -63,7 +66,7 @@ protected:
     void setPos(POINT pos);
     void move(int x, int y);
     RECT windowRect();
-    RECT windowBody();
+    virtual RECT windowBody();
 
     // message callbacks
     virtual void onCreate();
@@ -129,8 +132,6 @@ private:
     void addChainPreview();
     void removeChainPreview();
 
-    bool resolveItem();
-
     void openParentMenu(POINT point);
 
     void invokeProxyDefaultVerb();
@@ -165,6 +166,7 @@ private:
     POINT moveAccum;
     SIZE lastSize;
     bool isChainPreview = false;
+    bool firstActivate = false;
     // drop target state
     IDataObject *dropDataObject;
     bool overDropTarget = false;

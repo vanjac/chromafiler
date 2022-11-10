@@ -40,12 +40,6 @@ public:
     STDMETHODIMP OnViewCreated(IShellView *shellView) override;
 
 protected:
-    enum UserMessage {
-        MSG_SETUP_SCROLLBAR_SUBCLASS = ItemWindow::MSG_LAST,
-        MSG_LAST
-    };
-    LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
-
     void onCreate() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
@@ -63,19 +57,26 @@ protected:
     void onItemChanged() override;
     void refresh() override;
 
+    HWND listView = nullptr;
+    CComPtr<IShellView> shellView;
+
 private:
     const wchar_t * className() override;
 
     bool useDefaultStatusText() const override;
 
     virtual wchar_t * propertyBag() const;
+    virtual FOLDERSETTINGS folderSettings() const;
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
 
-    void setupScrollBarSubclass();
-    static LRESULT CALLBACK scrollBarSubclassProc(HWND hwnd, UINT message,
+    void listViewCreated();
+    static LRESULT CALLBACK listViewSubclassProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
+    static LRESULT CALLBACK listViewOwnerProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     void selectionChanged();
+    void updateSelection();
     void clearSelection();
     void updateStatus();
 
@@ -86,7 +87,6 @@ private:
     void openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu, POINT point);
 
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
-    CComPtr<IShellView> shellView;
     CComPtr<IPropertyBag> propBag;
     DWORD eventsCookie = 0;
 
@@ -96,7 +96,10 @@ private:
     bool ignoreNextSelection = false;
     bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;
-    bool clickActivate = false, clickActivateRelease = false;
+    bool clickActivate = true;
+
+    DWORD clickTime = 0;
+    POINT clickPos;
 };
 
 } // namespace

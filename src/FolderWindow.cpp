@@ -7,6 +7,7 @@
 #include <windowsx.h>
 #include <shlobj.h>
 #include <shellapi.h>
+#include <propkey.h>
 #include <Propvarutil.h>
 
 // Example of how to host an IExplorerBrowser:
@@ -20,9 +21,11 @@ const wchar_t PROP_VISITED[] = L"Visited";
 const wchar_t PROP_SIZE[] = L"Size";
 const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
 
+const EXPLORER_BROWSER_OPTIONS BROWSER_OPTIONS = EBO_NOBORDER | EBO_NOTRAVELLOG;
+
 // on the Desktop only
 const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
-    L"::{26EE0668-A00A-44D7-9371-BEB064C98683}", // Control Panel
+    L"::{26EE0668-A00A-44D7-9371-BEB064C98683}", // Control Panel (must be 0)
     L"::{018D5C66-4533-4307-9B53-224DE2ED1FE6}", // OneDrive (may fail if not installed)
     L"::{031E4825-7B94-4DC3-B131-E946B44C8DD5}", // Libraries
     // added in build 22621.675  >:(
@@ -35,6 +38,7 @@ const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
     L"::{A0953C92-50DC-43BF-BE83-3742FED03C9C}", // Videos
     // special items that are NOT hidden: user folder, This PC, Network, Recycle Bin, Linux
 };
+static CComPtr<IShellItem> controlPanelItem;
 static CComHeapPtr<ITEMID_CHILD> hiddenItemIDs[_countof(HIDDEN_ITEM_PARSE_NAMES)];
 
 // local property bags can be found at:
@@ -59,6 +63,8 @@ void FolderWindow::init() {
                 IID_PPV_ARGS(&item)))) {
             checkHR(CComQIPtr<IParentAndItem>(item)
                 ->GetParentAndItem(nullptr, nullptr, &hiddenItemIDs[i]));
+            if (i == 0)
+                controlPanelItem = item;
         }
     }
 }
@@ -105,7 +111,7 @@ SIZE FolderWindow::requestedChildSize() const {
 }
 
 wchar_t * FolderWindow::propertyBag() const {
-    return L"chromafile";
+    return L"chromafiler";
 }
 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
@@ -119,12 +125,6 @@ bool FolderWindow::handleTopLevelMessage(MSG *msg) {
     }
     if (shellView && shellView->TranslateAccelerator(msg) == S_OK)
         return true;
-    if (clickActivate && msg->message == WM_LBUTTONUP) {
-        clickActivate = false;
-        clickActivateRelease = true;
-    } else {
-        clickActivateRelease = false;
-    }
     return false;
 }
 
@@ -134,16 +134,19 @@ void FolderWindow::onCreate() {
     RECT browserRect = windowBody();
     browserRect.bottom += browserRect.top; // initial rect is wrong
 
-    FOLDERSETTINGS folderSettings = {};
-    folderSettings.ViewMode = FVM_SMALLICON; // doesn't work correctly (see initDefaultView)
-    folderSettings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;
-    checkHR(browser->SetOptions(EBO_NAVIGATEONCE | EBO_NOBORDER)); // no navigation
-    if (!checkHR(browser->Initialize(hwnd, &browserRect, &folderSettings))) {
+    checkHR(browser->SetOptions(BROWSER_OPTIONS));
+    FOLDERSETTINGS settings = folderSettings();
+    if (!checkHR(browser->Initialize(hwnd, &browserRect, &settings))) {
         browser = nullptr;
         return;
     }
+
+    // AWFUL HACK: IExplorerBrowser performs the first navigation synchronously and subsequent ones
+    // asynchronously. So to force it to browse asynchronously, we first tell it to browse to
+    // control panel, which it can't load since frames aren't enabled.
+    checkHR(browser->BrowseToObject(controlPanelItem, SBSP_ABSOLUTE));
 
     checkHR(IUnknown_SetSite(browser, (IServiceProvider *)this));
     checkHR(browser->Advise(this, &eventsCookie));
@@ -161,7 +164,7 @@ void FolderWindow::onCreate() {
         }
         return;
     }
-    setupScrollBarSubclass();
+    checkHR(browser->SetOptions(BROWSER_OPTIONS | EBO_NAVIGATEONCE)); // no further navigation
 }
 
 void FolderWindow::addToolbarButtons(HWND tb) {
@@ -183,63 +186,120 @@ int FolderWindow::getToolbarTooltip(WORD command) {
     return ItemWindow::getToolbarTooltip(command);
 }
 
+FOLDERSETTINGS FolderWindow::folderSettings() const {
+    FOLDERSETTINGS settings = {};
+    settings.ViewMode = FVM_DETAILS; // also set in initDefaultView
+    // FWF_ALIGNLEFT forces old ListView style!
+    settings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS | FWF_ALIGNLEFT;
+    return settings;
+}
+
 void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     // FVM_SMALLICON only seems to work if it's also specified with an icon size
     // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
-    checkHR(folderView->SetViewModeAndIconSize(FVM_SMALLICON, SHELL_SMALL_ICON));
+    checkHR(folderView->SetCurrentViewMode(FVM_DETAILS));
+    CComQIPtr<IColumnManager> columnMgr(folderView);
+    if (columnMgr) {
+        PROPERTYKEY keys[] = {PKEY_ItemNameDisplay};
+        columnMgr->SetColumns(keys, _countof(keys));
+    }
 }
 
-void FolderWindow::setupScrollBarSubclass() {
+void FolderWindow::listViewCreated() {
     if (!browser)
         return;
-    bool blockScrolling = true;
-    CComPtr<IFolderView> folderView;
-    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
-        UINT viewMode;
-        if (checkHR(folderView->GetCurrentViewMode(&viewMode)) && viewMode == FVM_LIST)
-            blockScrolling = false; // list view scrolls horizontally
-    }
-
     HWND browserControl = FindWindowEx(hwnd, nullptr, L"ExplorerBrowserControl", nullptr);
     if (!checkLE(browserControl)) return;
     HWND defView = FindWindowEx(browserControl, nullptr, L"SHELLDLL_DefView", nullptr);
     if (!checkLE(defView)) return;
-    HWND directUI = FindWindowEx(defView, nullptr, L"DirectUIHWND", nullptr);
-    if (!checkLE(directUI)) return;
-    HWND ctrlNotify = nullptr, scrollBar;
-    do {
-        ctrlNotify = FindWindowEx(directUI, ctrlNotify, L"CtrlNotifySink", nullptr);
-        if (!checkLE(ctrlNotify)) return;
-        scrollBar = FindWindowEx(ctrlNotify, nullptr, L"ScrollBar", nullptr);
-        if (!checkLE(scrollBar)) return;
-    } while (GetWindowLongPtr(scrollBar, GWL_STYLE) & SBS_VERT); // find the horizontal scroll bar
-    SetWindowSubclass(scrollBar, scrollBarSubclassProc, blockScrolling, (DWORD_PTR)hwnd);
+    listView = FindWindowEx(defView, nullptr, WC_LISTVIEW, nullptr);
+    if (!checkLE(listView)) return;
+    DWORD style = GetWindowLong(listView, GWL_STYLE);
+    style &= ~LVS_ALIGNLEFT;
+    style |= LVS_ALIGNTOP;
+    SetWindowLong(listView, GWL_STYLE, style);
+    SetWindowSubclass(listView, listViewSubclassProc, 0, (DWORD_PTR)this);
+    SetWindowSubclass(defView, listViewOwnerProc, 0, (DWORD_PTR)this);
+    RECT clientRect = {};
+    GetClientRect(listView, &clientRect);
+    SendMessage(listView, WM_SIZE, SIZE_RESTORED,
+        MAKELPARAM(rectWidth(clientRect), rectHeight(clientRect)));
 }
 
-LRESULT CALLBACK FolderWindow::scrollBarSubclassProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData) {
-    if (message == SBM_SETSCROLLINFO && subclassID) { // subclassID = 1 for block scrolling
-        SCROLLINFO *scrollInfo = (SCROLLINFO *)lParam;
-        if (scrollInfo->fMask & SIF_POS) {
-            SCROLLINFO curScrollInfo = {sizeof(curScrollInfo), SIF_TRACKPOS};
-            SendMessage(hwnd, SBM_GETSCROLLINFO, 0, (LPARAM)&curScrollInfo);
-            if (scrollInfo->nPos != curScrollInfo.nTrackPos) {
-                SendMessage(GetParent(hwnd), WM_VSCROLL,
-                    MAKEWPARAM(SB_THUMBPOSITION, curScrollInfo.nTrackPos), (LPARAM)hwnd);
-                scrollInfo->nPos = curScrollInfo.nTrackPos;
+LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
+    if (message == WM_LBUTTONDOWN) {
+        FolderWindow *window = (FolderWindow *)refData;
+        if (window->clickActivate) {
+            window->clickActivate = false;
+            LVHITTESTINFO hitTest = { {LOWORD(lParam), HIWORD(lParam)} };
+            if (!window->paletteWindow() && ListView_GetSelectedCount(hwnd) == 1
+                    && ListView_HitTest(hwnd, &hitTest) == -1) {
+                debugPrintf(L"Blocking deselection!\n");
+                return 0;
             }
         }
-    } else if (message == WM_DESTROY) { // view mode changed
-        PostMessage((HWND)refData, MSG_SETUP_SCROLLBAR_SUBCLASS, 0, 0);
+
+        // sometimes a double click isn't registered after a preview handler is opened
+        // https://devblogs.microsoft.com/oldnewthing/20041018-00/?p=37543
+        DWORD time = GetMessageTime();
+        POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        if (time - window->clickTime <= GetDoubleClickTime()
+                && abs(pos.x - window->clickPos.x) <= GetSystemMetrics(SM_CXDOUBLECLK)/2
+                && abs(pos.y - window->clickPos.y) <= GetSystemMetrics(SM_CYDOUBLECLK)/2) {
+            debugPrintf(L"Recovered lost double-click\n");
+            return SendMessage(hwnd, WM_LBUTTONDBLCLK, wParam, lParam);
+        }
+        window->clickTime = time;
+        window->clickPos = pos;
+    } else if (message == WM_LBUTTONDBLCLK) {
+        ((FolderWindow *)refData)->clickTime = 0;
+    } else if (message == WM_SIZE) {
+        if (ListView_GetView(hwnd) == LV_VIEW_DETAILS) {
+            if (HWND header = ListView_GetHeader(hwnd)) {
+                if (Header_GetItemCount(header) == 1) {
+                    // post instead of send to reduce scrollbar flicker
+                    PostMessage(hwnd, LVM_SETCOLUMNWIDTH, 0, MAKELPARAM(LOWORD(lParam) - 1, 0));
+                }
+            }
+        }
+    } else if (message == WM_CHAR && wParam == VK_ESCAPE) {
+        ((FolderWindow *)refData)->clearSelection();
+        // pass to superclass which will also cancel current cut operation
+    }
+    return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
+LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
+    if (message == WM_NOTIFY) {
+        NMHDR *nmHdr = (NMHDR *)lParam;
+        if (nmHdr->code == LVN_ITEMCHANGED) {
+            NMLISTVIEW *nmLV = (NMLISTVIEW *)nmHdr;
+            if ((nmLV->uChanged & LVIF_STATE) &&
+                    (nmLV->uOldState & LVIS_SELECTED) != (nmLV->uNewState & LVIS_SELECTED)) {
+                FolderWindow *window = (FolderWindow *)refData;
+                window->selectionChanged();
+            }
+        } else if (nmHdr->code == LVN_ODSTATECHANGED) {
+            NMLVODSTATECHANGE *nmOD = (NMLVODSTATECHANGE *)nmHdr;
+            if ((nmOD->uOldState & LVIS_SELECTED) != (nmOD->uNewState & LVIS_SELECTED)) {
+                FolderWindow *window = (FolderWindow *)refData;
+                window->selectionChanged();
+            }
+        }
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 
 void FolderWindow::onDestroy() {
-    if (propBag) {
+    if (shellView && propBag) {
         // view settings are only written when shell view is destroyed
         CComVariant visitedVar(true);
         checkHR(propBag->Write(PROP_VISITED, &visitedVar));
+    } else if (!shellView) {
+        // prevent view settings from being trashed before navigation complete
+        checkHR(browser->SetPropertyBag(L""));
     }
     ItemWindow::onDestroy();
     if (browser) {
@@ -248,16 +308,6 @@ void FolderWindow::onDestroy() {
         checkHR(browser->Destroy());
         browser = nullptr;
     }
-}
-
-LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
-    switch (message) {
-        case MSG_SETUP_SCROLLBAR_SUBCLASS:
-            debugPrintf(L"Setup scroll bar subclass\n");
-            setupScrollBarSubclass();
-            return 0;
-    }
-    return ItemWindow::handleMessage(message, wParam, lParam);
 }
 
 bool FolderWindow::onCommand(WORD command) {
@@ -295,7 +345,7 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
             checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
         }
         if (updateSelectionOnActivate) {
-            selectionChanged();
+            updateSelection();
             updateSelectionOnActivate = false;
         }
     }
@@ -332,6 +382,26 @@ void FolderWindow::onChildResized(SIZE size) {
 }
 
 void FolderWindow::selectionChanged() {
+    if (!ignoreNextSelection) {
+        updateSelectionOnActivate = false;
+        if (GetActiveWindow() != hwnd) { // in background
+            // this could happen when dragging a file. don't try to create any windows yet
+            // sometimes items also become deselected and then reselected
+            // eg. when a file is deleted from a folder
+            updateSelectionOnActivate = true;
+        } else {
+            updateSelection();
+        }
+    }
+    ignoreNextSelection = false;
+
+    // note: sometimes the first selectionChanged occurs before navigation is complete and
+    // updateStatus() will fail (often when visiting a folder for the first time)
+    if (hasStatusText())
+        updateStatus();
+}
+
+void FolderWindow::updateSelection() {
     CComPtr<IFolderView2> folderView;
     if (FAILED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
         return;
@@ -339,11 +409,10 @@ void FolderWindow::selectionChanged() {
     if (!checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected)))
         return;
     if (numSelected == 1) {
-        int index;
-        // GetSelectedItem seems to ignore the iStart parameter!
-        if (folderView->GetSelectedItem(-1, &index) == S_OK) {
+        CComPtr<IShellItemArray> selection;
+        if (folderView->GetSelection(FALSE, &selection) == S_OK) {
             CComPtr<IShellItem> newSelected;
-            if (checkHR(folderView->GetItem(index, IID_PPV_ARGS(&newSelected)))) {
+            if (checkHR(selection->GetItemAt(0, &newSelected))) {
                 int compare = 1;
                 if (selected)
                     checkHR(newSelected->Compare(selected, SICHINT_CANONICAL, &compare));
@@ -354,12 +423,6 @@ void FolderWindow::selectionChanged() {
                     openChild(selected);
             }
         }
-    } else if (numSelected == 0 && clickActivateRelease && selected && !paletteWindow()) {
-        debugPrintf(L"Blocking deselection\n");
-        CComHeapPtr<ITEMID_CHILD> selectedID;
-        checkHR(CComQIPtr<IParentAndItem>(selected)
-            ->GetParentAndItem(nullptr, nullptr, &selectedID));
-        checkHR(shellView->SelectItem(selectedID, SVSI_SELECT | SVSI_NOTAKEFOCUS));
     } else {
         // 0 or more than 1 item selected
         selected = nullptr;
@@ -368,7 +431,7 @@ void FolderWindow::selectionChanged() {
 }
 
 void FolderWindow::updateStatus() {
-    // TODO: duplicate work in selectionChanged()
+    // TODO: duplicate work in updateSelection()
     CComPtr<IFolderView2> folderView;
     if (FAILED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
         return;
@@ -398,18 +461,17 @@ void FolderWindow::onItemChanged() {
     ItemWindow::onItemChanged();
     propBag = getItemPropertyBag(item, propertyBag());
     shellView = nullptr;
-    checkHR(browser->SetOptions(EBO_NOBORDER));
+    checkHR(browser->SetOptions(BROWSER_OPTIONS)); // temporarily enable navigation
     checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE));
-    checkHR(browser->SetOptions(EBO_NAVIGATEONCE | EBO_NOBORDER));
+    checkHR(browser->SetOptions(BROWSER_OPTIONS | EBO_NAVIGATEONCE));
 }
 
 void FolderWindow::refresh() {
     ItemWindow::refresh();
-    if (shellView) {
+    if (listView && ListView_GetView(listView) == LV_VIEW_DETAILS)
+        SendMessage(listView, WM_VSCROLL, SB_TOP, 0); // fix drawing glitch on refresh
+    if (shellView)
         checkHR(shellView->Refresh());
-        // TODO: this is here to fix a crash (exception code c0000374 STATUS_HEAP_CORRUPTION)
-        ignoreNextSelection = true;
-    }
 }
 
 CComPtr<IContextMenu> FolderWindow::queryBackgroundMenu(HMENU *popupMenu) {
@@ -580,28 +642,12 @@ STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
     return S_FALSE; // perform default action
 }
 
-STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
-    if (change == CDBOSC_SELCHANGE) {
-        if (!ignoreNextSelection) {
-            updateSelectionOnActivate = false;
-            if (GetActiveWindow() != hwnd) { // in background
-                CComQIPtr<IFolderView2> folderView(view);
-                int numSelected;
-                if (folderView && checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected))
-                        && numSelected == 1) {
-                    // this could happen when dragging a file. don't try to create any windows yet
-                    updateSelectionOnActivate = true;
-                }
-            }
-            if (!updateSelectionOnActivate)
-                selectionChanged();
-        }
-        ignoreNextSelection = false;
-
-        // note: sometimes the first SELCHANGE event occurs before navigation is complete and
-        // updateStatus() will fail (often when visiting a folder for the first time)
-        if (hasStatusText())
-            updateStatus();
+STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
+    // CDBOSC_SELCHANGE is unreliable with the old-style ListView
+    if (change == CDBOSC_RENAME) {
+        // TODO: remove this once there's an automatic system for tracking files
+        if (child)
+            child->resolveItem();
     }
     return S_OK;
 }
@@ -637,10 +683,25 @@ STDMETHODIMP FolderWindow::OnNavigationPending(PCIDLIST_ABSOLUTE) {
 }
 
 STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
+    listViewCreated();
+
+    if (child && shellView) {
+        // window was created by clicking the parent button OR onItemChanged was called
+        ignoreNextSelection = true; // TODO jank
+        CComHeapPtr<ITEMID_CHILD> childID;
+        checkHR(CComQIPtr<IParentAndItem>(child->item)
+            ->GetParentAndItem(nullptr, nullptr, &childID));
+        checkHR(shellView->SelectItem(childID,
+            SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
+    }
+
     // note: often the item count will be incorrect at this point (esp. if the folder is already
     // visited), but between this and OnStateChange, we'll usually end up with the right value.
     if (hasStatusText())
         updateStatus();
+
+    if (shellView && GetActiveWindow() == hwnd)
+        checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
     return S_OK;
 }
 
@@ -662,16 +723,6 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
         CComQIPtr<IFolderView2> folderView(view);
         if (folderView)
             initDefaultView(folderView);
-    }
-
-    if (child) {
-        // window was created by clicking the parent button OR onItemChanged was called
-        ignoreNextSelection = true; // TODO jank
-        CComHeapPtr<ITEMID_CHILD> childID;
-        checkHR(CComQIPtr<IParentAndItem>(child->item)
-            ->GetParentAndItem(nullptr, nullptr, &childID));
-        checkHR(view->SelectItem(childID,
-            SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
     }
 
     return S_OK;
