@@ -72,8 +72,11 @@ private:
     void listViewCreated();
     static LRESULT CALLBACK listViewSubclassProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
+    static LRESULT CALLBACK listViewOwnerProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     void selectionChanged();
+    void updateSelection();
     void clearSelection();
     void updateStatus();
 

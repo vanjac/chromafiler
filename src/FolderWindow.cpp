@@ -219,6 +219,7 @@ void FolderWindow::listViewCreated() {
     style |= LVS_ALIGNTOP;
     SetWindowLong(listView, GWL_STYLE, style);
     SetWindowSubclass(listView, listViewSubclassProc, 0, (DWORD_PTR)this);
+    SetWindowSubclass(defView, listViewOwnerProc, 0, (DWORD_PTR)this);
     RECT clientRect = {};
     GetClientRect(listView, &clientRect);
     SendMessage(listView, WM_SIZE, SIZE_RESTORED,
@@ -265,6 +266,28 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
     } else if (message == WM_CHAR && wParam == VK_ESCAPE) {
         ((FolderWindow *)refData)->clearSelection();
         // pass to superclass which will also cancel current cut operation
+    }
+    return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
+LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
+        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
+    if (message == WM_NOTIFY) {
+        NMHDR *nmHdr = (NMHDR *)lParam;
+        if (nmHdr->code == LVN_ITEMCHANGED) {
+            NMLISTVIEW *nmLV = (NMLISTVIEW *)nmHdr;
+            if ((nmLV->uChanged & LVIF_STATE) &&
+                    (nmLV->uOldState & LVIS_SELECTED) != (nmLV->uNewState & LVIS_SELECTED)) {
+                FolderWindow *window = (FolderWindow *)refData;
+                window->selectionChanged();
+            }
+        } else if (nmHdr->code == LVN_ODSTATECHANGED) {
+            NMLVODSTATECHANGE *nmOD = (NMLVODSTATECHANGE *)nmHdr;
+            if ((nmOD->uOldState & LVIS_SELECTED) != (nmOD->uNewState & LVIS_SELECTED)) {
+                FolderWindow *window = (FolderWindow *)refData;
+                window->selectionChanged();
+            }
+        }
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
@@ -322,7 +345,7 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
             checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
         }
         if (updateSelectionOnActivate) {
-            selectionChanged();
+            updateSelection();
             updateSelectionOnActivate = false;
         }
     }
@@ -359,6 +382,26 @@ void FolderWindow::onChildResized(SIZE size) {
 }
 
 void FolderWindow::selectionChanged() {
+    if (!ignoreNextSelection) {
+        updateSelectionOnActivate = false;
+        if (GetActiveWindow() != hwnd) { // in background
+            // this could happen when dragging a file. don't try to create any windows yet
+            // sometimes items also become deselected and then reselected
+            // eg. when a file is deleted from a folder
+            updateSelectionOnActivate = true;
+        } else {
+            updateSelection();
+        }
+    }
+    ignoreNextSelection = false;
+
+    // note: sometimes the first selectionChanged occurs before navigation is complete and
+    // updateStatus() will fail (often when visiting a folder for the first time)
+    if (hasStatusText())
+        updateStatus();
+}
+
+void FolderWindow::updateSelection() {
     CComPtr<IFolderView2> folderView;
     if (FAILED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
         return;
@@ -388,7 +431,7 @@ void FolderWindow::selectionChanged() {
 }
 
 void FolderWindow::updateStatus() {
-    // TODO: duplicate work in selectionChanged()
+    // TODO: duplicate work in updateSelection()
     CComPtr<IFolderView2> folderView;
     if (FAILED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
         return;
@@ -599,29 +642,9 @@ STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
     return S_FALSE; // perform default action
 }
 
-STDMETHODIMP FolderWindow::OnStateChange(IShellView *view, ULONG change) {
-    if (change == CDBOSC_SELCHANGE) {
-        if (!ignoreNextSelection) {
-            updateSelectionOnActivate = false;
-            if (GetActiveWindow() != hwnd) { // in background
-                CComQIPtr<IFolderView2> folderView(view);
-                int numSelected;
-                if (folderView && checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected))
-                        && numSelected == 1) {
-                    // this could happen when dragging a file. don't try to create any windows yet
-                    updateSelectionOnActivate = true;
-                }
-            }
-            if (!updateSelectionOnActivate)
-                selectionChanged();
-        }
-        ignoreNextSelection = false;
-
-        // note: sometimes the first SELCHANGE event occurs before navigation is complete and
-        // updateStatus() will fail (often when visiting a folder for the first time)
-        if (hasStatusText())
-            updateStatus();
-    } else if (change == CDBOSC_RENAME) {
+STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
+    // CDBOSC_SELCHANGE is unreliable with the old-style ListView
+    if (change == CDBOSC_RENAME) {
         // TODO: remove this once there's an automatic system for tracking files
         if (child)
             child->resolveItem();
