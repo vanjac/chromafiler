@@ -11,7 +11,6 @@ enum TrayDirection : DWORD { TRAY_UP, TRAY_DOWN, TRAY_RIGHT };
 
 // http://smallvoid.com/article/winnt-shell-keyword.html
 const DWORD     DEFAULT_LAST_OPENED_VERSION = 0;
-const DWORD     DEFAULT_LAST_UPDATE_VERSION = 0;
 const bool      DEFAULT_UPDATE_CHECK_ENABLED= false;
 const LONGLONG  DEFAULT_LAST_UPDATE_CHECK   = 0;
 const LONGLONG  DEFAULT_UPDATE_CHECK_RATE   = 10000000LL * 60 * 60 * 24 * 7; // 1 week
