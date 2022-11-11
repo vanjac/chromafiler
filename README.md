@@ -10,8 +10,6 @@ ChromaFiler works on Windows 8 through 11 (and [mostly](https://github.com/vanja
 
 ## Download
 
-[<img src="https://getbadgecdn.azureedge.net/images/en-us%20dark.svg" width="135" height="48" alt="Microsoft Store app badge">](https://apps.microsoft.com/store/detail/XPFFWH44RPBGQJ)
-
 Check the [Releases](https://github.com/vanjac/chromafiler/releases) page for the latest beta build. ChromaFiler can also be installed from the [Microsoft Store](https://apps.microsoft.com/store/detail/XPFFWH44RPBGQJ) (single user only). See [installation instructions](https://github.com/vanjac/chromafiler/wiki/Installation) for additional information.
 
 ChromaFiler is still in development, so be sure to turn on the [auto check for updates](https://github.com/vanjac/chromafiler/wiki/Settings#updateabout) feature so you'll be notified of new releases.
