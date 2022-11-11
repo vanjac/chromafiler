@@ -660,7 +660,6 @@ void ItemWindow::setToolbarButtonState(WORD command, BYTE state) {
 
 void ItemWindow::addToolbarButtons(HWND tb) {
     TBBUTTON buttons[] = {
-        makeToolbarButton(MDL2_REFRESH, IDM_REFRESH, 0),
         makeToolbarButton(MDL2_SETTING, IDM_SETTINGS, 0),
     };
     SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
@@ -668,8 +667,6 @@ void ItemWindow::addToolbarButtons(HWND tb) {
 
 int ItemWindow::getToolbarTooltip(WORD command) {
     switch (command) {
-        case IDM_REFRESH:
-            return IDS_REFRESH_COMMAND;
         case IDM_SETTINGS:
             return IDS_SETTINGS_COMMAND;
     }

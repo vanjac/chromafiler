@@ -171,6 +171,7 @@ void FolderWindow::addToolbarButtons(HWND tb) {
     TBBUTTON buttons[] = {
         makeToolbarButton(MDL2_CALCULATOR_ADDITION, IDM_NEW_ITEM_MENU, BTNS_WHOLEDROPDOWN),
         makeToolbarButton(MDL2_VIEW, IDM_VIEW_MENU, BTNS_WHOLEDROPDOWN),
+        makeToolbarButton(MDL2_REFRESH, IDM_REFRESH, 0),
     };
     SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
     ItemWindow::addToolbarButtons(tb);
@@ -178,6 +179,8 @@ void FolderWindow::addToolbarButtons(HWND tb) {
 
 int FolderWindow::getToolbarTooltip(WORD command) {
     switch (command) {
+        case IDM_REFRESH:
+            return IDS_REFRESH_COMMAND;
         case IDM_NEW_ITEM_MENU:
             return IDS_NEW_ITEM_COMMAND;
         case IDM_VIEW_MENU:
