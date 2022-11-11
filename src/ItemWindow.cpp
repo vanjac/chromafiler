@@ -310,8 +310,11 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
             return 0;
         case WM_CLOSE:
-            if (!onCloseRequest())
+            closing = true;
+            if (!onCloseRequest()) {
+                closing = false;
                 return 0; // don't close
+            }
             break; // pass to DefWindowProc
         case WM_DESTROY:
             onDestroy();
@@ -825,7 +828,7 @@ void ItemWindow::onActivate(WORD state, HWND) {
             SetWindowPos(child->hwnd, HWND_TOP, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         }
-        if (firstActivate && !parent)
+        if (firstActivate && !parent && !closing) // can happen when closing save prompt
             resolveItem();
         firstActivate = true;
     }

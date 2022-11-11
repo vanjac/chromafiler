@@ -166,7 +166,7 @@ private:
     POINT moveAccum;
     SIZE lastSize;
     bool isChainPreview = false;
-    bool firstActivate = false;
+    bool firstActivate = false, closing = false;
     // drop target state
     IDataObject *dropDataObject;
     bool overDropTarget = false;
