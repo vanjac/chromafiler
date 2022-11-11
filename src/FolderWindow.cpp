@@ -479,6 +479,7 @@ void FolderWindow::refresh() {
         SendMessage(listView, WM_VSCROLL, SB_TOP, 0); // fix drawing glitch on refresh
     if (shellView)
         checkHR(shellView->Refresh());
+    firstODDispInfo = false;
 }
 
 CComPtr<IContextMenu> FolderWindow::queryBackgroundMenu(HMENU *popupMenu) {
