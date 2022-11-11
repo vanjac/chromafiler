@@ -450,6 +450,7 @@ void FolderWindow::updateStatus() {
 void FolderWindow::clearSelection() {
     if (shellView)
         checkHR(shellView->SelectItem(nullptr, SVSI_DESELECTOTHERS)); // keep focus
+    selected = nullptr; // in case this happened in the background
 }
 
 void FolderWindow::onChildDetached() {
