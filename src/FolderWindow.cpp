@@ -705,8 +705,9 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
     if (shellView && GetActiveWindow() == hwnd)
         checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
 
-    // item count will often be incorrect at this point so don't set status text yet.
-    // see listViewOwnerProc
+    // item count will often be incorrect at this point; see listViewOwnerProc
+    if (hasStatusText())
+        updateStatus();
     return S_OK;
 }
 
