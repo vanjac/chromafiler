@@ -220,8 +220,12 @@ void showWelcomeDialog() {
     config.cButtons = _countof(buttons);
     config.pButtons = buttons;
     config.nDefaultButton = IDCLOSE;
+    config.pszVerificationText = MAKEINTRESOURCE(IDS_WELCOME_UPDATE);
     config.pfCallback = welcomeDialogCallback;
-    checkHR(TaskDialogIndirect(&config, nullptr, nullptr, nullptr));
+
+    BOOL autoUpdateChecked;
+    if (checkHR(TaskDialogIndirect(&config, nullptr, nullptr, &autoUpdateChecked)))
+        settings::setUpdateCheckEnabled(autoUpdateChecked);
 }
 
 HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM, LONG_PTR) {

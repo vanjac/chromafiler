@@ -379,12 +379,17 @@ INT_PTR CALLBACK browserProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 
 INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
+        case WM_INITDIALOG:
+            CheckDlgButton(hwnd, IDC_AUTO_UPDATE,
+                settings::getUpdateCheckEnabled() ? BST_CHECKED : BST_UNCHECKED);
+            return TRUE;
         case WM_NOTIFY: {
             NMHDR *notif = (NMHDR *)lParam;
             if (notif->code == PSN_KILLACTIVE) {
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, FALSE);
                 return TRUE;
             } else if (notif->code == PSN_APPLY) {
+                settings::setUpdateCheckEnabled(!!IsDlgButtonChecked(hwnd, IDC_AUTO_UPDATE));
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             }
@@ -415,6 +420,13 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
             } else if (LOWORD(wParam) == IDC_SOURCE_LINK && HIWORD(wParam) == BN_CLICKED) {
                 ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler",
                     nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
+            } else if (LOWORD(wParam) == IDC_AUTO_UPDATE && HIWORD(wParam) == BN_CLICKED) {
+                PropSheet_Changed(GetParent(hwnd), hwnd);
+                return TRUE;
+            } else if (HIWORD(wParam) == CBN_SELCHANGE) {
+                ULONGLONG value = 3716864062;
+                SendMessage(GetParent(hwnd), LOWORD(wParam), lParam, (LPARAM)&value);
                 return TRUE;
             }
             return FALSE;

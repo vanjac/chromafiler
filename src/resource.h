@@ -94,6 +94,7 @@
 #define IDC_UPDATES_LINK            1001
 #define IDC_HELP_LINK               1002
 #define IDC_SOURCE_LINK             1003
+#define IDC_AUTO_UPDATE             1004
 
 #define IDS_SETTINGS_CAPTION    200
 #define IDS_SETTINGS_COMMAND    201
@@ -122,3 +123,4 @@
 #define IDS_NO_UPDATE_CAPTION   224
 #define IDS_NO_UPDATE           225
 #define IDS_UPDATE_ERROR        226
+#define IDS_WELCOME_UPDATE      227

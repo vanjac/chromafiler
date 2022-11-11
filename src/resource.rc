@@ -167,7 +167,7 @@ IDD_SETTINGS_BROWSER    DIALOGEX
 IDD_SETTINGS_ABOUT      DIALOGEX
         0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
         STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
-        CAPTION "About"
+        CAPTION "Update/About"
         FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
     ICON IDR_APP_ICON, -1, 7, 7, 0, 0
     LTEXT "ChromaFiler", -1, 35, 7, 49, 8
@@ -176,6 +176,7 @@ IDD_SETTINGS_ABOUT      DIALOGEX
     PUSHBUTTON "&Check for updates", IDC_UPDATES_LINK, 7, 28, 66, 14
     PUSHBUTTON "&Help", IDC_HELP_LINK, 80, 28, 66, 14
     PUSHBUTTON "&Source code", IDC_SOURCE_LINK, 153, 28, 66, 14
+    AUTOCHECKBOX "Automatically check for updates weekly", IDC_AUTO_UPDATE, 7, 49, 213, 14
 }
 
 STRINGTABLE {
@@ -210,4 +211,5 @@ STRINGTABLE {
     IDS_WELCOME_TUTORIAL    "Read Tutorial\nRecommended for first-time users"
     IDS_WELCOME_TRAY        "Enable Tray\nFloating toolbar with quick access to folders"
     IDS_WELCOME_BROWSER     "Make default file browser\nReplace File Explorer as your default browser"
+    IDS_WELCOME_UPDATE      "Check for updates weekly"
 }
