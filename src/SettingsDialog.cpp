@@ -379,10 +379,14 @@ INT_PTR CALLBACK browserProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 
 INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
-        case WM_INITDIALOG:
+        case WM_INITDIALOG: {
             CheckDlgButton(hwnd, IDC_AUTO_UPDATE,
                 settings::getUpdateCheckEnabled() ? BST_CHECKED : BST_UNCHECKED);
+            LocalHeapPtr<wchar_t> legalInfo;
+            formatMessage(legalInfo, STR_LEGAL_INFO);
+            SetDlgItemText(hwnd, IDC_LEGAL_INFO, legalInfo);
             return TRUE;
+        }
         case WM_NOTIFY: {
             NMHDR *notif = (NMHDR *)lParam;
             if (notif->code == PSN_KILLACTIVE) {

@@ -139,3 +139,23 @@ SymbolicName=STR_FONT_NAME
 Language=English
 %1 %2!d!pt
 .
+
+MessageId=
+SymbolicName=STR_LEGAL_INFO
+Language=English
+Copyright (c) 2022 J. van't Hoog
+
+ChromaFiler is available under the GNU General Public License v3.0.
+The source code and a copy of the license can be found at https://github.com/vanjac/chromafiler
+
+The ChromaFiler installer uses the following open source libraries:
+- nsis-shortcut-properties
+    Copyright Safing ICS Technologies GmbH
+    Licensed under the Apache License 2.0
+        (https://www.apache.org/licenses/LICENSE-2.0)
+    https://github.com/safing/nsis-shortcut-properties
+- LockedList plug-in
+    Copyright (c) 2013 Afrow Soft Ltd
+    Licensed under the zlib License
+    https://nsis.sourceforge.io/LockedList_plug-in
+.

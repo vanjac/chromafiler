@@ -170,13 +170,14 @@ IDD_SETTINGS_ABOUT      DIALOGEX
         CAPTION "Update/About"
         FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
     ICON IDR_APP_ICON, -1, 7, 7, 0, 0
-    LTEXT "ChromaFiler", -1, 35, 7, 49, 8
+    LTEXT "ChromaFiler", 12, 35, 7, 49, 8, 131328
     LTEXT "Version:", -1, 35, 15, 28, 8
     LTEXT CHROMAFILER_VERSION_STRING, -1, 70, 15, 28, 8
     PUSHBUTTON "&Check for updates", IDC_UPDATES_LINK, 7, 28, 66, 14
     PUSHBUTTON "&Help", IDC_HELP_LINK, 80, 28, 66, 14
     PUSHBUTTON "&Source code", IDC_SOURCE_LINK, 153, 28, 66, 14
     AUTOCHECKBOX "A&utomatically check for updates weekly", IDC_AUTO_UPDATE, 7, 49, 213, 14
+    EDITTEXT IDC_LEGAL_INFO, 7, 70, 213, 138, ES_READONLY | ES_MULTILINE | WS_VSCROLL
 }
 
 STRINGTABLE {
