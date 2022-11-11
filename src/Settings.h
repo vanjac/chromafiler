@@ -40,7 +40,7 @@ const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
 DWORD getLastOpenedVersion();
 void setLastOpenedVersion(DWORD value);
 bool getUpdateCheckEnabled();
-void setUpdateCheckEnabled(bool value); // TODO: add to Settings
+void setUpdateCheckEnabled(bool value);
 LONGLONG getLastUpdateCheck();
 void setLastUpdateCheck(LONGLONG value);
 LONGLONG getUpdateCheckRate();
