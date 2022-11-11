@@ -64,7 +64,7 @@ int windowBorderSize() {
     if (highContrastEnabled()) {
         return WIN10_CXSIZEFRAME;
     } else {
-        return 0;
+        return 0; // TODO should be more space on Windows 11
     }
 }
 
