@@ -396,6 +396,11 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
                 settings::setUpdateCheckEnabled(!!IsDlgButtonChecked(hwnd, IDC_AUTO_UPDATE));
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
+            } else if (notif->code == PSN_HELP) {
+                ShellExecute(nullptr, L"open",
+                    L"https://github.com/vanjac/chromafiler/wiki/Settings#updateabout",
+                    nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
             }
             return FALSE;
         }
@@ -473,6 +478,7 @@ void openSettingsDialog(SettingsPage page) {
     pages[SETTINGS_BROWSER].pfnDlgProc = browserProc;
 
     pages[SETTINGS_ABOUT] = {sizeof(PROPSHEETPAGE)};
+    pages[SETTINGS_ABOUT].dwFlags = PSP_HASHELP;
     pages[SETTINGS_ABOUT].hInstance = hInstance;
     pages[SETTINGS_ABOUT].pszTemplate = MAKEINTRESOURCE(IDD_SETTINGS_ABOUT);
     pages[SETTINGS_ABOUT].pfnDlgProc = aboutProc;
