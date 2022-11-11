@@ -278,9 +278,16 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
         FolderWindow *window = (FolderWindow *)refData;
         if (nmHdr->code == LVN_ITEMCHANGED) {
             NMLISTVIEW *nmLV = (NMLISTVIEW *)nmHdr;
-            if ((nmLV->uChanged & LVIF_STATE) &&
-                    (nmLV->uOldState & LVIS_SELECTED) != (nmLV->uNewState & LVIS_SELECTED)) {
-                window->selectionChanged();
+            if ((nmLV->uChanged & LVIF_STATE)) {
+                if ((nmLV->uOldState & LVIS_SELECTED) != (nmLV->uNewState & LVIS_SELECTED)) {
+                    window->selectionChanged();
+                } else if (((nmLV->uOldState ^ nmLV->uNewState) & LVIS_FOCUSED)
+                        && nmLV->iItem == -1) {
+                    // seems to happen when window contents are modified while in the background
+                    // TODO: this only works if window has been active once before
+                    if (window->hasStatusText())
+                        window->updateStatus();
+                }
             }
         } else if (nmHdr->code == LVN_ODSTATECHANGED) {
             NMLVODSTATECHANGE *nmOD = (NMLVODSTATECHANGE *)nmHdr;
