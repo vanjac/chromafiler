@@ -15,7 +15,7 @@ const int HOTKEY_FOCUS_TRAY = 1;
 // dimensions
 static int SNAP_DISTANCE = 8;
 static int CLOSE_BOX_MARGIN = 4;
-static int DEFAULT_DIMEN = 500;
+static int DEFAULT_DIMEN = 400;
 static SIZE MIN_TRAY_SIZE = {28, 28};
 
 static UINT resetPositionMessage, taskbarCreatedMessage;
