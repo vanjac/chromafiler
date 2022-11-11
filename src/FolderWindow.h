@@ -97,6 +97,7 @@ private:
     bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;
     bool clickActivate = true;
+    bool firstODDispInfo = false;
 
     DWORD clickTime = 0;
     POINT clickPos;

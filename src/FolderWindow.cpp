@@ -208,6 +208,7 @@ void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
 void FolderWindow::listViewCreated() {
     if (!browser)
         return;
+    firstODDispInfo = false;
     HWND browserControl = FindWindowEx(hwnd, nullptr, L"ExplorerBrowserControl", nullptr);
     if (!checkLE(browserControl)) return;
     HWND defView = FindWindowEx(browserControl, nullptr, L"SHELLDLL_DefView", nullptr);
@@ -274,19 +275,24 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
     if (message == WM_NOTIFY) {
         NMHDR *nmHdr = (NMHDR *)lParam;
+        FolderWindow *window = (FolderWindow *)refData;
         if (nmHdr->code == LVN_ITEMCHANGED) {
             NMLISTVIEW *nmLV = (NMLISTVIEW *)nmHdr;
             if ((nmLV->uChanged & LVIF_STATE) &&
                     (nmLV->uOldState & LVIS_SELECTED) != (nmLV->uNewState & LVIS_SELECTED)) {
-                FolderWindow *window = (FolderWindow *)refData;
                 window->selectionChanged();
             }
         } else if (nmHdr->code == LVN_ODSTATECHANGED) {
             NMLVODSTATECHANGE *nmOD = (NMLVODSTATECHANGE *)nmHdr;
-            if ((nmOD->uOldState & LVIS_SELECTED) != (nmOD->uNewState & LVIS_SELECTED)) {
-                FolderWindow *window = (FolderWindow *)refData;
+            if ((nmOD->uOldState & LVIS_SELECTED) != (nmOD->uNewState & LVIS_SELECTED))
                 window->selectionChanged();
-            }
+        } else if (nmHdr->code == LVN_GETDISPINFO && !window->firstODDispInfo) {
+            window->firstODDispInfo = true;
+            LRESULT res = DefSubclassProc(hwnd, message, wParam, lParam);
+            // initial item count should be known at this point
+            if (window->hasStatusText())
+                window->updateStatus();
+            return res;
         }
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
@@ -696,13 +702,11 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
             SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
     }
 
-    // note: often the item count will be incorrect at this point (esp. if the folder is already
-    // visited), but between this and OnStateChange, we'll usually end up with the right value.
-    if (hasStatusText())
-        updateStatus();
-
     if (shellView && GetActiveWindow() == hwnd)
         checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
+
+    // item count will often be incorrect at this point so don't set status text yet.
+    // see listViewOwnerProc
     return S_OK;
 }
 
