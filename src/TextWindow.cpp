@@ -493,8 +493,7 @@ void TextWindow::lineSelect() {
     CComPtr<ITextDocument> doc = getTOMDocument();
     CComPtr<ITextSelection> sel;
     if (!doc || !checkHR(doc->GetSelection(&sel))) return;
-    checkHR(sel->StartOf(tomParagraph, tomExtend, nullptr));
-    checkHR(sel->MoveEnd(tomParagraph, 1, nullptr));
+    checkHR(sel->Expand(tomParagraph, nullptr));
 }
 
 void TextWindow::openFindDialog(bool replace) {
