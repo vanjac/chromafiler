@@ -302,6 +302,9 @@ bool TextWindow::onCommand(WORD command) {
             SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
             return true;
         }
+        case IDM_LINE_SELECT:
+            lineSelect();
+            return true;
         case IDM_WORD_WRAP: {
             bool wordWrap = !isWordWrap();
             setWordWrap(wordWrap);
@@ -484,6 +487,14 @@ void TextWindow::indentSelection(int dir) {
         range->Move(tomParagraph, 1, nullptr);
     }
     checkHR(doc->EndEditCollection());
+}
+
+void TextWindow::lineSelect() {
+    CComPtr<ITextDocument> doc = getTOMDocument();
+    CComPtr<ITextSelection> sel;
+    if (!doc || !checkHR(doc->GetSelection(&sel))) return;
+    sel->StartOf(tomParagraph, tomExtend, nullptr);
+    sel->EndOf(tomParagraph, tomExtend, nullptr);
 }
 
 void TextWindow::openFindDialog(bool replace) {

@@ -51,6 +51,7 @@ private:
     void setWordWrap(bool wordWrap);
     void newLine();
     void indentSelection(int dir); // dir can be 1 (right) or -1 (left)
+    void lineSelect();
     void openFindDialog(bool replace);
     void handleFindReplace(FINDREPLACE *input);
     void findNext(FINDREPLACE *input);
