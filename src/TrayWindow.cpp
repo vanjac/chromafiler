@@ -411,6 +411,11 @@ STDMETHODIMP TrayWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE idList) {
             RegisterDragDrop(listView, dropTarget);
         }
     }
+    if (listView) {
+        DWORD style = GetWindowLong(listView, GWL_STYLE);
+        style |= LVS_SHOWSELALWAYS;
+        SetWindowLong(listView, GWL_STYLE, style);
+    }
     fixListViewColors();
     return S_OK;
 }
