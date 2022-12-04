@@ -58,6 +58,8 @@ DWORD WINAPI checkForUpdates(void *);
 DWORD WINAPI updateJumpList(void *);
 DWORD WINAPI recoveryCallback(void *);
 
+enum LaunchMode {LAUNCH_OPEN, LAUNCH_TRAY, LAUNCH_SCRATCH_FILE, LAUNCH_SCRATCH_FOLDER};
+
 static UpdateInfo updateInfo;
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
@@ -92,15 +94,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
         CComHeapPtr<wchar_t> pathAlloc;
         wchar_t *path;
-        bool tray = false, scratch = false;
+        LaunchMode launchMode = LAUNCH_OPEN;
         if (argc > 1 && lstrcmpi(argv[1], L"/tray") == 0) {
             settings::getTrayFolder(pathAlloc);
             path = pathAlloc;
-            tray = true;
+            launchMode = LAUNCH_TRAY;
         } else if (argc > 1 && lstrcmpi(argv[1], L"/scratch") == 0) {
             settings::getScratchFolder(pathAlloc);
             path = pathAlloc;
-            scratch = true;
+            launchMode = LAUNCH_SCRATCH_FILE;
+        } else if (argc > 1 && lstrcmpi(argv[1], L"/scratchf") == 0) {
+            settings::getScratchFolder(pathAlloc);
+            path = pathAlloc;
+            launchMode = LAUNCH_SCRATCH_FOLDER;
         } else if (argc > 1) {
             wchar_t *relPath = argv[1];
             int relPathLen = lstrlen(relPath);
@@ -127,20 +133,29 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         startItem = resolveLink(nullptr, startItem);
 
         CComPtr<ItemWindow> initialWindow;
-        if (tray) {
+        if (launchMode == LAUNCH_TRAY) {
             initialWindow.Attach(new TrayWindow(nullptr, startItem));
             checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
                 RECOVERY_DEFAULT_PING_INTERVAL, 0));
-        } else if (scratch) {
-            CComPtr<IShellItem> scratchFile = createScratchFile(startItem);
+        } else if (launchMode == LAUNCH_SCRATCH_FILE) {
+            CComHeapPtr<wchar_t> fileName;
+            settings::getScratchFileName(fileName);
+            CComPtr<IShellItem> scratchFile = createScratchItem(startItem,
+                fileName, FILE_ATTRIBUTE_NORMAL);
             if (!scratchFile)
                 return 0;
             initialWindow.Attach(new TextWindow(nullptr, scratchFile, true));
+        } else if (launchMode == LAUNCH_SCRATCH_FOLDER) {
+            CComPtr<IShellItem> scratchFolder = createScratchItem(startItem,
+                L"scratch", FILE_ATTRIBUTE_DIRECTORY); // TODO setting for name!
+            if (!scratchFolder)
+                return 0;
+            initialWindow.Attach(new FolderWindow(nullptr, scratchFolder));
         } else {
             initialWindow = createItemWindow(nullptr, startItem);
         }
         RECT rect;
-        if (tray) {
+        if (launchMode == LAUNCH_TRAY) {
             rect = ((TrayWindow *)initialWindow.p)->requestedRect();
         } else {
             SIZE size = initialWindow->requestedSize();
@@ -342,24 +357,41 @@ DWORD WINAPI updateJumpList(void *) {
     CComPtr<IObjectCollection> tasks;
     if (!checkHR(tasks.CoCreateInstance(__uuidof(EnumerableObjectCollection))))
         return 0;
+
+    wchar_t exePath[MAX_PATH];
+    if (!checkLE(GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH)))
+        return 0;
+
+    CComPtr<IShellLink> link;
+    if (checkHR(link.CoCreateInstance(__uuidof(ShellLink)))) {
+        checkHR(link->SetPath(exePath));
+        checkHR(link->SetArguments(L"/scratch"));
+        checkHR(link->SetIconLocation(exePath, IDR_APP_ICON));
+
+        LocalHeapPtr<wchar_t> title;
+        formatMessage(title, STR_NEW_SCRATCH_FILE_TASK);
+        CComQIPtr<IPropertyStore> trayLinkProps(link);
+        PROPVARIANT propVar;
+        if (checkHR(InitPropVariantFromString(title, &propVar)))
+            checkHR(trayLinkProps->SetValue(PKEY_Title, propVar));
+
+        checkHR(tasks->AddObject(link));
+    }
     
-    CComPtr<IShellLink> scratchLink;
-    if (checkHR(scratchLink.CoCreateInstance(__uuidof(ShellLink)))) {
-        wchar_t exePath[MAX_PATH];
-        if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH))) {
-            checkHR(scratchLink->SetPath(exePath));
-            checkHR(scratchLink->SetArguments(L"/scratch"));
-            checkHR(scratchLink->SetIconLocation(exePath, IDR_APP_ICON));
+    link = nullptr;
+    if (checkHR(link.CoCreateInstance(__uuidof(ShellLink)))) {
+        checkHR(link->SetPath(exePath));
+        checkHR(link->SetArguments(L"/scratchf"));
+        checkHR(link->SetIconLocation(exePath, IDR_APP_ICON));
 
-            LocalHeapPtr<wchar_t> title;
-            formatMessage(title, STR_NEW_SCRATCH_TASK);
-            CComQIPtr<IPropertyStore> trayLinkProps(scratchLink);
-            PROPVARIANT propVar;
-            if (checkHR(InitPropVariantFromString(title, &propVar)))
-                checkHR(trayLinkProps->SetValue(PKEY_Title, propVar));
+        LocalHeapPtr<wchar_t> title;
+        formatMessage(title, STR_NEW_SCRATCH_FOLDER_TASK);
+        CComQIPtr<IPropertyStore> trayLinkProps(link);
+        PROPVARIANT propVar;
+        if (checkHR(InitPropVariantFromString(title, &propVar)))
+            checkHR(trayLinkProps->SetValue(PKEY_Title, propVar));
 
-            checkHR(tasks->AddObject(scratchLink));
-        }        
+        checkHR(tasks->AddObject(link));
     }
 
     checkHR(jumpList->AddUserTasks(tasks));

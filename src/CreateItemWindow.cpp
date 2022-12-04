@@ -141,7 +141,7 @@ public:
     CComPtr<IShellItem> newItem;
 };
 
-CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder) {
+CComPtr<IShellItem> createScratchItem(CComPtr<IShellItem> folder, wchar_t *name, DWORD attr) {
     CComPtr<IFileOperation> operation;
     if (!checkHR(operation.CoCreateInstance(__uuidof(FileOperation))))
         return nullptr;
@@ -150,9 +150,7 @@ CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder) {
     checkHR(operation->Advise(&eventSink, &eventSinkCookie));
     // TODO: FOFX_ADDUNDORECORD requires Windows 8
     checkHR(operation->SetOperationFlags(FOFX_ADDUNDORECORD | FOF_RENAMEONCOLLISION));
-    CComHeapPtr<wchar_t> fileName;
-    settings::getScratchFileName(fileName);
-    checkHR(operation->NewItem(folder, FILE_ATTRIBUTE_NORMAL, fileName, nullptr, nullptr));
+    checkHR(operation->NewItem(folder, attr, name, nullptr, nullptr));
     checkHR(operation->PerformOperations());
     checkHR(operation->Unadvise(eventSinkCookie));
     return eventSink.newItem;
