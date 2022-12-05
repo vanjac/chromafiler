@@ -1439,14 +1439,14 @@ void ItemWindow::proxyDrag(POINT offset) {
 
     DWORD okEffects = DROPEFFECT_COPY | DROPEFFECT_LINK | DROPEFFECT_MOVE;
     DWORD effect;
-    checkHR(DoDragDrop(dataObject, this, okEffects, &effect));
     // effect is supposed to be set to DROPEFFECT_MOVE if the target was unable to delete the
     // original, however the only time I could trigger this was moving a file into a ZIP folder,
     // which does successfully delete the original, only with a delay. So handling this as intended
     // would actually break dragging into ZIP folders and cause loss of data!
-
-    // TODO: remove this once there's an automatic system for tracking files
-    resolveItem();
+    if (DoDragDrop(dataObject, this, okEffects, &effect) == DRAGDROP_S_DROP) {
+        // TODO: remove this once there's an automatic system for tracking files
+        resolveItem();
+    }
 }
 
 void ItemWindow::beginRename() {
