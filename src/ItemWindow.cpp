@@ -1728,9 +1728,9 @@ void ItemWindow::StatusTextThread::run() {
     CComPtr<IQueryInfo> queryInfo;
     if (!checkHR(localItem->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&queryInfo))))
         return;
-    
+
     CComHeapPtr<wchar_t> text;
-    if (!checkHR(queryInfo->GetInfoTip(QITIPF_USESLOWTIP, &text)))
+    if (!checkHR(queryInfo->GetInfoTip(QITIPF_USESLOWTIP, &text)) || !text)
         return;
     for (wchar_t *c = text; *c; c++) {
         if (*c == '\n')
