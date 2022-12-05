@@ -42,7 +42,9 @@ private:
     HWND createRichEdit(bool wordWrap);
     CComPtr<ITextDocument> getTOMDocument();
     void updateFont();
+    void selectionChanged();
     void updateStatus();
+    void openSelectedURL();
     void userSave();
     bool confirmSave(bool willDelete);
 
@@ -77,6 +79,8 @@ private:
     HWND findReplaceDialog = nullptr;
     FINDREPLACE findReplace;
     wchar_t findBuffer[128], replaceBuffer[128];
+
+    CComBSTR selectedURL;
 };
 
 } // namespace

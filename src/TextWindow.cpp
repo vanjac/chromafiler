@@ -98,6 +98,9 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
     SendMessage(control, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
     SendMessage(control, EM_SETEVENTMASK, 0, ENM_SELCHANGE | ENM_CHANGE);
     SendMessage(control, EM_EXLIMITTEXT, 0, MAX_FILE_SIZE);
+    // https://learn.microsoft.com/en-us/archive/blogs/murrays/automatic-richedit-hyperlinks
+    SendMessage(control, EM_AUTOURLDETECT,
+        AURL_ENABLEURL | AURL_ENABLEDRIVELETTERS | AURL_ENABLEEAURLS, 0);
     // TODO: SES_XLTCRCRLFTOCR?
     return control;
 }
@@ -331,11 +334,24 @@ bool TextWindow::onControlCommand(HWND controlHwnd, WORD notif) {
 }
 
 LRESULT TextWindow::onNotify(NMHDR *nmHdr) {
-    if (nmHdr->hwndFrom == edit && nmHdr->code == EN_SELCHANGE && hasStatusText()) {
-        updateStatus();
+    if (nmHdr->hwndFrom == edit && nmHdr->code == EN_SELCHANGE) {
+        selectionChanged();
         return 0;
     }
     return ItemWindow::onNotify(nmHdr);
+}
+
+void TextWindow::selectionChanged() {
+    if (hasStatusText())
+        updateStatus();
+    CHARFORMAT format = {sizeof(format)};
+    SendMessage(edit, EM_GETCHARFORMAT, SCF_SELECTION, (LPARAM)&format);
+    if ((format.dwMask & CFM_LINK) && (format.dwEffects & CFE_LINK)) {
+        openSelectedURL();
+    } else {
+        selectedURL = nullptr;
+        closeChild();
+    }
 }
 
 void TextWindow::updateStatus() {
@@ -357,6 +373,28 @@ void TextWindow::updateStatus() {
         formatMessage(status, STR_TEXT_STATUS_SEL, line, 1 - toStart, end - start);
     }
     setStatusText(status);
+}
+
+void TextWindow::openSelectedURL() {
+    CComPtr<ITextDocument> doc = getTOMDocument();
+    CComPtr<ITextSelection> sel;
+    CComPtr<ITextRange> range;
+    if (!doc || !checkHR(doc->GetSelection(&sel)) || !checkHR(sel->GetDuplicate(&range))) return;
+    checkHR(range->Expand(tomLink, nullptr));
+    CComBSTR urlStr;
+    if (!checkHR(range->GetText(&urlStr))) return;
+    if (selectedURL && (selectedURL == urlStr))
+        return;
+    selectedURL = urlStr;
+    debugPrintf(L"Selected: %s\n", &*selectedURL);
+
+    CComPtr<IShellItem> selItem;
+    // TODO bind context? https://learn.microsoft.com/en-us/windows/win32/shell/str-constants
+    if (checkHR(SHCreateItemFromParsingName(selectedURL, nullptr, IID_PPV_ARGS(&selItem)))) {
+        openChild(selItem);
+    } else {
+        closeChild();
+    }
 }
 
 void TextWindow::userSave() {
@@ -642,6 +680,7 @@ HRESULT TextWindow::loadText() {
         }
         SETTEXTEX setText = {};
         setText.codepage = CP_UTF8;
+        // TODO doesn't work with auto-URL drive letter paths
         SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)utf8String);
     }
     debugPrintf(L"Encoding %d\n", encoding);
