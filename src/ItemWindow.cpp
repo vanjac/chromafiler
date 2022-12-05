@@ -254,7 +254,8 @@ HWND ItemWindow::createChainOwner(int showCommand) {
 }
 
 void ItemWindow::close() {
-    PostMessage(hwnd, WM_CLOSE, 0, 0);
+    if (!closing)
+        PostMessage(hwnd, WM_CLOSE, 0, 0);
 }
 
 void ItemWindow::activate() {
@@ -825,7 +826,7 @@ void ItemWindow::onActivate(WORD state, HWND) {
             SetWindowPos(child->hwnd, HWND_TOP, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         }
-        if (firstActivate && !parent && !closing) // can happen when closing save prompt
+        if (firstActivate && !parent)
             resolveItem();
         firstActivate = true;
     }
@@ -1184,6 +1185,8 @@ void ItemWindow::removeChainPreview() {
 }
 
 bool ItemWindow::resolveItem() {
+    if (closing) // can happen when closing save prompt (window is activated)
+        return true;
     SFGAOF attr;
     // check if item exists
     if (SUCCEEDED(item->GetAttributes(SFGAO_VALIDATE, &attr)))
