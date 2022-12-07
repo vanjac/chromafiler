@@ -512,7 +512,7 @@ void getItemIcons(CComPtr<IShellItem> item, HICON *iconLarge, HICON *iconSmall) 
 }
 
 void ItemWindow::onCreate() {
-    HICON iconLarge, iconSmall;
+    HICON iconLarge = nullptr, iconSmall = nullptr;
     getItemIcons(item, &iconLarge, &iconSmall);
     SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
