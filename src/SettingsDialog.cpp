@@ -427,7 +427,7 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_SOURCE_LINK && HIWORD(wParam) == BN_CLICKED) {
-                ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler",
+                ShellExecute(nullptr, L"open", L"https://chroma.zone/chromafiler/",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_AUTO_UPDATE && HIWORD(wParam) == BN_CLICKED) {

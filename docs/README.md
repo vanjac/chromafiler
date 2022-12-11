@@ -31,4 +31,4 @@ VS Code must be launched from the "x64 Native Tools Command Prompt" (search in S
 
 ## Contact me:
 
-For questions / feedback / bug reports please email: `chroma [at] chroma [dot] zone`
+For questions / feedback / bug reports please [email me](https://chroma.zone/contact)
