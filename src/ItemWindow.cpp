@@ -1126,7 +1126,7 @@ void ItemWindow::detachAndMove(bool closeParent) {
 
 POINT ItemWindow::childPos(SIZE size) {
     // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
-    // GetWindowRect includes the drop shadow! (why??)
+    // GetWindowRect includes the resize margin!
     RECT rect = windowRect(), clientRect = {};
     GetClientRect(hwnd, &clientRect);
     POINT pos = {rect.left + clientRect.right + windowBorderSize() * 2, rect.top};
@@ -1139,9 +1139,9 @@ POINT ItemWindow::childPos(SIZE size) {
 
 POINT ItemWindow::parentPos(SIZE size) {
     RECT rect = windowRect();
-    POINT shadow = {rect.left, rect.top};
-    ScreenToClient(hwnd, &shadow); // determine size of drop shadow
-    POINT pos = {rect.left - shadow.x * 2 - windowBorderSize() * 2 - size.cx, rect.top};
+    POINT margin = {rect.left, rect.top};
+    ScreenToClient(hwnd, &margin); // determine size of resize margin
+    POINT pos = {rect.left - margin.x * 2 - windowBorderSize() * 2 - size.cx, rect.top};
 
     HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo = {sizeof(monitorInfo)};
