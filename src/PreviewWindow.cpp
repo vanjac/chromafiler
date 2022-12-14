@@ -124,6 +124,14 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
         GetClientRect(container, &containerClientRect);
         checkHR(preview->SetRect(&containerClientRect));
         return 0;
+    } else if (message == MSG_REFRESH_PREVIEW) {
+        destroyPreview();
+        initRequest->cancel();
+        initRequest = new InitPreviewRequest(item, previewID, hwnd, container);
+        if (initPreviewThread) {
+            checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
+                MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
+        }
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
 }
@@ -148,13 +156,9 @@ void PreviewWindow::destroyPreview() {
 
 void PreviewWindow::refresh() {
     ItemWindow::refresh();
-    destroyPreview();
-    initRequest->cancel();
-    initRequest = new InitPreviewRequest(item, previewID, hwnd, container);
-    if (initPreviewThread) {
-        checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
-            MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
-    }
+    // this could be called from the preview handler through TranslateAccelerator
+    // which would be bad since refreshing involves destroying the current preview handler
+    PostMessage(hwnd, MSG_REFRESH_PREVIEW, 0, 0);
 }
 
 /* IUnknown */

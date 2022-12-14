@@ -37,6 +37,7 @@ public:
 protected:
     enum UserMessage {
         MSG_INIT_PREVIEW_COMPLETE = ItemWindow::MSG_LAST,
+        MSG_REFRESH_PREVIEW,
         MSG_LAST
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
