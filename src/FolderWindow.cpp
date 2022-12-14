@@ -404,6 +404,7 @@ void FolderWindow::selectionChanged() {
             // this could happen when dragging a file. don't try to create any windows yet
             // sometimes items also become deselected and then reselected
             // eg. when a file is deleted from a folder
+            // Note: this also happens when certain operations create a progress window
             updateSelectionOnActivate = true;
         } else if (!selectionDirty) {
             selectionDirty = true;
@@ -417,10 +418,6 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
     if (message == MSG_SELECTION_CHANGED) {
         selectionDirty = false;
         updateSelection();
-        // note: sometimes the first selectionChanged occurs before navigation is complete and
-        // updateStatus() will fail (often when visiting a folder for the first time)
-        if (hasStatusText())
-            updateStatus();
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
 }
@@ -452,6 +449,11 @@ void FolderWindow::updateSelection() {
         selected = nullptr;
         closeChild();
     }
+
+    // note: sometimes the first selection change event occurs before navigation is complete and
+    // updateStatus() will fail (often when visiting a folder for the first time)
+    if (hasStatusText())
+        updateStatus();
 }
 
 void FolderWindow::updateStatus() {
