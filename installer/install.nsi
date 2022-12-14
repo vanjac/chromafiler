@@ -127,6 +127,8 @@ Section "Add to Open With menu" SecProgID
 	SetRegView 64
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
+	; hack for ArsClip (TODO: add to all users?)
+	WriteRegStr HKCU "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
 SectionEnd
 
 Section "Add to folder context menu" SecContext
@@ -185,6 +187,7 @@ SectionEnd
 
 Function un.CleanupCurrentUser
 	DeleteRegKey HKCU "Software\ChromaFiler"
+	DeleteRegKey HKCU "Software\Classes\Applications\ChromaFiler.exe"
 	DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
 	; clear shell defaults if set to chromafiler
@@ -202,6 +205,7 @@ FunctionEnd
 Function un.CleanupUser
 	Pop $0
 	DeleteRegKey HKU "$0\Software\ChromaFiler"
+	DeleteRegKey HKU "$0\Software\Classes\Applications\ChromaFiler.exe"
 	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
 	; clear shell defaults if set to chromafiler
