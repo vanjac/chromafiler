@@ -40,6 +40,12 @@ public:
     STDMETHODIMP OnViewCreated(IShellView *shellView) override;
 
 protected:
+    enum UserMessage {
+        MSG_SELECTION_CHANGED = ItemWindow::MSG_LAST,
+        MSG_LAST
+    };
+    LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
+
     void onCreate() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
@@ -93,6 +99,7 @@ private:
     CComPtr<IShellItem> selected;
 
     // jank flags
+    bool selectionDirty = false;
     bool ignoreNextSelection = false;
     bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;

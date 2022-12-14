@@ -405,16 +405,24 @@ void FolderWindow::selectionChanged() {
             // sometimes items also become deselected and then reselected
             // eg. when a file is deleted from a folder
             updateSelectionOnActivate = true;
-        } else {
-            updateSelection();
+        } else if (!selectionDirty) {
+            selectionDirty = true;
+            PostMessage(hwnd, MSG_SELECTION_CHANGED, 0, 0);
         }
     }
     ignoreNextSelection = false;
+}
 
-    // note: sometimes the first selectionChanged occurs before navigation is complete and
-    // updateStatus() will fail (often when visiting a folder for the first time)
-    if (hasStatusText())
-        updateStatus();
+LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == MSG_SELECTION_CHANGED) {
+        selectionDirty = false;
+        updateSelection();
+        // note: sometimes the first selectionChanged occurs before navigation is complete and
+        // updateStatus() will fail (often when visiting a folder for the first time)
+        if (hasStatusText())
+            updateStatus();
+    }
+    return ItemWindow::handleMessage(message, wParam, lParam);
 }
 
 void FolderWindow::updateSelection() {
