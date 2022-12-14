@@ -269,9 +269,13 @@ void snapWindowPosition(HWND hwnd, RECT *rect) {
     // right edge
     snapAxis(rect->right,  monitorInfo.rcMonitor.right,  &snap.x, &snapDist.x);
     snapAxis(rect->right,  monitorInfo.rcWork.right,     &snap.x, &snapDist.x);
+    if (monitorInfo.rcWork.left > monitorInfo.rcMonitor.left)
+        snapAxis(rect->right, monitorInfo.rcWork.left,   &snap.x, &snapDist.x);
     // bottom edge
     snapAxis(rect->bottom, monitorInfo.rcMonitor.bottom, &snap.y, &snapDist.y);
     snapAxis(rect->bottom, monitorInfo.rcWork.bottom,    &snap.y, &snapDist.y);
+    if (monitorInfo.rcWork.top > monitorInfo.rcMonitor.top)
+        snapAxis(rect->bottom, monitorInfo.rcWork.top,   &snap.y, &snapDist.y);
     OffsetRect(rect, snap.x, snap.y);
 }
 
@@ -315,8 +319,12 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 POINT snapDist = {SNAP_DISTANCE, SNAP_DISTANCE};
                 snapAxis(sizeRect->right,  monitorInfo.rcMonitor.right,  &snap.x, &snapDist.x);
                 snapAxis(sizeRect->right,  monitorInfo.rcWork.right,     &snap.x, &snapDist.x);
+                snapAxis(sizeRect->right,  monitorInfo.rcMonitor.left,   &snap.x, &snapDist.x);
+                snapAxis(sizeRect->right,  monitorInfo.rcWork.left,      &snap.x, &snapDist.x);
                 snapAxis(sizeRect->bottom, monitorInfo.rcMonitor.bottom, &snap.y, &snapDist.y);
                 snapAxis(sizeRect->bottom, monitorInfo.rcWork.bottom,    &snap.y, &snapDist.y);
+                snapAxis(sizeRect->bottom, monitorInfo.rcMonitor.top,    &snap.y, &snapDist.y);
+                snapAxis(sizeRect->bottom, monitorInfo.rcWork.top,       &snap.y, &snapDist.y);
                 sizeRect->right += snap.x; sizeRect->bottom += snap.y;
             }
             break; // pass to FolderWindow
