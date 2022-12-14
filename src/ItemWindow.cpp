@@ -254,8 +254,7 @@ HWND ItemWindow::createChainOwner(int showCommand) {
 }
 
 void ItemWindow::close() {
-    if (!closing)
-        PostMessage(hwnd, WM_CLOSE, 0, 0);
+    PostMessage(hwnd, WM_CLOSE, 0, 0);
 }
 
 void ItemWindow::activate() {
@@ -311,6 +310,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
             return 0;
         case WM_CLOSE:
+            if (closing)
+                return 0;
             closing = true;
             if (!onCloseRequest()) {
                 closing = false;
