@@ -650,51 +650,6 @@ HRESULT TextWindow::loadText() {
 
 bool TextWindow::saveText() {
     debugPrintf(L"Saving!\n");
-
-    CComHeapPtr<uint8_t> buffer; // not null terminated!
-    ULONG size;
-    if (encoding == FAIL) {
-        return false;
-    } else if (encoding == UTF8 || encoding == UTF8BOM) {
-        GETTEXTLENGTHEX getLength = {};
-        getLength.flags = GTL_USECRLF | GTL_NUMBYTES | GTL_CLOSE; // TODO line endings
-        getLength.codepage = CP_UTF8;
-        // because we're using GTL_CLOSE, utf8Size may be greater than actual size!
-        ULONG utf8Size = (ULONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
-
-        uint8_t *utf8String;
-        if (encoding == UTF8BOM) {
-            buffer.AllocateBytes(utf8Size + sizeof(BOM_UTF8BOM) + 1); // includes null (not written)
-            utf8String = buffer + sizeof(BOM_UTF8BOM);
-            CopyMemory(buffer, BOM_UTF8BOM, sizeof(BOM_UTF8BOM));
-        } else {
-            buffer.AllocateBytes(utf8Size + 1);
-            utf8String = buffer;
-        }
-
-        GETTEXTEX getText = {};
-        getText.cb = utf8Size + 1;
-        getText.flags = GT_USECRLF; // TODO line endings
-        getText.codepage = CP_UTF8;
-        utf8Size = (ULONG)SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)utf8String);
-        size = (encoding == UTF8BOM) ? (utf8Size + sizeof(BOM_UTF8BOM)) : utf8Size;
-    } else if (encoding == UTF16LE || encoding == UTF16BE) {
-        ULONG textLength = (ULONG)SendMessage(edit, WM_GETTEXTLENGTH, 0, 0);
-        size = textLength * sizeof(wchar_t) + sizeof(BOM_UTF16LE);
-        buffer.AllocateBytes(size + sizeof(wchar_t)); // null character (not written)
-        CopyMemory(buffer, (encoding == UTF16BE) ? BOM_UTF16BE : BOM_UTF16LE, sizeof(BOM_UTF16LE));
-
-        wchar_t *wcBuffer = (wchar_t *)(void *)(buffer + sizeof(BOM_UTF16LE)); // not including BOM
-        SendMessage(edit, WM_GETTEXT, textLength + 1, (LPARAM)wcBuffer);
-        if (encoding == UTF16BE) {
-            for (ULONG i = 0; i < textLength; i++)
-                wcBuffer[i] = _byteswap_ushort(wcBuffer[i]);
-        }
-    } else {
-        debugPrintf(L"Unknown encoding\n");
-        return false;
-    }
-
     CComPtr<IBindCtx> context;
     if (checkHR(CreateBindCtx(0, &context))) {
         BIND_OPTS options = {sizeof(BIND_OPTS), 0,
@@ -704,9 +659,44 @@ bool TextWindow::saveText() {
     CComPtr<IStream> stream;
     if (!checkHR(item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream))))
         return false;
-    if (!checkHR(IStream_Write(stream, buffer, size)))
+
+    HRESULT hr = S_OK;
+    switch (encoding) {
+        case UTF8BOM:
+            hr = IStream_Write(stream, BOM_UTF8BOM, sizeof(BOM_UTF8BOM));
+            break;
+        case UTF16LE:
+            hr = IStream_Write(stream, BOM_UTF16LE, sizeof(BOM_UTF16LE));
+            break;
+        case UTF16BE:
+            hr = IStream_Write(stream, BOM_UTF16BE, sizeof(BOM_UTF16BE));
+            break;
+    }
+    if (!checkHR(hr))
         return false;
-    return true;
+
+    WPARAM format = SF_TEXT;
+    if (encoding == UTF8 || encoding == UTF8BOM) {
+        format |= SF_USECODEPAGE | (CP_UTF8 << 16);
+    } else if (encoding == UTF16LE || encoding == UTF16BE) {
+        format |= SF_UNICODE;
+    }
+    StreamInfo info = {stream, encoding};
+    EDITSTREAM editStream = {(DWORD_PTR)&info, 0, streamOutCallback};
+    SendMessage(edit, EM_STREAMOUT, format, (LPARAM)&editStream);
+
+    return editStream.dwError == 0;
+}
+
+DWORD TextWindow::streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
+        LONG numBytes, LONG *bytesWritten) {
+    StreamInfo *info = (StreamInfo *)cookie;
+    if (info->encoding == UTF16BE) {
+        numBytes &= ~1; // only write even number of bytes
+        for (int i = 0; i < numBytes; i += 2)
+            *(wchar_t *)(buffer + i) = _byteswap_ushort(*(wchar_t *)(buffer + i));
+    }
+    return !checkHR(info->stream->Write(buffer, numBytes, (ULONG *)bytesWritten));
 }
 
 int scrollAccumLines(int *scrollAccum) {
