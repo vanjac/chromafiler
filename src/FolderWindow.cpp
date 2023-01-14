@@ -498,8 +498,8 @@ void FolderWindow::refresh() {
     if (listView && ListView_GetView(listView) == LV_VIEW_DETAILS)
         SendMessage(listView, WM_VSCROLL, SB_TOP, 0); // fix drawing glitch on refresh
     if (shellView)
-        checkHR(shellView->Refresh());
-    firstODDispInfo = false;
+        checkHR(shellView->Refresh()); // TODO: invoke context menu verb instead?
+    firstODDispInfo = false; // TODO won't be called if invoked from context menu!
 }
 
 CComPtr<IContextMenu> FolderWindow::queryBackgroundMenu(HMENU *popupMenu) {
@@ -626,6 +626,7 @@ STDMETHODIMP FolderWindow::QueryInterface(REFIID id, void **obj) {
         QITABENT(FolderWindow, IServiceProvider),
         QITABENT(FolderWindow, ICommDlgBrowser),
         QITABENT(FolderWindow, ICommDlgBrowser2),
+        QITABENT(FolderWindow, IExplorerBrowserEvents),
         {},
     };
     HRESULT hr = QISearch(this, interfaces, id, obj);
@@ -649,8 +650,7 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
     *ppv = nullptr;
 
     if (guidService == SID_SExplorerBrowserFrame) {
-        // use ICommDlgBrowser implementation to receive selection events
-        result = QueryInterface(riid, ppv);
+        result = QueryInterface(riid, ppv); // ICommDlgBrowser
     }
     return result;
 }
@@ -717,10 +717,11 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
         // window was created by clicking the parent button OR onItemChanged was called
         ignoreNextSelection = true; // TODO jank
         CComHeapPtr<ITEMID_CHILD> childID;
-        checkHR(CComQIPtr<IParentAndItem>(child->item)
-            ->GetParentAndItem(nullptr, nullptr, &childID));
-        checkHR(shellView->SelectItem(childID,
-            SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
+        if (checkHR(CComQIPtr<IParentAndItem>(child->item)
+                ->GetParentAndItem(nullptr, nullptr, &childID))) {
+            checkHR(shellView->SelectItem(childID,
+                SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
+        }
     }
 
     if (shellView && GetActiveWindow() == hwnd)

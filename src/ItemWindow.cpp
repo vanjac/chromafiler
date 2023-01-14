@@ -342,6 +342,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_NCCALCSIZE:
             if (wParam == TRUE && useCustomFrame()) {
                 // allow resizing past the edge of the window by reducing client rect
+                // TODO: revisit this
                 NCCALCSIZE_PARAMS *params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
                 int resizeMargin = windowResizeMargin();
                 params->rgrc[0].left = params->rgrc[0].left + resizeMargin;
