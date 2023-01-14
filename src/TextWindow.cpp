@@ -688,7 +688,7 @@ bool TextWindow::saveText() {
     return editStream.dwError == 0;
 }
 
-DWORD TextWindow::streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
+DWORD CALLBACK TextWindow::streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
         LONG numBytes, LONG *bytesWritten) {
     StreamInfo *info = (StreamInfo *)cookie;
     if (info->encoding == UTF16BE) {

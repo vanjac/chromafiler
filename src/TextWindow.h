@@ -59,7 +59,7 @@ private:
 
     HRESULT loadText();
     bool saveText();
-    static DWORD streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
+    static DWORD CALLBACK streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
         LONG numBytes, LONG *bytesWritten);
 
     static LRESULT CALLBACK richEditProc(HWND hwnd, UINT message,
