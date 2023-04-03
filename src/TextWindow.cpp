@@ -4,6 +4,7 @@
 #include "DPI.h"
 #include "UIStrings.h"
 #include "resource.h"
+#include <cstdint>
 #include <windowsx.h>
 #include <shlobj.h>
 #include <propvarutil.h>

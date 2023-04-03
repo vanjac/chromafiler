@@ -85,6 +85,7 @@
 			"args": [
 				"/GL",      // release only
 				"/O2",      // release only
+				"/D", "_HAS_EXCEPTIONS=0", // release only
 				"/nologo",
 				"/MP",
 				"/W4",
