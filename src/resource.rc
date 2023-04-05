@@ -75,6 +75,7 @@ IDR_TEXT_MENU   MENU {
         MENUITEM    "&Delete\tBksp",            IDM_DELETE
         MENUITEM    SEPARATOR
         MENUITEM    "Select &All\tCtrl+A",      IDM_SELECT_ALL
+        MENUITEM    "Select &Lines\tCtrl+L",    IDM_LINE_SELECT
         MENUITEM    SEPARATOR
         MENUITEM    "&Find...\tCtrl+F",         IDM_FIND
         MENUITEM    "Find &Next\tF3",           IDM_FIND_NEXT
