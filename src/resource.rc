@@ -61,6 +61,7 @@ IDR_TEXT_ACCEL  ACCELERATORS {
     VK_OEM_MINUS,   IDM_ZOOM_OUT,       VIRTKEY, CONTROL
     "0",            IDM_ZOOM_RESET,     VIRTKEY, CONTROL
     "L",            IDM_LINE_SELECT,    VIRTKEY, CONTROL
+    "W",            IDM_WORD_WRAP,      VIRTKEY, CONTROL, SHIFT
 }
 
 IDR_TEXT_MENU   MENU {
@@ -82,7 +83,7 @@ IDR_TEXT_MENU   MENU {
         MENUITEM    "Find Pre&vious\tShift+F3", IDM_FIND_PREV
         MENUITEM    "R&eplace...\tCtrl+H",      IDM_REPLACE
         MENUITEM    SEPARATOR
-        MENUITEM    "&Word Wrap",               IDM_WORD_WRAP
+        MENUITEM    "&Word Wrap\tCtrl+Shift+W", IDM_WORD_WRAP
     }
 }
 
