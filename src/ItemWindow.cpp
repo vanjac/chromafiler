@@ -771,6 +771,10 @@ bool ItemWindow::onCommand(WORD command) {
     return false;
 }
 
+LRESULT ItemWindow::onDropdown(int, POINT) {
+    return TBDDRET_NODEFAULT;
+}
+
 bool ItemWindow::onControlCommand(HWND controlHwnd, WORD notif) {
     if (renameBox && controlHwnd == renameBox && notif == EN_KILLFOCUS) {
         if (IsWindowVisible(renameBox))
@@ -817,6 +821,11 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
                 dispInfo->uFlags |= TTF_DI_SETITEM;
             }
         }
+    } else if (nmHdr->code == TBN_DROPDOWN) {
+        NMTOOLBAR *nmToolbar = (NMTOOLBAR *)nmHdr;
+        POINT menuPos = {nmToolbar->rcButton.left, nmToolbar->rcButton.bottom};
+        ClientToScreen(nmHdr->hwndFrom, &menuPos);
+        return onDropdown(nmToolbar->iItem, menuPos);
     }
     return 0;
 }

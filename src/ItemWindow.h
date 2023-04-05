@@ -73,6 +73,7 @@ protected:
     virtual bool onCloseRequest(); // return false to block close (probably a bad idea)
     virtual void onDestroy();
     virtual bool onCommand(WORD command);
+    virtual LRESULT onDropdown(int command, POINT pos);
     virtual bool onControlCommand(HWND controlHwnd, WORD notif);
     virtual LRESULT onNotify(NMHDR *nmHdr);
     virtual void onActivate(WORD state, HWND prevWindow);

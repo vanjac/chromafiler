@@ -338,18 +338,16 @@ bool FolderWindow::onCommand(WORD command) {
     return ItemWindow::onCommand(command);
 }
 
-LRESULT FolderWindow::onNotify(NMHDR *nmHdr) {
-    if (nmHdr->code == TBN_DROPDOWN) {
-        NMTOOLBAR *nmToolbar = (NMTOOLBAR *)nmHdr;
-        POINT menuPos = {nmToolbar->rcButton.left, nmToolbar->rcButton.bottom};
-        ClientToScreen(nmHdr->hwndFrom, &menuPos);
-        if (nmToolbar->iItem == IDM_NEW_ITEM_MENU) {
-            openNewItemMenu(menuPos);
-        } else if (nmToolbar->iItem == IDM_VIEW_MENU) {
-            openViewMenu(menuPos);
-        }
+LRESULT FolderWindow::onDropdown(int command, POINT pos) {
+    switch (command) {
+        case IDM_NEW_ITEM_MENU:
+            openNewItemMenu(pos);
+            return TBDDRET_DEFAULT;
+        case IDM_VIEW_MENU:
+            openViewMenu(pos);
+            return TBDDRET_DEFAULT;
     }
-    return ItemWindow::onNotify(nmHdr);
+    return ItemWindow::onDropdown(command, pos);
 }
 
 void FolderWindow::onActivate(WORD state, HWND prevWindow) {
