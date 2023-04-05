@@ -990,7 +990,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
         titleRect.right = clientRect.right - closeButtonWidth; // close button width
         titleRect.bottom = titleRect.top + titleSize.cy;
         checkHR(DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
-                                DT_LEFT | DT_WORD_ELLIPSIS, &titleRect, &textOpts));
+                                DT_LEFT | DT_WORD_ELLIPSIS | DT_NOPREFIX, &titleRect, &textOpts));
 
         checkHR(CloseThemeData(windowTheme));
     }
