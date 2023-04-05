@@ -34,6 +34,7 @@
 #define IDM_ZOOM_IN         1106
 #define IDM_ZOOM_OUT        1107
 #define IDM_ZOOM_RESET      1108
+#define IDM_LINE_SELECT     1109
 
 #define IDR_TEXT_MENU       108
 #define IDM_UNDO            1200
