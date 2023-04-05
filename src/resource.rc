@@ -66,22 +66,22 @@ IDR_TEXT_ACCEL  ACCELERATORS {
 IDR_TEXT_MENU   MENU {
     POPUP "" {
         // based on Edit control context menu
-        MENUITEM    "&Undo",            IDM_UNDO
-        MENUITEM    "&Redo",            IDM_REDO
+        MENUITEM    "&Undo\tCtrl+Z",            IDM_UNDO
+        MENUITEM    "&Redo\tCtrl+Y",            IDM_REDO
         MENUITEM    SEPARATOR
-        MENUITEM    "Cu&t",             IDM_CUT
-        MENUITEM    "&Copy",            IDM_COPY
-        MENUITEM    "&Paste",           IDM_PASTE
-        MENUITEM    "&Delete",          IDM_DELETE
+        MENUITEM    "Cu&t\tCtrl+X",             IDM_CUT
+        MENUITEM    "&Copy\tCtrl+C",            IDM_COPY
+        MENUITEM    "&Paste\tCtrl+V",           IDM_PASTE
+        MENUITEM    "&Delete\tBksp",            IDM_DELETE
         MENUITEM    SEPARATOR
-        MENUITEM    "Select &All",      IDM_SELECT_ALL
+        MENUITEM    "Select &All\tCtrl+A",      IDM_SELECT_ALL
         MENUITEM    SEPARATOR
-        MENUITEM    "&Find...",         IDM_FIND
-        MENUITEM    "Find &Next",       IDM_FIND_NEXT
-        MENUITEM    "Find Pre&vious",   IDM_FIND_PREV
-        MENUITEM    "R&eplace...",      IDM_REPLACE
+        MENUITEM    "&Find...\tCtrl+F",         IDM_FIND
+        MENUITEM    "Find &Next\tF3",           IDM_FIND_NEXT
+        MENUITEM    "Find Pre&vious\tShift+F3", IDM_FIND_PREV
+        MENUITEM    "R&eplace...\tCtrl+H",      IDM_REPLACE
         MENUITEM    SEPARATOR
-        MENUITEM    "&Word Wrap",        IDM_WORD_WRAP
+        MENUITEM    "&Word Wrap",               IDM_WORD_WRAP
     }
 }
 
