@@ -1,5 +1,5 @@
 #include "TrayWindow.h"
-#include "RectUtils.h"
+#include "GeomUtils.h"
 #include "Settings.h"
 #include "DPI.h"
 #include "resource.h"

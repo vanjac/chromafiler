@@ -1,5 +1,5 @@
 #include "GDIUtils.h"
-#include "RectUtils.h"
+#include "GeomUtils.h"
 #include <windowsx.h>
 #include <cstdint>
 

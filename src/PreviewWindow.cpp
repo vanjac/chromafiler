@@ -1,5 +1,5 @@
 #include "PreviewWindow.h"
-#include "RectUtils.h"
+#include "GeomUtils.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <unordered_map>

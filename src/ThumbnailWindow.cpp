@@ -1,5 +1,5 @@
 #include "ThumbnailWindow.h"
-#include "RectUtils.h"
+#include "GeomUtils.h"
 #include "GDIUtils.h"
 #include <windowsx.h>
 

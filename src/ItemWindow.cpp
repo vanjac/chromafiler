@@ -1,7 +1,7 @@
 #include "ItemWindow.h"
 #include "CreateItemWindow.h"
 #include "main.h"
-#include "RectUtils.h"
+#include "GeomUtils.h"
 #include "GDIUtils.h"
 #include "Settings.h"
 #include "DPI.h"
