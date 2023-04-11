@@ -1,5 +1,6 @@
 #include "TrayWindow.h"
 #include "GeomUtils.h"
+#include "WinUtils.h"
 #include "Settings.h"
 #include "DPI.h"
 #include "resource.h"
@@ -80,11 +81,11 @@ RECT getTaskbarRect() {
 SIZE TrayWindow::requestedSize() const {
     SIZE traySize = settings::getTraySize();
     if (traySize.cy == settings::DEFAULT_TRAY_SIZE.cy) {
-        RECT taskbarRect = getTaskbarRect();
-        if (rectWidth(taskbarRect) > rectHeight(taskbarRect)) {
-            return {DEFAULT_DIMEN, rectHeight(taskbarRect)};
+        SIZE taskbarSize = rectSize(getTaskbarRect());
+        if (taskbarSize.cx > taskbarSize.cy) {
+            return {DEFAULT_DIMEN, taskbarSize.cy};
         } else {
-            return {rectWidth(taskbarRect), DEFAULT_DIMEN};
+            return {taskbarSize.cx, DEFAULT_DIMEN};
         }
     } else {
         return sizeMulDiv(traySize, systemDPI, settings::getTrayDPI());
@@ -154,18 +155,16 @@ SettingsPage TrayWindow::settingsStartPage() const {
 }
 
 RECT TrayWindow::windowBody() {
-    RECT clientRect = {};
-    GetClientRect(hwnd, &clientRect);
-    if (rectWidth(clientRect) > rectHeight(clientRect)) {
-        clientRect.left += GetSystemMetrics(SM_CXVSCROLL);
+    SIZE size = clientSize(hwnd);
+    if (size.cx > size.cy) {
+        return {GetSystemMetrics(SM_CXVSCROLL), 0, size.cx, size.cy};
     } else {
-        clientRect.top += GetSystemMetrics(SM_CYHSCROLL);
+        return {0, GetSystemMetrics(SM_CYHSCROLL), size.cx, size.cy};
     }
-    return clientRect;
 }
 
 POINT TrayWindow::childPos(SIZE size) {
-    RECT rect = windowRect();
+    RECT rect = windowRect(hwnd);
     switch (settings::getTrayDirection()) {
         default: // TRAY_UP
             return {rect.left, rect.top - size.cy}; // ignore drop shadow, space is ok
@@ -194,11 +193,10 @@ FOLDERSETTINGS TrayWindow::folderSettings() const {
 
 void TrayWindow::onCreate() {
     HMODULE instance = GetWindowInstance(hwnd);
-    RECT clientRect = {};
-    GetClientRect(hwnd, &clientRect);
+    SIZE size = clientSize(hwnd);
     traySizeGrip = checkLE(CreateWindow(L"SCROLLBAR", nullptr,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | SBS_SIZEBOX | SBS_SIZEBOXBOTTOMRIGHTALIGN,
-        0, 0, clientRect.right, clientRect.bottom,
+        0, 0, size.cx, size.cy,
         hwnd, nullptr, instance, nullptr));
     SetWindowSubclass(traySizeGrip, sizeGripProc, 0, 0);
 
@@ -223,13 +221,11 @@ void TrayWindow::onDestroy() {
     checkLE(UnregisterHotKey(hwnd, HOTKEY_FOCUS_TRAY));
 }
 
-void TrayWindow::onSize(int width, int height) {
-    FolderWindow::onSize(width, height);
+void TrayWindow::onSize(SIZE size) {
+    FolderWindow::onSize(size);
 
-    RECT gripRect = {};
-    GetWindowRect(traySizeGrip, &gripRect);
-    SetWindowPos(traySizeGrip, nullptr,
-        width - rectWidth(gripRect), height - rectHeight(gripRect), 0, 0,
+    SIZE gripSize = rectSize(windowRect(traySizeGrip));
+    SetWindowPos(traySizeGrip, nullptr, size.cx - gripSize.cx, size.cy - gripSize.cy, 0, 0,
         SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
@@ -237,7 +233,7 @@ void TrayWindow::onExitSizeMove(bool moved, bool sized) {
     FolderWindow::onExitSizeMove(moved, sized);
 
     // save window position
-    RECT rect = windowRect();
+    RECT rect = windowRect(hwnd);
     settings::setTrayPosition({rect.left, rect.top});
     settings::setTraySize(rectSize(rect));
     settings::setTrayDPI(systemDPI);
@@ -338,13 +334,13 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break;
         case WM_ENTERSIZEMOVE: {
-            RECT curRect = windowRect();
+            RECT curRect = windowRect(hwnd);
             movePos = {curRect.left, curRect.top};
             break; // pass to ItemWindow
         }
         case WM_MOVING: {
             RECT *desiredRect = (RECT *)lParam;
-            RECT curRect = windowRect();
+            RECT curRect = windowRect(hwnd);
             OffsetRect(desiredRect, movePos.x - curRect.left, movePos.y - curRect.top);
             movePos = {desiredRect->left, desiredRect->top};
             snapWindowPosition(hwnd, desiredRect);
@@ -391,7 +387,7 @@ void TrayWindow::fixListViewColors() {
 }
 
 void TrayWindow::forceTopmost() {
-    RECT rect = windowRect();
+    RECT rect = windowRect(hwnd);
     POINT testPoint {(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
     if (GetAncestor(WindowFromPoint(testPoint), GA_ROOT) == hwnd)
         return; // already on top

@@ -42,7 +42,7 @@ protected:
     void onCreate() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
-    void onSize(int width, int height) override;
+    void onSize(SIZE size) override;
     void onExitSizeMove(bool moved, bool sized) override;
 
     void refresh() override;

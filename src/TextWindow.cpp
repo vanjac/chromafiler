@@ -1,5 +1,6 @@
 #include "TextWindow.h"
 #include "GeomUtils.h"
+#include "WinUtils.h"
 #include "Settings.h"
 #include "DPI.h"
 #include "UIStrings.h"
@@ -29,8 +30,7 @@ static HACCEL textAccelTable;
 static UINT updateSettingsMessage, findReplaceMessage;
 
 void TextWindow::init() {
-    WNDCLASS wndClass = createWindowClass(TEXT_WINDOW_CLASS);
-    RegisterClass(&wndClass);
+    RegisterClass(tempPtr(createWindowClass(TEXT_WINDOW_CLASS)));
     // http://www.jose.it-berater.org/richedit/rich_edit_control.htm
     checkLE(LoadLibrary(L"Msftedit.dll"));
 
@@ -165,8 +165,8 @@ void TextWindow::onActivate(WORD state, HWND prevWindow) {
     }
 }
 
-void TextWindow::onSize(int width, int height) {
-    ItemWindow::onSize(width, height);
+void TextWindow::onSize(SIZE size) {
+    ItemWindow::onSize(size);
     RECT body = windowBody();
     MoveWindow(edit, body.left, body.top, rectWidth(body), rectHeight(body), TRUE);
 }
@@ -426,9 +426,7 @@ void TextWindow::setWordWrap(bool wordWrap) {
 
     DestroyWindow(edit);
     edit = createRichEdit(wordWrap);
-    RECT clientRect = {};
-    GetClientRect(hwnd, &clientRect);
-    onSize(rectWidth(clientRect), rectHeight(clientRect));
+    onSize(clientSize(hwnd));
 
     SETTEXTEX setText = {ST_UNICODE, 1200};
     SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)&*buffer);
@@ -754,12 +752,12 @@ LRESULT CALLBACK TextWindow::richEditProc(HWND hwnd, UINT message,
     } else if (message == WM_CONTEXTMENU) {
         if (SendMessage(hwnd, EM_GETOPTIONS, 0, 0) & ECO_READONLY)
             return 0;
-        POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        POINT pos = pointFromLParam(lParam);
         if (pos.x == -1 && pos.y == -1) {
             CHARRANGE sel;
             SendMessage(hwnd, EM_EXGETSEL, 0, (LPARAM)&sel);
             SendMessage(hwnd, EM_POSFROMCHAR, (WPARAM)&pos, sel.cpMin);
-            ClientToScreen(hwnd, &pos);
+            pos = clientToScreen(hwnd, pos);
         }
         HMENU menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_MENU));
         checkLE(TrackPopupMenuEx(GetSubMenu(menu, 0), TPM_RIGHTBUTTON,

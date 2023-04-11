@@ -3,6 +3,7 @@
 #include "main.h"
 #include "GeomUtils.h"
 #include "GDIUtils.h"
+#include "WinUtils.h"
 #include "Settings.h"
 #include "DPI.h"
 #include "UIStrings.h"
@@ -271,25 +272,17 @@ void ItemWindow::setPos(POINT pos) {
 }
 
 void ItemWindow::move(int x, int y) {
-    RECT rect = windowRect();
+    RECT rect = windowRect(hwnd);
     setPos({rect.left + x, rect.top + y});
 }
 
-RECT ItemWindow::windowRect() {
-    RECT rect = {};
-    GetWindowRect(hwnd, &rect);
-    return rect;
-}
-
 RECT ItemWindow::windowBody() {
-    RECT clientRect = {};
-    GetClientRect(hwnd, &clientRect);
-    int top = 0;
+    RECT rect = clientRect(hwnd);
     if (useCustomFrame())
-        top += CAPTION_HEIGHT;
+        rect.top += CAPTION_HEIGHT;
     if (statusText || toolbar)
-        top += TOOLBAR_HEIGHT;
-    return RECT {0, top, clientRect.right, clientRect.bottom};
+        rect.top += TOOLBAR_HEIGHT;
+    return rect;
 }
 
 LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -333,9 +326,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         case WM_NCACTIVATE:
             if (useCustomFrame()) {
-                RECT captionRect = {};
-                GetClientRect(hwnd, &captionRect);
-                captionRect.bottom = CAPTION_HEIGHT;
+                RECT captionRect = {0, 0, clientSize(hwnd).cx, CAPTION_HEIGHT};
                 InvalidateRect(hwnd, &captionRect, FALSE);
             }
             break; // pass to DefWindowProc
@@ -356,7 +347,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             LRESULT defHitTest = DefWindowProc(hwnd, message, wParam, lParam);
             if (defHitTest != HTCLIENT)
                 return defHitTest;
-            return hitTestNCA({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+            return hitTestNCA(pointFromLParam(lParam));
         }
         case WM_PAINT: {
             PAINTSTRUCT paint;
@@ -369,18 +360,18 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return COLOR_WINDOW + 1;
         case WM_ENTERSIZEMOVE: {
             moveAccum = {0, 0};
-            lastSize = rectSize(windowRect());
+            lastSize = rectSize(windowRect(hwnd));
             return 0;
         }
         case WM_EXITSIZEMOVE: {
             onExitSizeMove(!pointEqual(moveAccum, {0, 0}),
-                !sizeEqual(rectSize(windowRect()), lastSize));
+                !sizeEqual(rectSize(windowRect(hwnd)), lastSize));
             return 0;
         }
         case WM_MOVING: {
             // https://www.drdobbs.com/make-it-snappy/184416407
             RECT *desiredRect = (RECT *)lParam;
-            RECT curRect = windowRect();
+            RECT curRect = windowRect(hwnd);
             moveAccum.x += desiredRect->left - curRect.left;
             moveAccum.y += desiredRect->top - curRect.top;
             if (parent) {
@@ -401,7 +392,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_SIZING:
             if (parent && parent->stickToChild()) {
                 RECT *desiredRect = (RECT *)lParam;
-                RECT curRect = windowRect();
+                RECT curRect = windowRect(hwnd);
                 // constrain top-left corner
                 int moveX = 0, moveY = 0;
                 if (wParam == WMSZ_LEFT || wParam == WMSZ_TOPLEFT || wParam == WMSZ_BOTTOMLEFT)
@@ -417,13 +408,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             return TRUE;
         case WM_SIZE: {
-            onSize(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            onSize(sizeFromLParam(lParam));
             return 0;
         }
         case WM_NCLBUTTONDOWN: {
-            POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-            POINT clientCursor = cursor;
-            ScreenToClient(hwnd, &clientCursor);
+            POINT cursor = pointFromLParam(lParam);
+            POINT clientCursor = screenToClient(hwnd, cursor);
             if (wParam == HTCAPTION && PtInRect(&iconRect, clientCursor) &&
                     (GetKeyState(VK_SHIFT) < 0 || GetKeyState(VK_CONTROL) < 0
                     || GetKeyState(VK_MENU) < 0)) {
@@ -435,10 +425,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             break;
         }
         case WM_NCLBUTTONDBLCLK: {
-            POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-            POINT clientCursor = cursor;
-            ScreenToClient(hwnd, &clientCursor);
-            if (wParam == HTCAPTION && PtInRect(&proxyRect, clientCursor)) {
+            POINT cursor = pointFromLParam(lParam);
+            if (wParam == HTCAPTION && PtInRect(&proxyRect, screenToClient(hwnd, cursor))) {
                 if (GetKeyState(VK_MENU) < 0)
                     openProxyProperties();
                 else
@@ -448,10 +436,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             break;
         }
         case WM_NCRBUTTONUP: { // WM_CONTEXTMENU doesn't seem to work in the caption
-            POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-            POINT clientCursor = cursor;
-            ScreenToClient(hwnd, &clientCursor);
-            if (wParam == HTCAPTION && PtInRect(&proxyRect, clientCursor)) {
+            POINT cursor = pointFromLParam(lParam);
+            if (wParam == HTCAPTION && PtInRect(&proxyRect, screenToClient(hwnd, cursor))) {
                 openProxyContextMenu(cursor);
                 return 0;
             } else if (wParam == HTCAPTION) {
@@ -538,9 +524,8 @@ void ItemWindow::onCreate() {
 
     HMODULE instance = GetWindowInstance(hwnd);
     if (useCustomFrame()) {
-        BOOL disableAnimations = true;
         checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-            &disableAnimations, sizeof(disableAnimations)));
+            tempPtr((BOOL)TRUE), sizeof(BOOL))); // disable animations
         MARGINS margins;
         margins.cxLeftWidth = 0;
         margins.cxRightWidth = 0;
@@ -736,8 +721,7 @@ bool ItemWindow::onCommand(WORD command) {
             return true;
         case IDM_PROXY_MENU: {
             POINT menuPos = useCustomFrame() ? POINT{proxyRect.right, proxyRect.top} : POINT{0, 0};
-            ClientToScreen(hwnd, &menuPos);
-            openProxyContextMenu(menuPos);
+            openProxyContextMenu(clientToScreen(hwnd, menuPos));
             return true;
         }
         case IDM_RENAME_PROXY:
@@ -752,8 +736,7 @@ bool ItemWindow::onCommand(WORD command) {
                 rootParent = rootParent->parent;
             if (!rootParent->paletteWindow()) {
                 POINT menuPos = {0, rootParent->useCustomFrame() ? CAPTION_HEIGHT : 0};
-                ClientToScreen(rootParent->hwnd, &menuPos);
-                rootParent->openParentMenu(menuPos);
+                rootParent->openParentMenu(clientToScreen(rootParent->hwnd, menuPos));
             }
             return true;
         }
@@ -794,11 +777,9 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
             SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
         return TRUE;
     } else if (statusTooltip && nmHdr->hwndFrom == statusTooltip && nmHdr->code == TTN_SHOW) {
-        RECT tooltipRect = {}, statusRect = {};
-        GetClientRect(statusTooltip, &tooltipRect);
-        GetWindowRect(statusText, &statusRect);
+        RECT statusRect = windowRect(statusText);
 
-        if (rectWidth(statusRect) > rectWidth(tooltipRect)) {
+        if (rectWidth(statusRect) > clientSize(statusTooltip).cx) {
             // text is not truncated so tooltip does not need to be shown. move it offscreen
             SetWindowPos(statusTooltip, nullptr, -0x8000, -0x8000, 0, 0,
                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
@@ -824,8 +805,7 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
     } else if (nmHdr->code == TBN_DROPDOWN) {
         NMTOOLBAR *nmToolbar = (NMTOOLBAR *)nmHdr;
         POINT menuPos = {nmToolbar->rcButton.left, nmToolbar->rcButton.bottom};
-        ClientToScreen(nmHdr->hwndFrom, &menuPos);
-        return onDropdown(nmToolbar->iItem, menuPos);
+        return onDropdown(nmToolbar->iItem, clientToScreen(nmHdr->hwndFrom, menuPos));
     }
     return 0;
 }
@@ -843,14 +823,12 @@ void ItemWindow::onActivate(WORD state, HWND) {
     }
 }
 
-void ItemWindow::onSize(int width, int) {
+void ItemWindow::onSize(SIZE size) {
     windowRectChanged();
 
-    int toolbarLeft = width;
+    int toolbarLeft = size.cx;
     if (toolbar) {
-        RECT toolbarRect = {};
-        GetClientRect(toolbar, &toolbarRect);
-        toolbarLeft = width - rectWidth(toolbarRect);
+        toolbarLeft = size.cx - clientSize(toolbar).cx;
         SetWindowPos(toolbar, nullptr, toolbarLeft, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
@@ -863,13 +841,13 @@ void ItemWindow::onSize(int width, int) {
 
 void ItemWindow::windowRectChanged() {
     if (child)
-        child->setPos(childPos(rectSize(child->windowRect())));
+        child->setPos(childPos(rectSize(windowRect(child->hwnd))));
     if (windowStyle() & WS_POPUP) {
         // unlike overlapped windows, popups do not use the current monitor DPI, instead they use
         // the DPI of the most recently active overlapped window. this will always be the owner if
         // it's visible and overlapped. here we move the owner to match the popup's position as it
         // moves so it uses the correct DPI
-        RECT rect = windowRect();
+        RECT rect = windowRect(hwnd);
         // must have visible client area to affect DPI scaling
         int minHeight = GetSystemMetrics(SM_CYMINTRACK) + 1;
         if (rectHeight(rect) < minHeight)
@@ -881,15 +859,14 @@ void ItemWindow::windowRectChanged() {
 
 void ItemWindow::onExitSizeMove(bool, bool sized) {
     if (sized && parent && persistSizeInParent())
-        parent->onChildResized(rectSize(windowRect()));
+        parent->onChildResized(rectSize(windowRect(hwnd)));
 }
 
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-c-hittestnca-function
     // the default window proc handles the left, right, and bottom edges
     // so only need to check top edge and caption
-    RECT screenRect = {};
-    GetClientRect(hwnd, &screenRect);
+    RECT screenRect = clientRect(hwnd);
     MapWindowRect(hwnd, nullptr, &screenRect);
 
     int resizeMargin = windowResizeMargin();
@@ -910,14 +887,12 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     if (!useCustomFrame())
         return;
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-b-painting-the-caption-title
-    RECT clientRect = {};
-    GetClientRect(hwnd, &clientRect);
 
     HDC hdcPaint = CreateCompatibleDC(paint.hdc);
     if (!hdcPaint)
         return;
 
-    int width = rectWidth(clientRect);
+    int width = clientSize(hwnd).cx;
     int height = CAPTION_HEIGHT;
 
     // bitmap buffer for drawing caption
@@ -996,7 +971,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
 
         titleRect.left = headerLeft + iconSize + WINDOW_ICON_PADDING;
         titleRect.top = (CAPTION_HEIGHT - titleSize.cy) / 2;
-        titleRect.right = clientRect.right - closeButtonWidth; // close button width
+        titleRect.right = width - closeButtonWidth; // close button width
         titleRect.bottom = titleRect.top + titleSize.cy;
         checkHR(DrawThemeTextEx(windowTheme, hdcPaint, 0, 0, title, -1,
                                 DT_LEFT | DT_WORD_ELLIPSIS | DT_NOPREFIX, &titleRect, &textOpts));
@@ -1014,7 +989,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
 }
 
 void ItemWindow::limitChainWindowRect(RECT *rect) {
-    RECT myRect = windowRect();
+    RECT myRect = windowRect(hwnd);
     HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo = {sizeof(monitorInfo)};
     GetMonitorInfo(monitor, &monitorInfo);
@@ -1067,7 +1042,7 @@ void ItemWindow::openParent() {
         ShowWindow(parentButton, SW_HIDE);
 
     if (persistSizeInParent())
-        parent->onChildResized(rectSize(windowRect()));
+        parent->onChildResized(rectSize(windowRect(hwnd)));
 }
 
 void ItemWindow::clearParent() {
@@ -1114,7 +1089,7 @@ void ItemWindow::detachAndMove(bool closeParent) {
     ItemWindow *rootParent = this;
     while (rootParent->parent && !rootParent->parent->paletteWindow())
         rootParent = rootParent->parent;
-    RECT rootRect = rootParent->windowRect();
+    RECT rootRect = windowRect(rootParent->hwnd);
 
     detachFromParent(closeParent);
 
@@ -1137,9 +1112,8 @@ void ItemWindow::detachAndMove(bool closeParent) {
 POINT ItemWindow::childPos(SIZE size) {
     // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
     // GetWindowRect includes the resize margin!
-    RECT rect = windowRect(), clientRect = {};
-    GetClientRect(hwnd, &clientRect);
-    POINT pos = {rect.left + clientRect.right + windowBorderSize() * 2, rect.top};
+    RECT rect = windowRect(hwnd);
+    POINT pos = {rect.left + clientSize(hwnd).cx + windowBorderSize() * 2, rect.top};
 
     HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     RECT childRect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
@@ -1148,10 +1122,9 @@ POINT ItemWindow::childPos(SIZE size) {
 }
 
 POINT ItemWindow::parentPos(SIZE size) {
-    RECT rect = windowRect();
-    POINT margin = {rect.left, rect.top};
-    ScreenToClient(hwnd, &margin); // determine size of resize margin
-    POINT pos = {rect.left - margin.x * 2 - windowBorderSize() * 2 - size.cx, rect.top};
+    RECT rect = windowRect(hwnd);
+    LONG margin = screenToClient(hwnd, {rect.left, 0}).x; // determine size of resize margin
+    POINT pos = {rect.left - margin * 2 - windowBorderSize() * 2 - size.cx, rect.top};
 
     HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo = {sizeof(monitorInfo)};
@@ -1231,9 +1204,9 @@ bool ItemWindow::resolveItem() {
 
     debugPrintf(L"Item has been deleted!\n");
     if (useCustomFrame()) {
-        BOOL disableAnimations = false; // reenable animations to emphasize window closing
+        // reenable animations to emphasize window closing
         checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-            &disableAnimations, sizeof(disableAnimations)));
+            tempPtr((BOOL)FALSE), sizeof(BOOL)));
     }
     close();
     return false;
@@ -1253,10 +1226,7 @@ void ItemWindow::onItemChanged() {
     }
     if (useCustomFrame()) {
         // redraw caption
-        RECT captionRect = {};
-        GetClientRect(hwnd, &captionRect);
-        captionRect.bottom = CAPTION_HEIGHT;
-        InvalidateRect(hwnd, &captionRect, FALSE);
+        InvalidateRect(hwnd, tempPtr(RECT{0, 0, clientSize(hwnd).cx, CAPTION_HEIGHT}), FALSE);
 
         if (itemDropTarget) {
             itemDropTarget = nullptr;
@@ -1468,12 +1438,10 @@ void ItemWindow::beginRename() {
     int renameHeight = rectHeight(titleRect) + 4; // NOT scaled with DPI
     POINT renamePos = {titleRect.left - leftMargin - 2,
                        (CAPTION_HEIGHT - renameHeight) / 2};
-    RECT clientRect = {};
-    GetClientRect(hwnd, &clientRect);
     TITLEBARINFOEX titleBar = {sizeof(titleBar)};
     SendMessage(hwnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&titleBar);
-    int renameWidth = clientRect.right - rectWidth(titleBar.rgrect[5]) - renamePos.x;
-    ClientToScreen(hwnd, &renamePos);
+    int renameWidth = clientSize(hwnd).cx - rectWidth(titleBar.rgrect[5]) - renamePos.x;
+    renamePos = clientToScreen(hwnd, renamePos);
     MoveWindow(renameBox, renamePos.x, renamePos.y, renameWidth, renameHeight, FALSE);
 
     SendMessage(renameBox, WM_SETTEXT, 0, (LPARAM)&*title);
@@ -1522,11 +1490,6 @@ void ItemWindow::completeRename() {
 
 void ItemWindow::cancelRename() {
     ShowWindow(renameBox, SW_HIDE);
-}
-
-bool ItemWindow::dropAllowed(POINT point) {
-    ScreenToClient(hwnd, &point);
-    return PtInRect(&proxyRect, point);
 }
 
 /* IUnknown */
@@ -1590,7 +1553,7 @@ STDMETHODIMP ItemWindow::DragOver(DWORD keyState, POINTL pt, DWORD *effect) {
     if (!itemDropTarget)
         return E_FAIL;
     POINT point {pt.x, pt.y};
-    bool nowOverTarget = dropAllowed(point);
+    bool nowOverTarget = PtInRect(&proxyRect, screenToClient(hwnd, point));
     if (!nowOverTarget) {
         if (FAILED(DragLeave()))
             return E_FAIL;
@@ -1614,8 +1577,7 @@ STDMETHODIMP ItemWindow::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt
     if (!itemDropTarget)
         return E_FAIL;
     POINT point {pt.x, pt.y};
-    bool nowOverTarget = dropAllowed(point);
-    if (!nowOverTarget) {
+    if (!PtInRect(&proxyRect, screenToClient(hwnd, point))) {
         if (FAILED(DragLeave()))
             return E_FAIL;
         *effect = DROPEFFECT_NONE;
@@ -1675,8 +1637,7 @@ LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
 
         HTHEME theme = OpenThemeData(hwnd, L"Button");
         if (theme) {
-            RECT buttonRect = {};
-            GetClientRect(hwnd, &buttonRect);
+            RECT buttonRect = clientRect(hwnd);
             InflateRect(&buttonRect, 1, 1);
             if (themeState == PBS_NORMAL) {
                 FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
@@ -1704,9 +1665,7 @@ LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
         EndPaint(hwnd, &ps);
         return 0;
     } else if (message == WM_RBUTTONUP) {
-        POINT cursor = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
-        ClientToScreen(hwnd, &cursor);
-        ((ItemWindow *)refData)->openParentMenu(cursor);
+        ((ItemWindow *)refData)->openParentMenu(clientToScreen(hwnd, pointFromLParam(lParam)));
         return 0;
     }
 

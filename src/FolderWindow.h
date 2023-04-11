@@ -51,7 +51,7 @@ protected:
     bool onCommand(WORD command) override;
     LRESULT onDropdown(int command, POINT pos) override;
     void onActivate(WORD state, HWND prevWindow) override;
-    void onSize(int width, int height) override;
+    void onSize(SIZE size) override;
     void onExitSizeMove(bool moved, bool sized) override;
 
     void addToolbarButtons(HWND tb) override;

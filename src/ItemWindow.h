@@ -65,7 +65,6 @@ protected:
     void setRect(RECT rect);
     void setPos(POINT pos);
     void move(int x, int y);
-    RECT windowRect();
     virtual RECT windowBody();
 
     // message callbacks
@@ -77,13 +76,13 @@ protected:
     virtual bool onControlCommand(HWND controlHwnd, WORD notif);
     virtual LRESULT onNotify(NMHDR *nmHdr);
     virtual void onActivate(WORD state, HWND prevWindow);
-    virtual void onSize(int width, int height);
+    virtual void onSize(SIZE size);
     virtual void onExitSizeMove(bool moved, bool sized);
     virtual void onPaint(PAINTSTRUCT paint);
 
     bool hasStatusText();
     void setStatusText(wchar_t *text);
-    TBBUTTON makeToolbarButton(const wchar_t *text, WORD command, BYTE style,
+    static TBBUTTON makeToolbarButton(const wchar_t *text, WORD command, BYTE style,
         BYTE state = TBSTATE_ENABLED);
     void setToolbarButtonState(WORD command, BYTE state);
     virtual void addToolbarButtons(HWND tb);
@@ -142,7 +141,6 @@ private:
     void beginRename();
     void completeRename();
     void cancelRename();
-    bool dropAllowed(POINT point);
 
     static LRESULT CALLBACK chainWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     static BOOL CALLBACK enumCloseChain(HWND, LPARAM lParam);

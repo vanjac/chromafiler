@@ -314,8 +314,7 @@ DWORD WINAPI checkForUpdates(void *) {
     wchar_t title[] = L"ChromaFiler update";
     CopyMemory(notify.szInfo, content, sizeof(content));
     CopyMemory(notify.szInfoTitle, title, sizeof(title));
-    checkHR(LoadIconMetric(instance, MAKEINTRESOURCE(IDR_APP_ICON), LIM_SMALL,
-        &notify.hIcon));
+    checkHR(LoadIconMetric(instance, MAKEINTRESOURCE(IDR_APP_ICON), LIM_SMALL, &notify.hIcon));
     if (!checkLE(Shell_NotifyIcon(NIM_ADD, &notify)))
         return 0;
     checkLE(Shell_NotifyIcon(NIM_SETVERSION, &notify));

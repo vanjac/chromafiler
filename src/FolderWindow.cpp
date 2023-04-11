@@ -1,5 +1,6 @@
 #include "FolderWindow.h"
 #include "GeomUtils.h"
+#include "WinUtils.h"
 #include "Settings.h"
 #include "DPI.h"
 #include "UIStrings.h"
@@ -54,8 +55,7 @@ CComPtr<IPropertyBag> getItemPropertyBag(CComPtr<IShellItem> item, const wchar_t
 }
 
 void FolderWindow::init() {
-    WNDCLASS wndClass = createWindowClass(FOLDER_WINDOW_CLASS);
-    RegisterClass(&wndClass);
+    RegisterClass(tempPtr(createWindowClass(FOLDER_WINDOW_CLASS)));
 
     for (int i = 0; i < _countof(HIDDEN_ITEM_PARSE_NAMES); i++) {
         CComPtr<IShellItem> item;
@@ -93,7 +93,7 @@ SIZE FolderWindow::requestedSize() const {
         VARIANT sizeVar = {};
         sizeVar.vt = VT_UI4;
         if (SUCCEEDED(propBag->Read(PROP_SIZE, &sizeVar, nullptr))) {
-            return scaleDPI({GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)});
+            return scaleDPI(sizeFromLParam(sizeVar.ulVal));
         }
     }
     return scaleDPI(settings::getFolderWindowSize());
@@ -104,7 +104,7 @@ SIZE FolderWindow::requestedChildSize() const {
         VARIANT sizeVar = {};
         sizeVar.vt = VT_UI4;
         if (SUCCEEDED(propBag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
-            return scaleDPI({GET_X_LPARAM(sizeVar.ulVal), GET_Y_LPARAM(sizeVar.ulVal)});
+            return scaleDPI(sizeFromLParam(sizeVar.ulVal));
         }
     }
     return ItemWindow::requestedChildSize();
@@ -137,8 +137,7 @@ void FolderWindow::onCreate() {
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;
     checkHR(browser->SetOptions(BROWSER_OPTIONS));
-    FOLDERSETTINGS settings = folderSettings();
-    if (!checkHR(browser->Initialize(hwnd, &browserRect, &settings))) {
+    if (!checkHR(browser->Initialize(hwnd, &browserRect, tempPtr(folderSettings())))) {
         browser = nullptr;
         return;
     }
@@ -224,10 +223,8 @@ void FolderWindow::listViewCreated() {
     SetWindowLong(listView, GWL_STYLE, style);
     SetWindowSubclass(listView, listViewSubclassProc, 0, (DWORD_PTR)this);
     SetWindowSubclass(defView, listViewOwnerProc, 0, (DWORD_PTR)this);
-    RECT clientRect = {};
-    GetClientRect(listView, &clientRect);
-    SendMessage(listView, WM_SIZE, SIZE_RESTORED,
-        MAKELPARAM(rectWidth(clientRect), rectHeight(clientRect)));
+    SIZE size = clientSize(listView);
+    SendMessage(listView, WM_SIZE, SIZE_RESTORED, MAKELPARAM(size.cx, size.cy));
 }
 
 LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
@@ -247,7 +244,7 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
         // sometimes a double click isn't registered after a preview handler is opened
         // https://devblogs.microsoft.com/oldnewthing/20041018-00/?p=37543
         DWORD time = GetMessageTime();
-        POINT pos = {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        POINT pos = pointFromLParam(lParam);
         if (time - window->clickTime <= GetDoubleClickTime()
                 && abs(pos.x - window->clickPos.x) <= GetSystemMetrics(SM_CXDOUBLECLK)/2
                 && abs(pos.y - window->clickPos.y) <= GetSystemMetrics(SM_CYDOUBLECLK)/2) {
@@ -366,15 +363,13 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
     if (state == WA_CLICKACTIVE) {
         POINT cursor = {};
         GetCursorPos(&cursor);
-        ScreenToClient(hwnd, &cursor);
-        RECT body = windowBody();
-        if (PtInRect(&body, cursor))
+        if (PtInRect(tempPtr(windowBody()), screenToClient(hwnd, cursor)))
             clickActivate = true;
     }
 }
 
-void FolderWindow::onSize(int width, int height) {
-    ItemWindow::onSize(width, height);
+void FolderWindow::onSize(SIZE size) {
+    ItemWindow::onSize(size);
 
     if (browser)
         checkHR(browser->SetRect(nullptr, windowBody()));
@@ -383,7 +378,7 @@ void FolderWindow::onSize(int width, int height) {
 void FolderWindow::onExitSizeMove(bool moved, bool sized) {
     ItemWindow::onExitSizeMove(moved, sized);
     if (sized) {
-        SIZE size = rectSize(windowRect());
+        SIZE size = rectSize(windowRect(hwnd));
         CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
         checkHR(propBag->Write(PROP_SIZE, &sizeVar));
     }

@@ -2,6 +2,7 @@
 #include <common.h>
 
 #include <windows.h>
+#include <windowsx.h>
 
 namespace chromafiler {
 
@@ -23,6 +24,14 @@ constexpr bool pointEqual(POINT a, POINT b) {
 
 constexpr bool sizeEqual(SIZE a, SIZE b) {
     return a.cx == b.cx && a.cy == b.cy;
+}
+
+constexpr POINT pointFromLParam(LPARAM lp) {
+    return {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+}
+
+constexpr SIZE sizeFromLParam(LPARAM lp) {
+    return {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
 }
 
 } // namespace

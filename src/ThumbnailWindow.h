@@ -21,7 +21,7 @@ protected:
 
     void onCreate() override;
     void onDestroy() override;
-    void onSize(int width, int height) override;
+    void onSize(SIZE size) override;
     void onPaint(PAINTSTRUCT paint) override;
 
     void onItemChanged() override;

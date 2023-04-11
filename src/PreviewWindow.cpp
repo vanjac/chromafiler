@@ -1,5 +1,6 @@
 #include "PreviewWindow.h"
 #include "GeomUtils.h"
+#include "WinUtils.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <unordered_map>
@@ -35,8 +36,7 @@ HANDLE PreviewWindow::initPreviewThread = nullptr;
 static std::unordered_map<CLSID, CComPtr<IClassFactory>> previewFactoryCache;
 
 void PreviewWindow::init() {
-    WNDCLASS wndClass = createWindowClass(PREVIEW_WINDOW_CLASS);
-    RegisterClass(&wndClass);
+    RegisterClass(tempPtr(createWindowClass(PREVIEW_WINDOW_CLASS)));
 
     WNDCLASS containerClass = {};
     containerClass.lpszClassName = PREVIEW_CONTAINER_CLASS;
@@ -70,11 +70,10 @@ void PreviewWindow::onCreate() {
 
     RECT previewRect = windowBody();
     previewRect.bottom += previewRect.top; // initial rect is wrong
-    RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
     // some preview handlers don't respect the given rect and always fill their window
     // so wrap the preview handler in a container window
     container = checkLE(CreateWindow(PREVIEW_CONTAINER_CLASS, nullptr, WS_VISIBLE | WS_CHILD,
-        previewRect.left, previewRect.top, containerClientRect.right, containerClientRect.bottom,
+        previewRect.left, previewRect.top, rectWidth(previewRect), rectHeight(previewRect),
         hwnd, nullptr, GetWindowInstance(hwnd), nullptr));
 
     // don't use Attach() for an additional AddRef() -- keep request alive until received by thread
@@ -101,13 +100,13 @@ void PreviewWindow::onActivate(WORD state, HWND prevWindow) {
     }
 }
 
-void PreviewWindow::onSize(int width, int height) {
-    ItemWindow::onSize(width, height);
+void PreviewWindow::onSize(SIZE size) {
+    ItemWindow::onSize(size);
     if (preview) {
         RECT previewRect = windowBody();
-        RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
         MoveWindow(container, previewRect.left, previewRect.top,
-            containerClientRect.right, containerClientRect.bottom, TRUE);
+            rectWidth(previewRect), rectHeight(previewRect), TRUE);
+        RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
         checkHR(preview->SetRect(&containerClientRect));
     }
 }
@@ -120,9 +119,7 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
         checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this));
         checkHR(preview->DoPreview());
         // required for some preview handlers to render correctly initially (eg. SumatraPDF)
-        RECT containerClientRect = {};
-        GetClientRect(container, &containerClientRect);
-        checkHR(preview->SetRect(&containerClientRect));
+        checkHR(preview->SetRect(tempPtr(clientRect(container))));
         return 0;
     } else if (message == MSG_REFRESH_PREVIEW) {
         destroyPreview();
@@ -281,9 +278,7 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
         return; // early exit
     }
 
-    RECT containerClientRect = {};
-    GetClientRect(request->container, &containerClientRect);
-    checkHR(preview->SetWindow(request->container, &containerClientRect));
+    checkHR(preview->SetWindow(request->container, tempPtr(clientRect(request->container))));
 
     IStream *previewHandlerStream; // no CComPtr
     checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,

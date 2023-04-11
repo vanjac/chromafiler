@@ -36,8 +36,8 @@ void ThumbnailWindow::onDestroy() {
     thumbnailThread->stop();
 }
 
-void ThumbnailWindow::onSize(int width, int height) {
-    ItemWindow::onSize(width, height);
+void ThumbnailWindow::onSize(SIZE size) {
+    ItemWindow::onSize(size);
     RECT bodyRect = windowBody();
     SIZE bodySize = rectSize(bodyRect);
     thumbnailThread->requestThumbnail(bodySize);
