@@ -6,6 +6,7 @@
 #define IDR_APP_ICON    101
 
 #define IDR_ITEM_ACCEL      102
+#define IDR_ITEM_MENU       111
 #define IDM_NEXT_WINDOW     1001
 #define IDM_PREV_WINDOW     1002
 #define IDM_CLOSE_WINDOW    1003

@@ -474,12 +474,6 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     return 0;
             }
             break;
-        case WM_SYSCOMMAND:
-            if (LOWORD(wParam) == IDM_SETTINGS) {
-                openSettingsDialog(settingsStartPage());
-                return 0;
-            }
-            break;
         case MSG_SET_STATUS_TEXT: {
             CComHeapPtr<wchar_t> text;
             text.Attach((wchar_t *)lParam);
@@ -523,13 +517,6 @@ void ItemWindow::onCreate() {
         if (checkHR(link.CoCreateInstance(__uuidof(ShellLink)))) {
             checkHR(link->SetIDList(idList));
         }
-    }
-
-    if (HMENU systemMenu = GetSystemMenu(hwnd, FALSE)) {
-        AppendMenu(systemMenu, MF_SEPARATOR, 0, nullptr);
-        LocalHeapPtr<wchar_t> settingsText;
-        formatMessage(settingsText, STR_SETTINGS_ITEM);
-        AppendMenu(systemMenu, MF_STRING, IDM_SETTINGS, settingsText);
     }
 
     if (!paletteWindow() && (!parent || parent->paletteWindow()))
@@ -683,12 +670,11 @@ void ItemWindow::trackContextMenu(POINT pos) {
 int ItemWindow::trackContextMenu(POINT pos, HMENU menu) {
     if (GetMenuItemCount(menu) != 0)
         AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
-    LocalHeapPtr<wchar_t> settingsText;
-    formatMessage(settingsText, STR_SETTINGS_ITEM);
-    AppendMenu(menu, MF_STRING, IDM_SETTINGS, settingsText);
-
+    HMENU common = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_ITEM_MENU));
+    Shell_MergeMenus(menu, common, (UINT)-1, 0, 0xFFFF, MM_ADDSEPARATOR);
     int cmd = TrackPopupMenuEx(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pos.x, pos.y, hwnd, nullptr);
     onCommand((WORD)cmd);
+    checkLE(DestroyMenu(common));
     return cmd;
 }
 

@@ -15,12 +15,6 @@ Error
 .
 
 MessageId=
-SymbolicName=STR_SETTINGS_ITEM
-Language=English
-ChromaFiler Settings%tCtrl+,
-.
-
-MessageId=
 SymbolicName=STR_CANT_FIND_ITEM
 Language=English
 Unable to find item at path: %1
