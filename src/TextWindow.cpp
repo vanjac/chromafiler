@@ -80,7 +80,7 @@ void TextWindow::onCreate() {
             setStatusText(status);
         }
     }
-    SendMessage(edit, EM_SETMODIFY, FALSE, 0);
+    Edit_SetModify(edit, FALSE);
     if (hasStatusText())
         updateStatus();
 }
@@ -122,7 +122,7 @@ void TextWindow::updateFont() {
 }
 
 bool TextWindow::onCloseRequest() {
-    if (encoding != FAIL && SendMessage(edit, EM_GETMODIFY, 0, 0)) {
+    if (encoding != FAIL && Edit_GetModify(edit)) {
         SFGAOF attr;
         if (confirmSave(isUnsavedScratchFile
                 || FAILED(item->GetAttributes(SFGAO_VALIDATE, &attr)))) // doesn't exist
@@ -192,7 +192,7 @@ void undoNameToString(UNDONAMEID id, LocalHeapPtr<wchar_t> &str) {
 LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_QUERYENDSESSION:
-            if (SendMessage(edit, EM_GETMODIFY, 0, 0)) {
+            if (Edit_GetModify(edit)) {
                 userSave();
             } else if (isUnsavedScratchFile) { // empty
                 deleteProxy();
@@ -201,7 +201,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return TRUE;
         case WM_INITMENUPOPUP: {
             HMENU menu = (HMENU)wParam;
-            if (!SendMessage(edit, EM_CANUNDO, 0, 0)) {
+            if (!Edit_CanUndo(edit)) {
                 EnableMenuItem(menu, IDM_UNDO, MF_GRAYED);
             } else {
                 LocalHeapPtr<wchar_t> undoName, undoMessage;
@@ -281,7 +281,7 @@ bool TextWindow::onCommand(WORD command) {
             openFindDialog(true);
             return true;
         case IDM_UNDO:
-            SendMessage(edit, EM_UNDO, 0, 0);
+            Edit_Undo(edit);
             return true;
         case IDM_REDO:
             SendMessage(edit, EM_REDO, 0, 0);
@@ -328,7 +328,7 @@ bool TextWindow::onCommand(WORD command) {
 
 bool TextWindow::onControlCommand(HWND controlHwnd, WORD notif) {
     if (controlHwnd == edit && notif == EN_CHANGE) {
-        if (SendMessage(edit, EM_GETMODIFY, 0, 0))
+        if (Edit_GetModify(edit))
             setToolbarButtonState(IDM_SAVE, TBSTATE_ENABLED);
     }
     return ItemWindow::onControlCommand(controlHwnd, notif);
@@ -365,7 +365,7 @@ void TextWindow::updateStatus() {
 
 void TextWindow::userSave() {
     if (saveText()) {
-        SendMessage(edit, EM_SETMODIFY, FALSE, 0);
+        Edit_SetModify(edit, FALSE);
         setToolbarButtonState(IDM_SAVE, 0);
     }
     isUnsavedScratchFile = false;
@@ -420,7 +420,7 @@ void TextWindow::setWordWrap(bool wordWrap) {
     SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)&*buffer);
 
     // other state
-    BOOL modify = (BOOL)SendMessage(edit, EM_GETMODIFY, 0, 0);
+    BOOL modify = Edit_GetModify(edit);
     CHARRANGE sel;
     SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
 
@@ -430,7 +430,7 @@ void TextWindow::setWordWrap(bool wordWrap) {
 
     SETTEXTEX setText = {ST_UNICODE, 1200};
     SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)&*buffer);
-    SendMessage(edit, EM_SETMODIFY, modify, 0);
+    Edit_SetModify(edit, modify);
     SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
 
     SetFocus(edit);
@@ -727,7 +727,7 @@ LRESULT CALLBACK TextWindow::richEditProc(HWND hwnd, UINT message,
         if (GetKeyState(VK_CONTROL) < 0) {
             window->changeFontSize(lines); // TODO should not be affected by scroll lines setting
         } else {
-            SendMessage(hwnd, EM_LINESCROLL, 0, -lines);
+            Edit_Scroll(hwnd, -lines, 0);
         }
         return 0;
     } else if (message == WM_MOUSEHWHEEL) {

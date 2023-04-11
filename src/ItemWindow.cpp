@@ -1447,9 +1447,9 @@ void ItemWindow::beginRename() {
     SendMessage(renameBox, WM_SETTEXT, 0, (LPARAM)&*title);
     wchar_t *ext = PathFindExtension(title);
     if (ext == title) { // files that start with a dot
-        SendMessage(renameBox, EM_SETSEL, 0, -1);
+        Edit_SetSel(renameBox, 0, -1);
     } else {
-        SendMessage(renameBox, EM_SETSEL, 0, ext - title);
+        Edit_SetSel(renameBox, 0, ext - title);
     }
     ShowWindow(renameBox, SW_SHOW);
 }
