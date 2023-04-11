@@ -40,6 +40,7 @@ private:
 
     bool useDefaultStatusText() const override;
     SettingsPage settingsStartPage() const override;
+    const wchar_t * helpURL() const override;
 
     HWND createRichEdit(bool wordWrap);
     CComPtr<ITextDocument> getTOMDocument();

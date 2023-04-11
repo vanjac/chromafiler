@@ -124,6 +124,7 @@ private:
 
     virtual bool useDefaultStatusText() const;
     virtual SettingsPage settingsStartPage() const;
+    virtual const wchar_t * helpURL() const;
 
     HWND createChainOwner(int showCommand);
 

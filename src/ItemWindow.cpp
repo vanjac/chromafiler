@@ -207,6 +207,10 @@ SettingsPage ItemWindow::settingsStartPage() const {
     return SETTINGS_GENERAL;
 }
 
+const wchar_t * ItemWindow::helpURL() const {
+    return L"https://github.com/vanjac/chromafiler/wiki";
+}
+
 bool ItemWindow::create(RECT rect, int showCommand) {
     if (!checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         return false;
@@ -758,8 +762,7 @@ bool ItemWindow::onCommand(WORD command) {
             return true;
         }
         case IDM_HELP:
-            ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler/wiki",
-                nullptr, nullptr, SW_SHOWNORMAL);
+            ShellExecute(nullptr, L"open", helpURL(), nullptr, nullptr, SW_SHOWNORMAL);
             return true;
         case IDM_SETTINGS:
             openSettingsDialog(settingsStartPage());

@@ -59,6 +59,10 @@ SettingsPage TextWindow::settingsStartPage() const {
     return SETTINGS_TEXT;
 }
 
+const wchar_t * TextWindow::helpURL() const {
+    return L"https://github.com/vanjac/chromafiler/wiki/Text-Editor";
+}
+
 void TextWindow::updateAllSettings() {
     // https://stackoverflow.com/q/15987051
     checkLE(SendNotifyMessage(HWND_BROADCAST, updateSettingsMessage, 0, 0));
