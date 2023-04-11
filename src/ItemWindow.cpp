@@ -648,7 +648,7 @@ void ItemWindow::setToolbarButtonState(WORD command, BYTE state) {
 
 void ItemWindow::addToolbarButtons(HWND tb) {
     TBBUTTON buttons[] = {
-        makeToolbarButton(MDL2_SETTING, IDM_SETTINGS, 0),
+        makeToolbarButton(MDL2_MORE, IDM_CONTEXT_MENU, BTNS_WHOLEDROPDOWN),
     };
     SendMessage(tb, TB_ADDBUTTONS, _countof(buttons), (LPARAM)buttons);
 }
@@ -659,6 +659,24 @@ int ItemWindow::getToolbarTooltip(WORD command) {
             return IDS_SETTINGS_COMMAND;
     }
     return 0;
+}
+
+void ItemWindow::trackContextMenu(POINT pos) {
+    HMENU menu = CreatePopupMenu();
+    trackContextMenu(pos, menu);
+    checkLE(DestroyMenu(menu));
+}
+
+int ItemWindow::trackContextMenu(POINT pos, HMENU menu) {
+    if (GetMenuItemCount(menu) != 0)
+        AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
+    LocalHeapPtr<wchar_t> settingsText;
+    formatMessage(settingsText, STR_SETTINGS_ITEM);
+    AppendMenu(menu, MF_STRING, IDM_SETTINGS, settingsText);
+
+    int cmd = TrackPopupMenuEx(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pos.x, pos.y, hwnd, nullptr);
+    onCommand((WORD)cmd);
+    return cmd;
 }
 
 bool ItemWindow::onCloseRequest() {
@@ -754,7 +772,12 @@ bool ItemWindow::onCommand(WORD command) {
     return false;
 }
 
-LRESULT ItemWindow::onDropdown(int, POINT) {
+LRESULT ItemWindow::onDropdown(int command, POINT pos) {
+    switch (command) {
+        case IDM_CONTEXT_MENU:
+            trackContextMenu(pos);
+            return TBDDRET_DEFAULT;
+    }
     return TBDDRET_NODEFAULT;
 }
 

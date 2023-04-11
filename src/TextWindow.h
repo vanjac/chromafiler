@@ -33,6 +33,8 @@ protected:
     void addToolbarButtons(HWND tb) override;
     int getToolbarTooltip(WORD command) override;
 
+    void trackContextMenu(POINT pos) override;
+
 private:
     const wchar_t * className() override;
 

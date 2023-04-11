@@ -158,6 +158,16 @@ int TextWindow::getToolbarTooltip(WORD command) {
     return ItemWindow::getToolbarTooltip(command);
 }
 
+void TextWindow::trackContextMenu(POINT pos) {
+    if (SendMessage(hwnd, EM_GETOPTIONS, 0, 0) & ECO_READONLY) {
+        ItemWindow::trackContextMenu(pos);
+        return;
+    }
+    HMENU menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_MENU));
+    ItemWindow::trackContextMenu(pos, GetSubMenu(menu, 0));
+    checkLE(DestroyMenu(menu));
+}
+
 void TextWindow::onActivate(WORD state, HWND prevWindow) {
     ItemWindow::onActivate(state, prevWindow);
     if (state != WA_INACTIVE) {
@@ -750,8 +760,6 @@ LRESULT CALLBACK TextWindow::richEditProc(HWND hwnd, UINT message,
         ((TextWindow *)refData)->indentSelection((GetKeyState(VK_SHIFT) < 0) ? -1 : 1);
         return 0;
     } else if (message == WM_CONTEXTMENU) {
-        if (SendMessage(hwnd, EM_GETOPTIONS, 0, 0) & ECO_READONLY)
-            return 0;
         POINT pos = pointFromLParam(lParam);
         if (pos.x == -1 && pos.y == -1) {
             CHARRANGE sel;
@@ -759,10 +767,7 @@ LRESULT CALLBACK TextWindow::richEditProc(HWND hwnd, UINT message,
             SendMessage(hwnd, EM_POSFROMCHAR, (WPARAM)&pos, sel.cpMin);
             pos = clientToScreen(hwnd, pos);
         }
-        HMENU menu = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_MENU));
-        checkLE(TrackPopupMenuEx(GetSubMenu(menu, 0), TPM_RIGHTBUTTON,
-            pos.x, pos.y, GetParent(hwnd), nullptr));
-        checkLE(DestroyMenu(menu));
+        ((TextWindow *)refData)->trackContextMenu(pos);
         return 0;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);

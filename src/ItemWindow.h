@@ -88,6 +88,9 @@ protected:
     virtual void addToolbarButtons(HWND tb);
     virtual int getToolbarTooltip(WORD command);
 
+    virtual void trackContextMenu(POINT pos);
+    int trackContextMenu(POINT pos, HMENU menu); // will modify menu!
+
     void openChild(CComPtr<IShellItem> childItem);
     void closeChild();
     virtual void onChildDetached();

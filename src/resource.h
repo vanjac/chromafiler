@@ -23,6 +23,7 @@
 #define IDM_NEW_TEXT_FILE   1015
 #define IDM_DELETE_PROXY    1016
 #define IDM_DEBUG_NAMES     1017
+#define IDM_CONTEXT_MENU    1018
 
 #define IDM_SHELL_FIRST     0x4000
 #define IDM_SHELL_LAST      0x7FFF
@@ -52,7 +53,7 @@
 // https://docs.microsoft.com/en-us/windows/apps/design/style/segoe-ui-symbol-font
 #define MDL2_CHEVRON_LEFT_MED       L"\uE973"
 #define MDL2_REFRESH                L"\uE72C"
-#define MDL2_SETTING                L"\uE713"
+#define MDL2_MORE                   L"\uE712"
 #define MDL2_CALCULATOR_ADDITION    L"\uE948"
 #define MDL2_VIEW                   L"\uE890"
 #define MDL2_SAVE                   L"\uE74E"
