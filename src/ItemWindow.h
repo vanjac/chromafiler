@@ -110,6 +110,10 @@ protected:
 
     CComPtr<ItemWindow> parent, child;
 
+    // for handling delayed context menu messages while open (eg. for Open With menu)
+    CComQIPtr<IContextMenu2> contextMenu2;
+    CComQIPtr<IContextMenu3> contextMenu3;
+
 private:
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     virtual const wchar_t * className() = 0;
@@ -161,9 +165,6 @@ private:
     RECT proxyRect{}, titleRect{}, iconRect{};
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;
-    // for handling delayed context menu messages while open (eg. for Open With menu)
-    CComQIPtr<IContextMenu2> contextMenu2;
-    CComQIPtr<IContextMenu3> contextMenu3;
 
     POINT moveAccum;
     SIZE lastSize;

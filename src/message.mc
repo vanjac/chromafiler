@@ -17,7 +17,7 @@ Error
 MessageId=
 SymbolicName=STR_SETTINGS_ITEM
 Language=English
-Settings%tCtrl+,
+ChromaFiler Settings%tCtrl+,
 .
 
 MessageId=

@@ -531,6 +531,37 @@ void FolderWindow::newItem(const char *verb) {
     checkLE(DestroyMenu(popupMenu));
 }
 
+void FolderWindow::trackContextMenu(POINT pos) {
+    if (!shellView)
+        return;
+    UINT contextFlags = CMF_CANRENAME;
+    if (GetKeyState(VK_SHIFT) < 0)
+        contextFlags |= CMF_EXTENDEDVERBS;
+    CComPtr<IContextMenu> contextMenu;
+    if (SUCCEEDED(shellView->GetItemObject(SVGIO_SELECTION, IID_PPV_ARGS(&contextMenu)))) {
+        contextFlags |= CMF_ITEMMENU;
+    } else if (!checkHR(shellView->GetItemObject(SVGIO_BACKGROUND, IID_PPV_ARGS(&contextMenu)))) {
+        return;
+    }
+    HMENU menu = CreatePopupMenu();
+    if (menu && checkHR(contextMenu->QueryContextMenu(menu, 0, IDM_SHELL_FIRST, IDM_SHELL_LAST,
+            contextFlags))) {
+        contextMenu2 = contextMenu;
+        contextMenu3 = contextMenu;
+        int cmd = ItemWindow::trackContextMenu(pos, menu);
+        contextMenu2 = nullptr;
+        contextMenu3 = nullptr;
+        if (cmd >= IDM_SHELL_FIRST && cmd <= IDM_SHELL_LAST) {
+            CComPtr<IFolderView2> folderView;
+            if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
+                checkHR(IUnknown_SetSite(contextMenu, folderView));
+            invokeContextMenuCommand(contextMenu, cmd - IDM_SHELL_FIRST, pos);
+            checkHR(IUnknown_SetSite(contextMenu, nullptr));
+        }
+    }
+    DestroyMenu(menu);
+}
+
 HMENU findNewItemMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
     // search for the submenu that contains NewFolder verb as the first item (TODO: jank)
     CComQIPtr<IContextMenu3> contextMenu3(contextMenu);

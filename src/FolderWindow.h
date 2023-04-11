@@ -57,6 +57,8 @@ protected:
     void addToolbarButtons(HWND tb) override;
     int getToolbarTooltip(WORD command) override;
 
+    void trackContextMenu(POINT pos) override;
+
     void onChildDetached() override;
     void onChildResized(SIZE size) override;
 
