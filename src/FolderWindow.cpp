@@ -503,7 +503,8 @@ CComPtr<IContextMenu> FolderWindow::queryBackgroundMenu(HMENU *popupMenu) {
         return nullptr;
     if ((*popupMenu = CreatePopupMenu()) == nullptr)
         return nullptr;
-    if (!checkHR(contextMenu->QueryContextMenu(*popupMenu, 0, 1, 0x7FFF, CMF_OPTIMIZEFORINVOKE))) {
+    if (!checkHR(contextMenu->QueryContextMenu(*popupMenu, 0, IDM_SHELL_FIRST, IDM_SHELL_LAST,
+            CMF_OPTIMIZEFORINVOKE))) {
         checkLE(DestroyMenu(*popupMenu));
         return nullptr;
     }
@@ -551,8 +552,8 @@ HMENU findNewItemMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
             continue;
         wchar_t verb[64];
         verb[0] = 0;
-        if (SUCCEEDED(contextMenu->GetCommandString(subItemInfo.wID - 1, GCS_VERBW, nullptr,
-                (char*)verb, _countof(verb))) && lstrcmpi(verb, CMDSTR_NEWFOLDERW) == 0) {
+        if (SUCCEEDED(contextMenu->GetCommandString(subItemInfo.wID - IDM_SHELL_FIRST, GCS_VERBW,
+                nullptr, (char*)verb, _countof(verb))) && lstrcmpi(verb, CMDSTR_NEWFOLDERW) == 0) {
             return itemInfo.hSubMenu;
         }
     }
@@ -580,8 +581,8 @@ HMENU findViewMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
             continue;
         wchar_t verb[64];
         verb[0] = 0;
-        if (SUCCEEDED(contextMenu->GetCommandString(itemInfo.wID - 1, GCS_VERBW, nullptr,
-                (char*)verb, _countof(verb))) && lstrcmpi(verb, L"view") == 0) {
+        if (SUCCEEDED(contextMenu->GetCommandString(itemInfo.wID - IDM_SHELL_FIRST, GCS_VERBW,
+                nullptr, (char*)verb, _countof(verb))) && lstrcmpi(verb, L"view") == 0) {
             return itemInfo.hSubMenu;
         }
     }
@@ -603,11 +604,11 @@ void FolderWindow::openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMEN
         POINT point) {
     int cmd = TrackPopupMenuEx(subMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON,
         point.x, point.y, hwnd, nullptr);
-    if (cmd > 0) {
+    if (cmd >= IDM_SHELL_FIRST && cmd <= IDM_SHELL_LAST) {
         CComPtr<IFolderView2> folderView;
         if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
             checkHR(IUnknown_SetSite(contextMenu, folderView));
-        invokeContextMenuCommand(contextMenu, cmd - 1, point);
+        invokeContextMenuCommand(contextMenu, cmd - IDM_SHELL_FIRST, point);
         checkHR(IUnknown_SetSite(contextMenu, nullptr));
     }
 }

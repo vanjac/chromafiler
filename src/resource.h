@@ -24,6 +24,9 @@
 #define IDM_DELETE_PROXY    1016
 #define IDM_DEBUG_NAMES     1017
 
+#define IDM_SHELL_FIRST     0x4000
+#define IDM_SHELL_LAST      0x7FFF
+
 #define IDR_TEXT_ACCEL      107
 #define IDM_SAVE            1100
 #define IDM_FIND            1101

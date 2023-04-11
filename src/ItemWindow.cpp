@@ -1345,7 +1345,8 @@ void ItemWindow::openProxyContextMenu(POINT point) {
     UINT contextFlags = CMF_ITEMMENU | (renameBox ? CMF_CANRENAME : 0);
     if (GetKeyState(VK_SHIFT) < 0)
         contextFlags |= CMF_EXTENDEDVERBS;
-    if (!checkHR(contextMenu->QueryContextMenu(popupMenu, 0, 1, 0x7FFF, contextFlags))) {
+    if (!checkHR(contextMenu->QueryContextMenu(popupMenu, 0, IDM_SHELL_FIRST, IDM_SHELL_LAST,
+            contextFlags))) {
         checkLE(DestroyMenu(popupMenu));
         return;
     }
@@ -1355,8 +1356,8 @@ void ItemWindow::openProxyContextMenu(POINT point) {
         point.x, point.y, hwnd, nullptr);
     contextMenu2 = nullptr;
     contextMenu3 = nullptr;
-    if (cmd > 0) {
-        cmd -= 1; // idCmdFirst
+    if (cmd >= IDM_SHELL_FIRST && cmd <= IDM_SHELL_LAST) {
+        cmd -= IDM_SHELL_FIRST;
         // https://groups.google.com/g/microsoft.public.win32.programmer.ui/c/PhXQcfhYPHQ
         wchar_t verb[64];
         verb[0] = 0; // some handlers may return S_OK without touching the buffer
