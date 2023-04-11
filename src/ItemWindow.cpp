@@ -435,13 +435,26 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break;
         }
+        case WM_CONTEXTMENU: {
+            POINT pos = pointFromLParam(lParam);
+            if (pos.x == -1 && pos.y == -1) {
+                RECT body = windowBody();
+                trackContextMenu(clientToScreen(hwnd, {body.left, body.top}));
+                return 0;
+            }
+            break;
+        }
         case WM_NCRBUTTONUP: { // WM_CONTEXTMENU doesn't seem to work in the caption
             POINT cursor = pointFromLParam(lParam);
-            if (wParam == HTCAPTION && PtInRect(&proxyRect, screenToClient(hwnd, cursor))) {
-                openProxyContextMenu(cursor);
-                return 0;
-            } else if (wParam == HTCAPTION) {
-                PostMessage(hwnd, WM_SYSCOMMAND, SC_KEYMENU, ' '); // show system menu
+            POINT clientCursor = screenToClient(hwnd, cursor);
+            if (wParam == HTCAPTION) {
+                if (PtInRect(&proxyRect, clientCursor)) {
+                    openProxyContextMenu(cursor);
+                } else if (PtInRect(tempPtr(windowBody()), clientCursor)) {
+                    trackContextMenu(cursor);
+                } else {
+                    PostMessage(hwnd, WM_SYSCOMMAND, SC_KEYMENU, ' '); // show system menu
+                }
                 return 0;
             }
             break; // pass to DefWindowProc
