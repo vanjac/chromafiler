@@ -847,6 +847,8 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         }
         return CDRF_DODEFAULT;
     } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == NM_LDOWN) {
+        if (IsWindowVisible(renameBox))
+            return FALSE; // don't steal focus
         NMMOUSE *mouse = (NMMOUSE *)nmHdr;
         POINT screenPos = clientToScreen(proxyToolbar, mouse->pt);
         if (DragDetect(hwnd, screenPos)) {
@@ -872,7 +874,9 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         return FALSE;
     } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == NM_CLICK) {
         // actually a double-click, since we captured the mouse in the NM_LDOWN handler (???)
-        if (GetKeyState(VK_MENU) < 0)
+        if (IsWindowVisible(renameBox))
+            return FALSE;
+        else if (GetKeyState(VK_MENU) < 0)
             openProxyProperties();
         else
             invokeProxyDefaultVerb();
