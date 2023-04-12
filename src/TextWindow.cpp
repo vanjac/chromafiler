@@ -163,7 +163,7 @@ int TextWindow::getToolbarTooltip(WORD command) {
 }
 
 void TextWindow::trackContextMenu(POINT pos) {
-    if (SendMessage(hwnd, EM_GETOPTIONS, 0, 0) & ECO_READONLY) {
+    if (SendMessage(edit, EM_GETOPTIONS, 0, 0) & ECO_READONLY) {
         ItemWindow::trackContextMenu(pos);
         return;
     }
