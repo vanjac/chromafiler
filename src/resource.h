@@ -25,6 +25,7 @@
 #define IDM_DELETE_PROXY    1016
 #define IDM_DEBUG_NAMES     1017
 #define IDM_CONTEXT_MENU    1018
+#define IDM_PROXY_BUTTON    1019
 
 #define IDM_SHELL_FIRST     0x4000
 #define IDM_SHELL_LAST      0x7FFF

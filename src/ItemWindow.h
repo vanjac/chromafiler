@@ -131,6 +131,7 @@ private:
     void windowRectChanged();
     LRESULT hitTestNCA(POINT cursor);
 
+    RECT titleRect();
     void limitChainWindowRect(RECT *rect);
     void openParent();
     void clearParent();
@@ -144,7 +145,8 @@ private:
 
     void invokeProxyDefaultVerb();
     void openProxyProperties();
-    void openProxyContextMenu(POINT point);
+    void openProxyContextMenu();
+    void openProxyContextMenuFeedback();
     void proxyDrag(POINT offset); // specify offset from icon origin
     void beginRename();
     void completeRename();
@@ -161,9 +163,9 @@ private:
 
     CComPtr<IShellLink> link;
 
+    HWND proxyToolbar = nullptr;
     HWND proxyTooltip = nullptr, parentButton = nullptr, renameBox = nullptr;
     HWND statusText = nullptr, statusTooltip = nullptr, toolbar = nullptr;
-    RECT proxyRect{}, titleRect{}, iconRect{};
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;
 
@@ -171,9 +173,6 @@ private:
     SIZE lastSize;
     bool isChainPreview = false;
     bool firstActivate = false, closing = false;
-    // drop target state
-    IDataObject *dropDataObject;
-    bool overDropTarget = false;
 
     class StatusTextThread : public StoppableThread {
     public:
