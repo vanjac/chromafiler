@@ -1052,7 +1052,8 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     MapWindowRect(hwnd, nullptr, &screenRect);
 
     int resizeMargin = windowResizeMargin();
-    if (cursor.y < screenRect.top + resizeMargin && useCustomFrame()) {
+    int captionTop = compositionEnabled ? (screenRect.top + resizeMargin) : screenRect.top;
+    if (cursor.y < captionTop && useCustomFrame()) {
         // TODO window corners are a bit more complex than this
         if (cursor.x < screenRect.left + resizeMargin)
             return HTTOPLEFT;
@@ -1062,7 +1063,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
             return HTTOP;
     } else if (useCustomFrame() && !IsThemeActive()
             && cursor.x >= screenRect.right - GetSystemMetrics(SM_CXSIZE)
-            && cursor.y < screenRect.top + resizeMargin + CAPTION_HEIGHT) {
+            && cursor.y < captionTop + CAPTION_HEIGHT) {
         return HTCLOSE;
     } else {
         return HTCAPTION; // can drag anywhere else in window to move!
