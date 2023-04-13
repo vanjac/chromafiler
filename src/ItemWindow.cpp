@@ -140,11 +140,11 @@ WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
     wndClass.lpfnWndProc = ItemWindow::windowProc;
     wndClass.hInstance = GetModuleHandle(nullptr);
     wndClass.lpszClassName = name;
+    if (!compositionEnabled)
+        wndClass.style = CS_HREDRAW; // redraw caption when resizing
     // change toolbar color
     if (IsWindows10OrGreater())
         wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    else
-        wndClass.hbrBackground = (HBRUSH)(COLOR_3DFACE + 1);
     return wndClass;
 }
 
@@ -196,7 +196,7 @@ DWORD ItemWindow::windowExStyle() const {
 }
 
 bool ItemWindow::useCustomFrame() const {
-    return !!compositionEnabled;
+    return true;
 }
 
 bool ItemWindow::allowToolbar() const {
@@ -345,6 +345,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 BYTE alpha = wParam ? 255 : INACTIVE_CAPTION_ALPHA;
                 SetLayeredWindowAttributes(proxyToolbar, 0, alpha, LWA_ALPHA);
             }
+            if (!compositionEnabled && proxyToolbar)
+                InvalidateRect(proxyToolbar, nullptr, FALSE);
             break; // pass to DefWindowProc
         case WM_MOUSEACTIVATE: {
             POINT cursor;
@@ -526,10 +528,13 @@ void ItemWindow::onCreate() {
     if (!paletteWindow() && (!parent || parent->paletteWindow()))
         addChainPreview();
 
-    HMODULE instance = GetWindowInstance(hwnd);
-    if (useCustomFrame()) {
+    if (compositionEnabled) {
         checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
             tempPtr((BOOL)TRUE), sizeof(BOOL))); // disable animations
+    }
+
+    HMODULE instance = GetWindowInstance(hwnd);
+    if (useCustomFrame()) {
         MARGINS margins;
         margins.cxLeftWidth = 0;
         margins.cxRightWidth = 0;
@@ -978,8 +983,13 @@ void ItemWindow::onSize(SIZE size) {
         SendMessage(proxyToolbar, TB_SETBUTTONINFO, IDM_PROXY_BUTTON, (LPARAM)&buttonInfo);
         SIZE ideal;
         SendMessage(proxyToolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
-        int idealLeft = (size.cx - ideal.cx) / 2;
-        int actualLeft = max(PARENT_BUTTON_WIDTH + PARENT_BUTTON_MARGIN, idealLeft);
+        int actualLeft;
+        if (compositionEnabled) {
+            int idealLeft = (size.cx - ideal.cx) / 2;
+            actualLeft = max(PARENT_BUTTON_WIDTH + PARENT_BUTTON_MARGIN, idealLeft);
+        } else {
+            actualLeft = 0; // cover actual window title/icon
+        }
         int maxWidth = size.cx - actualLeft - closeButtonWidth;
         int actualWidth = min(ideal.cx, maxWidth);
 
@@ -1053,20 +1063,30 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
             return HTTOPRIGHT;
         else
             return HTTOP;
+    } else if (useCustomFrame() && !IsThemeActive()
+            && cursor.x >= screenRect.right - GetSystemMetrics(SM_CXSIZE)
+            && cursor.y < screenRect.top + resizeMargin + CAPTION_HEIGHT) {
+        return HTCLOSE;
     } else {
         return HTCAPTION; // can drag anywhere else in window to move!
     }
 }
 
 void ItemWindow::onPaint(PAINTSTRUCT paint) {
-    if (!useCustomFrame())
-        return;
-    // clear alpha channel
-    BITMAPINFO bitmapInfo = {{sizeof(BITMAPINFOHEADER), 1, 1, 1, 32, BI_RGB}};
-    RGBQUAD bitmapBits = { 0x00, 0x00, 0x00, 0x00 };
-    StretchDIBits(paint.hdc, 0, 0, clientSize(hwnd).cx, CAPTION_HEIGHT,
-                  0, 0, 1, 1, &bitmapBits, &bitmapInfo,
-                  DIB_RGB_COLORS, SRCCOPY);
+    // on Windows 10+ we set the hbrBackground of the class so this isn't necessary
+    if ((statusText || toolbar) && !IsWindows10OrGreater()) {
+        int top = useCustomFrame() ? CAPTION_HEIGHT : 0;
+        RECT toolbarRect = {0, top, clientSize(hwnd).cx, top + TOOLBAR_HEIGHT};
+        FillRect(paint.hdc, &toolbarRect, GetSysColorBrush(COLOR_3DFACE));
+    }
+    if (useCustomFrame() && compositionEnabled) {
+        // clear alpha channel
+        BITMAPINFO bitmapInfo = {{sizeof(BITMAPINFOHEADER), 1, 1, 1, 32, BI_RGB}};
+        RGBQUAD bitmapBits = { 0x00, 0x00, 0x00, 0x00 };
+        StretchDIBits(paint.hdc, 0, 0, clientSize(hwnd).cx, CAPTION_HEIGHT,
+                    0, 0, 1, 1, &bitmapBits, &bitmapInfo,
+                    DIB_RGB_COLORS, SRCCOPY);
+    }
 }
 
 RECT ItemWindow::titleRect() {
@@ -1299,7 +1319,7 @@ bool ItemWindow::resolveItem() {
     }
 
     debugPrintf(L"Item has been deleted!\n");
-    if (useCustomFrame()) {
+    if (compositionEnabled) {
         // reenable animations to emphasize window closing
         checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
             tempPtr((BOOL)FALSE), sizeof(BOOL)));
