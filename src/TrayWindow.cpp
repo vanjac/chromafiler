@@ -138,10 +138,6 @@ bool TrayWindow::useCustomFrame() const {
     return false;
 }
 
-bool TrayWindow::allowToolbar() const {
-    return false;
-}
-
 bool TrayWindow::paletteWindow() const {
     return true;
 }

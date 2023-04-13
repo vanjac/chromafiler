@@ -51,7 +51,6 @@ private:
     const wchar_t * className() override;
 
     bool useCustomFrame() const override;
-    bool allowToolbar() const override;
     bool stickToChild() const override;
     SettingsPage settingsStartPage() const override;
     POINT childPos(SIZE size) override;

@@ -199,10 +199,6 @@ bool ItemWindow::useCustomFrame() const {
     return true;
 }
 
-bool ItemWindow::allowToolbar() const {
-    return true;
-}
-
 bool ItemWindow::paletteWindow() const {
     return false;
 }
@@ -213,6 +209,10 @@ bool ItemWindow::stickToChild() const {
 
 bool ItemWindow::useDefaultStatusText() const {
     return true;
+}
+
+bool ItemWindow::centeredProxy() const {
+    return compositionEnabled;
 }
 
 SettingsPage ItemWindow::settingsStartPage() const {
@@ -599,34 +599,9 @@ void ItemWindow::onCreate() {
             SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
     } // if (useCustomFrame())
 
-    if (allowToolbar() && (compositionEnabled ||
-            settings::getStatusTextEnabled() || settings::getToolbarEnabled())) {
-        CComPtr<IShellItem> parentItem;
-        bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
-        // put button in caption when composition enabled, otherwise in status area
-        int top = compositionEnabled ? PARENT_BUTTON_MARGIN
-            : (useCustomFrame() ? CAPTION_HEIGHT : 0);
-        int height = compositionEnabled ? (CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2)
-            : TOOLBAR_HEIGHT;
-        parentToolbar = CreateWindowEx(TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
-            TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
-                | (showParentButton ? WS_VISIBLE : 0) | WS_CHILD,
-            0, top, PARENT_BUTTON_WIDTH, height, hwnd, nullptr, instance, nullptr);
-        SendMessage(parentToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
-        SendMessage(parentToolbar, TB_SETBUTTONWIDTH, 0,
-            MAKELPARAM(PARENT_BUTTON_WIDTH, PARENT_BUTTON_WIDTH));
-        SendMessage(parentToolbar, TB_SETBITMAPSIZE, 0, 0);
-        if (symbolFont)
-            SendMessage(parentToolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
-        TBBUTTON parentButton = {I_IMAGENONE, IDM_PREV_WINDOW, TBSTATE_ENABLED,
-            BTNS_SHOWTEXT, {}, 0, (INT_PTR)MDL2_CHEVRON_LEFT_MED};
-        SendMessage(parentToolbar, TB_ADDBUTTONS, 1, (LPARAM)&parentButton);
-        SendMessage(parentToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(PARENT_BUTTON_WIDTH, height));
-    }
-
-    if (allowToolbar() && settings::getStatusTextEnabled()) {
+    if (useCustomFrame() && settings::getStatusTextEnabled()) {
         // potentially leave room for parent button
-        int left = (compositionEnabled ? 0 : PARENT_BUTTON_WIDTH) + STATUS_TEXT_MARGIN;
+        int left = (centeredProxy() ? 0 : PARENT_BUTTON_WIDTH) + STATUS_TEXT_MARGIN;
         statusText = checkLE(CreateWindow(L"STATIC", nullptr,
             WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE | SS_NOPREFIX
                 | SS_NOTIFY, // allows tooltips to work
@@ -654,7 +629,7 @@ void ItemWindow::onCreate() {
         SendMessage(statusTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
     }
 
-    if (allowToolbar() && settings::getToolbarEnabled()) {
+    if (useCustomFrame() && settings::getToolbarEnabled()) {
         toolbar = checkLE(CreateWindowEx(
             TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
             TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
@@ -672,6 +647,28 @@ void ItemWindow::onCreate() {
         SendMessage(toolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
         SetWindowPos(toolbar, nullptr, 0, 0, ideal.cx, TOOLBAR_HEIGHT,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+    }
+
+    if (centeredProxy() || statusText || toolbar) {
+        CComPtr<IShellItem> parentItem;
+        bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
+        // put button in caption with centered proxy, otherwise in status area
+        int top = centeredProxy() ? PARENT_BUTTON_MARGIN : (useCustomFrame() ? CAPTION_HEIGHT : 0);
+        int height = centeredProxy() ? (CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2) : TOOLBAR_HEIGHT;
+        parentToolbar = CreateWindowEx(TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
+            TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
+                | (showParentButton ? WS_VISIBLE : 0) | WS_CHILD,
+            0, top, PARENT_BUTTON_WIDTH, height, hwnd, nullptr, instance, nullptr);
+        SendMessage(parentToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
+        SendMessage(parentToolbar, TB_SETBUTTONWIDTH, 0,
+            MAKELPARAM(PARENT_BUTTON_WIDTH, PARENT_BUTTON_WIDTH));
+        SendMessage(parentToolbar, TB_SETBITMAPSIZE, 0, 0);
+        if (symbolFont)
+            SendMessage(parentToolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
+        TBBUTTON parentButton = {I_IMAGENONE, IDM_PREV_WINDOW, TBSTATE_ENABLED,
+            BTNS_SHOWTEXT, {}, 0, (INT_PTR)MDL2_CHEVRON_LEFT_MED};
+        SendMessage(parentToolbar, TB_ADDBUTTONS, 1, (LPARAM)&parentButton);
+        SendMessage(parentToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(PARENT_BUTTON_WIDTH, height));
     }
 }
 
@@ -984,7 +981,7 @@ void ItemWindow::onSize(SIZE size) {
         SIZE ideal;
         SendMessage(proxyToolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
         int actualLeft;
-        if (compositionEnabled) {
+        if (centeredProxy()) {
             int idealLeft = (size.cx - ideal.cx) / 2;
             actualLeft = max(PARENT_BUTTON_WIDTH + PARENT_BUTTON_MARGIN, idealLeft);
         } else {

@@ -119,8 +119,8 @@ private:
     virtual const wchar_t * className() = 0;
 
     virtual bool useCustomFrame() const;
-    virtual bool allowToolbar() const;
     virtual bool stickToChild() const; // for windows that override childPos
+    bool centeredProxy() const; // requires useCustomFrame() == true
 
     virtual bool useDefaultStatusText() const;
     virtual SettingsPage settingsStartPage() const;
