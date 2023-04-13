@@ -22,7 +22,7 @@ const wchar_t CHAIN_OWNER_CLASS[] = L"ChromaFile Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 
 // dimensions
-static int PARENT_BUTTON_WIDTH = 34; // matches close button width in windows 10
+static int PARENT_BUTTON_WIDTH = 34; // caption only, matches close button width in windows 10
 static int PARENT_BUTTON_MARGIN = 1;
 static int TOOLBAR_HEIGHT = 24;
 static int STATUS_TEXT_MARGIN = 4;
@@ -601,7 +601,7 @@ void ItemWindow::onCreate() {
 
     if (useCustomFrame() && settings::getStatusTextEnabled()) {
         // potentially leave room for parent button
-        int left = (centeredProxy() ? 0 : PARENT_BUTTON_WIDTH) + STATUS_TEXT_MARGIN;
+        int left = (centeredProxy() ? 0 : TOOLBAR_HEIGHT) + STATUS_TEXT_MARGIN;
         statusText = checkLE(CreateWindow(L"STATIC", nullptr,
             WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE | SS_NOPREFIX
                 | SS_NOTIFY, // allows tooltips to work
@@ -654,21 +654,21 @@ void ItemWindow::onCreate() {
         bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
         // put button in caption with centered proxy, otherwise in status area
         int top = centeredProxy() ? PARENT_BUTTON_MARGIN : (useCustomFrame() ? CAPTION_HEIGHT : 0);
+        int width = centeredProxy() ? PARENT_BUTTON_WIDTH : TOOLBAR_HEIGHT;
         int height = centeredProxy() ? (CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2) : TOOLBAR_HEIGHT;
         parentToolbar = CreateWindowEx(TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
             TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
                 | (showParentButton ? WS_VISIBLE : 0) | WS_CHILD,
-            0, top, PARENT_BUTTON_WIDTH, height, hwnd, nullptr, instance, nullptr);
+            0, top, width, height, hwnd, nullptr, instance, nullptr);
         SendMessage(parentToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
-        SendMessage(parentToolbar, TB_SETBUTTONWIDTH, 0,
-            MAKELPARAM(PARENT_BUTTON_WIDTH, PARENT_BUTTON_WIDTH));
+        SendMessage(parentToolbar, TB_SETBUTTONWIDTH, 0, MAKELPARAM(width, width));
         SendMessage(parentToolbar, TB_SETBITMAPSIZE, 0, 0);
         if (symbolFont)
             SendMessage(parentToolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
         TBBUTTON parentButton = {I_IMAGENONE, IDM_PREV_WINDOW, TBSTATE_ENABLED,
             BTNS_SHOWTEXT, {}, 0, (INT_PTR)MDL2_CHEVRON_LEFT_MED};
         SendMessage(parentToolbar, TB_ADDBUTTONS, 1, (LPARAM)&parentButton);
-        SendMessage(parentToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(PARENT_BUTTON_WIDTH, height));
+        SendMessage(parentToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(width, height));
     }
 }
 
