@@ -194,6 +194,7 @@ STRINGTABLE {
     IDS_NO_UPDATE,          "You are using the latest version."
     IDS_UPDATE_ERROR,       "Error checking for updates"
 
+    IDS_OPEN_PARENT_COMMAND "Open Parent"
     IDS_SETTINGS_COMMAND,   "Settings"
     IDS_REFRESH_COMMAND,    "Refresh"
     IDS_NEW_ITEM_COMMAND,   "New..."

@@ -141,7 +141,7 @@ private:
     void addChainPreview();
     void removeChainPreview();
 
-    void openParentMenu(POINT point);
+    void openParentMenu();
 
     void invokeProxyDefaultVerb();
     void openProxyProperties();
@@ -156,15 +156,13 @@ private:
     static BOOL CALLBACK enumCloseChain(HWND, LPARAM lParam);
 
     // window subclasses
-    static LRESULT CALLBACK parentButtonProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
     static LRESULT CALLBACK renameBoxProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     CComPtr<IShellLink> link;
 
-    HWND proxyToolbar = nullptr;
-    HWND proxyTooltip = nullptr, parentButton = nullptr, renameBox = nullptr;
+    HWND proxyToolbar = nullptr, proxyTooltip = nullptr;
+    HWND parentToolbar = nullptr, renameBox = nullptr;
     HWND statusText = nullptr, statusTooltip = nullptr, toolbar = nullptr;
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;

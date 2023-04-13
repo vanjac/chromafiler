@@ -535,9 +535,9 @@ void ItemWindow::onCreate() {
         if (captionFont)
             SendMessage(proxyToolbar, WM_SETFONT, (WPARAM)captionFont, FALSE);
         SendMessage(proxyToolbar, TB_SETIMAGELIST, 0, (LPARAM)imageList);
-        TBBUTTON button = {0, IDM_PROXY_BUTTON, TBSTATE_ENABLED,
+        TBBUTTON proxyButton = {0, IDM_PROXY_BUTTON, TBSTATE_ENABLED,
             PROXY_BUTTON_STYLE | BTNS_AUTOSIZE, {}, 0, (INT_PTR)(wchar_t *)title};
-        SendMessage(proxyToolbar, TB_ADDBUTTONS, 1, (LPARAM)&button);
+        SendMessage(proxyToolbar, TB_ADDBUTTONS, 1, (LPARAM)&proxyButton);
         SIZE ideal;
         SendMessage(proxyToolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
         int buttonHeight = GET_Y_LPARAM(SendMessage(proxyToolbar, TB_GETBUTTONSIZE, 0, 0));
@@ -567,11 +567,22 @@ void ItemWindow::onCreate() {
 
         CComPtr<IShellItem> parentItem;
         bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
-        parentButton = checkLE(CreateWindow(L"BUTTON", nullptr,
-            (showParentButton ? WS_VISIBLE : 0) | WS_CHILD | BS_PUSHBUTTON,
+        parentToolbar = CreateWindowEx(TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
+            TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
+                | (showParentButton ? WS_VISIBLE : 0) | WS_CHILD,
             0, PARENT_BUTTON_MARGIN, PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2,
-            hwnd, (HMENU)IDM_PREV_WINDOW, instance, nullptr));
-        SetWindowSubclass(parentButton, parentButtonProc, 0, (DWORD_PTR)this);
+            hwnd, nullptr, instance, nullptr);
+        SendMessage(parentToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
+        SendMessage(parentToolbar, TB_SETBUTTONWIDTH, 0,
+            MAKELPARAM(PARENT_BUTTON_WIDTH, PARENT_BUTTON_WIDTH));
+        SendMessage(parentToolbar, TB_SETBITMAPSIZE, 0, 0);
+        if (symbolFont)
+            SendMessage(parentToolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
+        TBBUTTON parentButton = {I_IMAGENONE, IDM_PREV_WINDOW, TBSTATE_ENABLED,
+            BTNS_SHOWTEXT, {}, 0, (INT_PTR)MDL2_CHEVRON_LEFT_MED};
+        SendMessage(parentToolbar, TB_ADDBUTTONS, 1, (LPARAM)&parentButton);
+        SendMessage(parentToolbar, TB_SETBUTTONSIZE, 0,
+            MAKELPARAM(PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2));
 
         // will be positioned in beginRename
         renameBox = checkLE(CreateWindow(L"EDIT", nullptr,
@@ -666,6 +677,8 @@ void ItemWindow::addToolbarButtons(HWND tb) {
 
 int ItemWindow::getToolbarTooltip(WORD command) {
     switch (command) {
+        case IDM_PREV_WINDOW:
+            return IDS_OPEN_PARENT_COMMAND;
         case IDM_SETTINGS:
             return IDS_SETTINGS_COMMAND;
     }
@@ -758,10 +771,8 @@ bool ItemWindow::onCommand(WORD command) {
             ItemWindow *rootParent = this;
             while (rootParent->parent)
                 rootParent = rootParent->parent;
-            if (!rootParent->paletteWindow()) {
-                POINT menuPos = {0, rootParent->useCustomFrame() ? CAPTION_HEIGHT : 0};
-                rootParent->openParentMenu(clientToScreen(rootParent->hwnd, menuPos));
-            }
+            if (!rootParent->paletteWindow())
+                rootParent->openParentMenu();
             return true;
         }
         case IDM_HELP:
@@ -837,12 +848,13 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         NMTOOLBAR *nmToolbar = (NMTOOLBAR *)nmHdr;
         POINT menuPos = {nmToolbar->rcButton.left, nmToolbar->rcButton.bottom};
         return onDropdown(nmToolbar->iItem, clientToScreen(nmHdr->hwndFrom, menuPos));
-    } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == NM_CUSTOMDRAW) {
+    } else if ((nmHdr->hwndFrom == proxyToolbar || nmHdr->hwndFrom == parentToolbar)
+            && nmHdr->code == NM_CUSTOMDRAW) {
         NMTBCUSTOMDRAW *customDraw = (NMTBCUSTOMDRAW *)nmHdr;
         if (customDraw->nmcd.dwDrawStage == CDDS_PREPAINT) {
             return CDRF_NOTIFYPOSTPAINT;
         } else if (customDraw->nmcd.dwDrawStage == CDDS_POSTPAINT) {
-            // fix title bar rendering (when layered child windows not supported)
+            // fix title bar rendering (when not layered)
             makeBitmapOpaque(customDraw->nmcd.hdc, clientRect(nmHdr->hwndFrom));
         }
         return CDRF_DODEFAULT;
@@ -895,6 +907,18 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
             objNotif->hResult = E_FAIL;
         }
         return 0;
+    } else if (nmHdr->hwndFrom == parentToolbar && nmHdr->code == NM_LDOWN) {
+        NMMOUSE *mouse = (NMMOUSE *)nmHdr;
+        POINT screenPos = clientToScreen(parentToolbar, mouse->pt);
+        if (DragDetect(hwnd, screenPos)) {
+            SendMessage(hwnd, WM_SYSCOMMAND, SC_MOVE | 2, 0);
+        } else {
+            onCommand((WORD)mouse->dwItemSpec); // button clicked normally
+        }
+        return TRUE;
+    } else if (nmHdr->hwndFrom == parentToolbar && nmHdr->code == NM_RCLICK) {
+        openParentMenu();
+        return TRUE;
     }
     return 0;
 }
@@ -928,7 +952,7 @@ void ItemWindow::onSize(SIZE size) {
         SIZE ideal;
         SendMessage(proxyToolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
         int idealLeft = (size.cx - ideal.cx) / 2;
-        int actualLeft = max(PARENT_BUTTON_WIDTH, idealLeft);
+        int actualLeft = max(PARENT_BUTTON_WIDTH + PARENT_BUTTON_MARGIN, idealLeft);
         int maxWidth = size.cx - actualLeft - closeButtonWidth;
         int actualWidth = min(ideal.cx, maxWidth);
 
@@ -1078,8 +1102,8 @@ void ItemWindow::openParent() {
     if (stickToChild())
         limitChainWindowRect(&rect);
     parent->create(rect, SW_SHOWNORMAL);
-    if (parentButton)
-        ShowWindow(parentButton, SW_HIDE);
+    if (parentToolbar)
+        ShowWindow(parentToolbar, SW_HIDE);
 
     if (persistSizeInParent())
         parent->onChildResized(rectSize(windowRect(hwnd)));
@@ -1111,8 +1135,8 @@ void ItemWindow::detachFromParent(bool closeParent) {
     clearParent();
 
     CComPtr<IShellItem> parentItem;
-    if (parentButton && SUCCEEDED(item->GetParent(&parentItem)))
-        ShowWindow(parentButton, SW_SHOW);
+    if (parentToolbar && SUCCEEDED(item->GetParent(&parentItem)))
+        ShowWindow(parentToolbar, SW_SHOW);
     if (closeParent) {
         while (rootParent->parent && !rootParent->parent->paletteWindow())
             rootParent = rootParent->parent;
@@ -1287,7 +1311,7 @@ void ItemWindow::refresh() {
     }
 }
 
-void ItemWindow::openParentMenu(POINT point) {
+void ItemWindow::openParentMenu() {
     int iconSize = GetSystemMetrics(SM_CXSMICON);
     HMENU menu = CreatePopupMenu();
     if (!menu)
@@ -1317,8 +1341,21 @@ void ItemWindow::openParentMenu(POINT point) {
         checkLE(DestroyMenu(menu));
         return;
     }
+    POINT point;
+    LONG_PTR buttonState = 0;
+    if (parentToolbar) {
+        RECT buttonRect;
+        SendMessage(parentToolbar, TB_GETRECT, IDM_PREV_WINDOW, (LPARAM)&buttonRect);
+        point = clientToScreen(parentToolbar, {buttonRect.left, buttonRect.bottom});
+        buttonState = SendMessage(parentToolbar, TB_GETSTATE, IDM_PREV_WINDOW, 0);
+        SendMessage(parentToolbar, TB_SETSTATE, IDM_PREV_WINDOW, buttonState | TBSTATE_PRESSED);
+    } else {
+        point = clientToScreen(hwnd, {0, 0});
+    }
     int cmd = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON,
         point.x, point.y, hwnd, nullptr);
+    if (parentToolbar)
+        SendMessage(parentToolbar, TB_SETSTATE, IDM_PREV_WINDOW, buttonState);
     ItemWindow *parentWindow = this;
     for (int i = 0; i < cmd && parentWindow; i++) {
         if (!parentWindow->parent)
@@ -1645,59 +1682,6 @@ LRESULT CALLBACK ItemWindow::chainWindowProc(HWND hwnd, UINT message,
         return 0;
     }
     return DefWindowProc(hwnd, message, wParam, lParam);
-}
-
-LRESULT CALLBACK ItemWindow::parentButtonProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
-    if (message == WM_PAINT) {
-        // TODO is there a better way to do this?
-        int buttonState = Button_GetState(hwnd);
-        int themeState;
-        if (buttonState & BST_PUSHED)
-            themeState = PBS_PRESSED;
-        else if (buttonState & BST_HOT)
-            themeState = PBS_HOT;
-        else
-            themeState = PBS_NORMAL;
-
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-
-        HTHEME theme = OpenThemeData(hwnd, L"Button");
-        if (theme) {
-            RECT buttonRect = clientRect(hwnd);
-            InflateRect(&buttonRect, 1, 1);
-            if (themeState == PBS_NORMAL) {
-                FillRect(hdc, &ps.rcPaint, GetSysColorBrush(COLOR_WINDOW));
-                makeBitmapOpaque(hdc, ps.rcPaint);
-            } else {
-                checkHR(DrawThemeBackground(theme, hdc, BP_PUSHBUTTON, themeState, &buttonRect,
-                                            &ps.rcPaint));
-            }
-
-            RECT contentRect;
-            if (checkHR(GetThemeBackgroundContentRect(theme, hdc, BP_PUSHBUTTON, 
-                    themeState, &buttonRect, &contentRect))) {
-                HFONT oldFont = SelectFont(hdc, symbolFont);
-                SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
-                SetBkMode(hdc, TRANSPARENT);
-                DrawText(hdc, MDL2_CHEVRON_LEFT_MED, -1, &contentRect,
-                    DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                SelectFont(hdc, oldFont);
-                makeBitmapOpaque(hdc, ps.rcPaint);
-            }
-
-            checkHR(CloseThemeData(theme));
-        }
-
-        EndPaint(hwnd, &ps);
-        return 0;
-    } else if (message == WM_RBUTTONUP) {
-        ((ItemWindow *)refData)->openParentMenu(clientToScreen(hwnd, pointFromLParam(lParam)));
-        return 0;
-    }
-
-    return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 
 LRESULT CALLBACK ItemWindow::renameBoxProc(HWND hwnd, UINT message,
