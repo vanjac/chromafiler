@@ -80,9 +80,15 @@ void ItemWindow::init() {
     chainClass.hInstance = hInstance;
     RegisterClass(&chainClass);
 
-    RECT adjustedRect = {};
-    AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
-    CAPTION_HEIGHT = -adjustedRect.top; // = 31
+    checkHR(DwmIsCompositionEnabled(&compositionEnabled));
+
+    if (compositionEnabled) {
+        RECT adjustedRect = {};
+        AdjustWindowRectEx(&adjustedRect, WS_OVERLAPPEDWINDOW, FALSE, 0);
+        CAPTION_HEIGHT = -adjustedRect.top; // = 31
+    } else {
+        CAPTION_HEIGHT = GetSystemMetrics(SM_CYCAPTION);
+    }
 
     PARENT_BUTTON_WIDTH = scaleDPI(PARENT_BUTTON_WIDTH);
     PARENT_BUTTON_MARGIN = scaleDPI(PARENT_BUTTON_MARGIN);
@@ -92,8 +98,6 @@ void ItemWindow::init() {
     DETACH_DISTANCE = scaleDPI(DETACH_DISTANCE);
     WIN10_CXSIZEFRAME = scaleDPI(WIN10_CXSIZEFRAME);
     SYMBOL_LOGFONT.lfHeight = scaleDPI(SYMBOL_LOGFONT.lfHeight);
-
-    checkHR(DwmIsCompositionEnabled(&compositionEnabled));
 
     if (HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME)) {
         LOGFONT logFont;
@@ -356,7 +360,10 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 NCCALCSIZE_PARAMS *params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
                 int resizeMargin = windowResizeMargin();
                 params->rgrc[0].left = params->rgrc[0].left + resizeMargin;
-                params->rgrc[0].top = params->rgrc[0].top;
+                if (compositionEnabled)
+                    params->rgrc[0].top = params->rgrc[0].top;
+                else
+                    params->rgrc[0].top = params->rgrc[0].top + resizeMargin;;
                 params->rgrc[0].right = params->rgrc[0].right - resizeMargin;
                 params->rgrc[0].bottom = params->rgrc[0].bottom - resizeMargin;
                 return 0;
@@ -1171,14 +1178,15 @@ void ItemWindow::detachAndMove(bool closeParent) {
     if (closeParent) {
         setPos({rootRect.left, rootRect.top});
     } else {
-        POINT pos = {rootRect.left + CAPTION_HEIGHT, rootRect.top + CAPTION_HEIGHT};
+        int ncCaption = CAPTION_HEIGHT + windowBorderSize();
+        POINT pos = {rootRect.left + ncCaption, rootRect.top + ncCaption};
 
         HMONITOR curMonitor = MonitorFromWindow(rootParent->hwnd, MONITOR_DEFAULTTONEAREST);
         MONITORINFO monitorInfo = {sizeof(monitorInfo)};
         GetMonitorInfo(curMonitor, &monitorInfo);
-        if (pos.x + CAPTION_HEIGHT > monitorInfo.rcWork.right)
+        if (pos.x + ncCaption > monitorInfo.rcWork.right)
             pos.x = monitorInfo.rcWork.left;
-        if (pos.y + CAPTION_HEIGHT > monitorInfo.rcWork.bottom)
+        if (pos.y + ncCaption > monitorInfo.rcWork.bottom)
             pos.y = monitorInfo.rcWork.top;
         setPos(pos);
     }
@@ -1206,8 +1214,9 @@ POINT ItemWindow::parentPos(SIZE size) {
     GetMonitorInfo(curMonitor, &monitorInfo);
     if (pos.x < monitorInfo.rcWork.left)
         pos.x = monitorInfo.rcWork.left;
-    if (pos.y + CAPTION_HEIGHT > monitorInfo.rcWork.bottom)
-        pos.y = monitorInfo.rcWork.bottom - CAPTION_HEIGHT;
+    int ncCaption = CAPTION_HEIGHT + windowBorderSize();
+    if (pos.y + ncCaption > monitorInfo.rcWork.bottom)
+        pos.y = monitorInfo.rcWork.bottom - ncCaption;
     return pos;
 }
 
