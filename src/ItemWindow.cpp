@@ -136,7 +136,6 @@ WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
     wndClass.lpfnWndProc = ItemWindow::windowProc;
     wndClass.hInstance = GetModuleHandle(nullptr);
     wndClass.lpszClassName = name;
-    wndClass.style = CS_HREDRAW; // ensure caption gets redrawn if width changes
     // change toolbar color
     if (IsWindows10OrGreater())
         wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
