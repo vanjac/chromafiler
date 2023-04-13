@@ -363,7 +363,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 if (compositionEnabled)
                     params->rgrc[0].top = params->rgrc[0].top;
                 else
-                    params->rgrc[0].top = params->rgrc[0].top + resizeMargin;;
+                    params->rgrc[0].top = params->rgrc[0].top + resizeMargin;
                 params->rgrc[0].right = params->rgrc[0].right - resizeMargin;
                 params->rgrc[0].bottom = params->rgrc[0].bottom - resizeMargin;
                 return 0;
@@ -535,7 +535,8 @@ void ItemWindow::onCreate() {
         margins.cxRightWidth = 0;
         margins.cyTopHeight = CAPTION_HEIGHT;
         margins.cyBottomHeight = 0;
-        checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
+        if (compositionEnabled)
+            checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
 
         int iconSize = GetSystemMetrics(SM_CXSMICON);
         HIMAGELIST imageList = ImageList_Create(iconSize, iconSize, ILC_MASK | ILC_COLOR32, 1, 0);
@@ -583,25 +584,6 @@ void ItemWindow::onCreate() {
         toolInfo.lpszText = title;
         SendMessage(proxyTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
-        CComPtr<IShellItem> parentItem;
-        bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
-        parentToolbar = CreateWindowEx(TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
-            TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
-                | (showParentButton ? WS_VISIBLE : 0) | WS_CHILD,
-            0, PARENT_BUTTON_MARGIN, PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2,
-            hwnd, nullptr, instance, nullptr);
-        SendMessage(parentToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
-        SendMessage(parentToolbar, TB_SETBUTTONWIDTH, 0,
-            MAKELPARAM(PARENT_BUTTON_WIDTH, PARENT_BUTTON_WIDTH));
-        SendMessage(parentToolbar, TB_SETBITMAPSIZE, 0, 0);
-        if (symbolFont)
-            SendMessage(parentToolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
-        TBBUTTON parentButton = {I_IMAGENONE, IDM_PREV_WINDOW, TBSTATE_ENABLED,
-            BTNS_SHOWTEXT, {}, 0, (INT_PTR)MDL2_CHEVRON_LEFT_MED};
-        SendMessage(parentToolbar, TB_ADDBUTTONS, 1, (LPARAM)&parentButton);
-        SendMessage(parentToolbar, TB_SETBUTTONSIZE, 0,
-            MAKELPARAM(PARENT_BUTTON_WIDTH, CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2));
-
         // will be positioned in beginRename
         renameBox = checkLE(CreateWindow(L"EDIT", nullptr,
             WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
@@ -612,11 +594,38 @@ void ItemWindow::onCreate() {
             SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
     } // if (useCustomFrame())
 
+    if (allowToolbar() && (compositionEnabled ||
+            settings::getStatusTextEnabled() || settings::getToolbarEnabled())) {
+        CComPtr<IShellItem> parentItem;
+        bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
+        // put button in caption when composition enabled, otherwise in status area
+        int top = compositionEnabled ? PARENT_BUTTON_MARGIN
+            : (useCustomFrame() ? CAPTION_HEIGHT : 0);
+        int height = compositionEnabled ? (CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2)
+            : TOOLBAR_HEIGHT;
+        parentToolbar = CreateWindowEx(TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
+            TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
+                | (showParentButton ? WS_VISIBLE : 0) | WS_CHILD,
+            0, top, PARENT_BUTTON_WIDTH, height, hwnd, nullptr, instance, nullptr);
+        SendMessage(parentToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
+        SendMessage(parentToolbar, TB_SETBUTTONWIDTH, 0,
+            MAKELPARAM(PARENT_BUTTON_WIDTH, PARENT_BUTTON_WIDTH));
+        SendMessage(parentToolbar, TB_SETBITMAPSIZE, 0, 0);
+        if (symbolFont)
+            SendMessage(parentToolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
+        TBBUTTON parentButton = {I_IMAGENONE, IDM_PREV_WINDOW, TBSTATE_ENABLED,
+            BTNS_SHOWTEXT, {}, 0, (INT_PTR)MDL2_CHEVRON_LEFT_MED};
+        SendMessage(parentToolbar, TB_ADDBUTTONS, 1, (LPARAM)&parentButton);
+        SendMessage(parentToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(PARENT_BUTTON_WIDTH, height));
+    }
+
     if (allowToolbar() && settings::getStatusTextEnabled()) {
+        // potentially leave room for parent button
+        int left = (compositionEnabled ? 0 : PARENT_BUTTON_WIDTH) + STATUS_TEXT_MARGIN;
         statusText = checkLE(CreateWindow(L"STATIC", nullptr,
             WS_VISIBLE | WS_CHILD | SS_WORDELLIPSIS | SS_LEFT | SS_CENTERIMAGE | SS_NOPREFIX
                 | SS_NOTIFY, // allows tooltips to work
-            STATUS_TEXT_MARGIN, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, TOOLBAR_HEIGHT,
+            left, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, TOOLBAR_HEIGHT,
             hwnd, nullptr, instance, nullptr));
         if (statusFont)
             SendMessage(statusText, WM_SETFONT, (WPARAM)statusFont, FALSE);
@@ -996,8 +1005,10 @@ void ItemWindow::onSize(SIZE size) {
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
     if (statusText) {
+        RECT statusRect = windowRect(statusText);
+        MapWindowRect(nullptr, hwnd, &statusRect);
         SetWindowPos(statusText, nullptr,
-            0, 0, toolbarLeft - STATUS_TEXT_MARGIN * 2, TOOLBAR_HEIGHT,
+            0, 0, toolbarLeft - STATUS_TEXT_MARGIN - statusRect.left, TOOLBAR_HEIGHT,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
         InvalidateRect(statusText, nullptr, FALSE);
     }
