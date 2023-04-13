@@ -95,7 +95,6 @@ void ItemWindow::init() {
 
     checkHR(DwmIsCompositionEnabled(&compositionEnabled));
 
-    // TODO: alternatively use SystemParametersInfo with SPI_GETNONCLIENTMETRICS
     if (HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME)) {
         LOGFONT logFont;
         if (checkHR(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont)))
@@ -103,6 +102,11 @@ void ItemWindow::init() {
         if (checkHR(GetThemeSysFont(theme, TMT_STATUSFONT, &logFont)))
             statusFont = CreateFontIndirect(&logFont);
         checkHR(CloseThemeData(theme));
+    } else {
+        NONCLIENTMETRICS metrics = {sizeof(metrics)};
+        SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, 0);
+        captionFont = CreateFontIndirect(&metrics.lfCaptionFont);
+        statusFont = CreateFontIndirect(&metrics.lfStatusFont);
     }
 
     if (HRSRC symbolFontResource =
