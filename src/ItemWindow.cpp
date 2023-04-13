@@ -133,7 +133,11 @@ WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
     wndClass.hInstance = GetModuleHandle(nullptr);
     wndClass.lpszClassName = name;
     wndClass.style = CS_HREDRAW; // ensure caption gets redrawn if width changes
-    wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); // for toolbar
+    // change toolbar color
+    if (IsWindows10OrGreater())
+        wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    else
+        wndClass.hbrBackground = (HBRUSH)(COLOR_3DFACE + 1);
     return wndClass;
 }
 
@@ -368,8 +372,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             EndPaint(hwnd, &paint);
             return 0;
         }
-        case WM_CTLCOLORSTATIC:
-            return COLOR_WINDOW + 1;
+        case WM_CTLCOLORSTATIC: { // status text background color
+            HDC hdc = (HDC)wParam;
+            int colorI = IsWindows10OrGreater() ? COLOR_WINDOW : COLOR_3DFACE;
+            SetBkColor(hdc, GetSysColor(colorI));
+            return colorI + 1;
+        }
         case WM_ENTERSIZEMOVE: {
             moveAccum = {0, 0};
             lastSize = rectSize(windowRect(hwnd));
