@@ -999,6 +999,7 @@ void ItemWindow::onSize(SIZE size) {
         SetWindowPos(statusText, nullptr,
             0, 0, toolbarLeft - STATUS_TEXT_MARGIN * 2, TOOLBAR_HEIGHT,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+        InvalidateRect(statusText, nullptr, FALSE);
     }
 }
 
