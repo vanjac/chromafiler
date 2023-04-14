@@ -25,6 +25,7 @@ const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 static int PARENT_BUTTON_WIDTH = 34; // caption only, matches close button width in windows 10
 static int COMP_CAPTION_VMARGIN = 1;
 static SIZE PROXY_PADDING = {7, 3};
+static SIZE PROXY_INFLATE = {4, 1};
 static int TOOLBAR_HEIGHT = 24;
 static int STATUS_TEXT_MARGIN = 4;
 static int STATUS_TOOLTIP_OFFSET = 2; // TODO not correct at higher DPIs
@@ -98,6 +99,7 @@ void ItemWindow::init() {
     PARENT_BUTTON_WIDTH = scaleDPI(PARENT_BUTTON_WIDTH);
     COMP_CAPTION_VMARGIN = scaleDPI(COMP_CAPTION_VMARGIN);
     PROXY_PADDING = scaleDPI(PROXY_PADDING);
+    PROXY_INFLATE = scaleDPI(PROXY_INFLATE);
     TOOLBAR_HEIGHT = scaleDPI(TOOLBAR_HEIGHT);
     STATUS_TEXT_MARGIN = scaleDPI(STATUS_TEXT_MARGIN);
     STATUS_TOOLTIP_OFFSET = scaleDPI(STATUS_TOOLTIP_OFFSET);
@@ -1104,10 +1106,9 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
 RECT ItemWindow::titleRect() {
     RECT rect;
     SendMessage(proxyToolbar, TB_GETRECT, IDM_PROXY_BUTTON, (LPARAM)&rect);
-    TBMETRICS metrics = {sizeof(metrics)};
-    metrics.dwMask = TBMF_PAD;
-    SendMessage(proxyToolbar, TB_GETMETRICS, 0, (LPARAM)&metrics);
-    InflateRect(&rect, -metrics.cxPad - 4, -metrics.cyPad - 1); // (not scaled w DPI)
+    // hardcoded nonsense
+    SIZE offset = IsThemeActive() ? SIZE{7, 5} : SIZE{3, 2};
+    InflateRect(&rect, -PROXY_INFLATE.cx - offset.cx, -PROXY_INFLATE.cy - offset.cy);
     int iconSize = GetSystemMetrics(SM_CXSMICON);
     rect.left += iconSize;
     MapWindowRect(proxyToolbar, hwnd, &rect);
