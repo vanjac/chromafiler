@@ -350,14 +350,16 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_ACTIVATE:
             onActivate(LOWORD(wParam), (HWND)lParam);
             return 0;
-        case WM_NCACTIVATE:
+        case WM_NCACTIVATE: {
             if (proxyToolbar && IsWindows8OrGreater()) {
                 BYTE alpha = wParam ? 255 : INACTIVE_CAPTION_ALPHA;
                 SetLayeredWindowAttributes(proxyToolbar, 0, alpha, LWA_ALPHA);
             }
+            LRESULT res = DefWindowProc(hwnd, message, wParam, lParam);
             if (!compositionEnabled && proxyToolbar)
-                InvalidateRect(proxyToolbar, nullptr, FALSE);
-            break; // pass to DefWindowProc
+                RedrawWindow(proxyToolbar, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
+            return res;
+        }
         case WM_MOUSEACTIVATE: {
             POINT cursor;
             GetCursorPos(&cursor);
