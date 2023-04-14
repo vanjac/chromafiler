@@ -23,7 +23,8 @@ const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 
 // dimensions
 static int PARENT_BUTTON_WIDTH = 34; // caption only, matches close button width in windows 10
-static int PARENT_BUTTON_MARGIN = 1;
+static int COMP_CAPTION_VMARGIN = 1;
+static SIZE PROXY_PADDING = {7, 3};
 static int TOOLBAR_HEIGHT = 24;
 static int STATUS_TEXT_MARGIN = 4;
 static int STATUS_TOOLTIP_OFFSET = 2; // TODO not correct at higher DPIs
@@ -61,6 +62,10 @@ int windowResizeMargin() {
     return IsThemeActive() ? WIN10_CXSIZEFRAME : GetSystemMetrics(SM_CXSIZEFRAME);
 }
 
+int captionTopMargin() {
+    return compositionEnabled ? COMP_CAPTION_VMARGIN : 0;
+}
+
 int windowBorderSize() {
     if (!IsWindows10OrGreater())
         return windowResizeMargin();
@@ -91,7 +96,8 @@ void ItemWindow::init() {
     }
 
     PARENT_BUTTON_WIDTH = scaleDPI(PARENT_BUTTON_WIDTH);
-    PARENT_BUTTON_MARGIN = scaleDPI(PARENT_BUTTON_MARGIN);
+    COMP_CAPTION_VMARGIN = scaleDPI(COMP_CAPTION_VMARGIN);
+    PROXY_PADDING = scaleDPI(PROXY_PADDING);
     TOOLBAR_HEIGHT = scaleDPI(TOOLBAR_HEIGHT);
     STATUS_TEXT_MARGIN = scaleDPI(STATUS_TEXT_MARGIN);
     STATUS_TOOLTIP_OFFSET = scaleDPI(STATUS_TOOLTIP_OFFSET);
@@ -331,6 +337,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onDestroy();
             return 0;
         case WM_NCDESTROY:
+            if (imageList)
+                checkLE(ImageList_Destroy(imageList));
             checkLE(DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0)));
             checkLE(DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0)));
             hwnd = nullptr;
@@ -544,7 +552,7 @@ void ItemWindow::onCreate() {
             checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
 
         int iconSize = GetSystemMetrics(SM_CXSMICON);
-        HIMAGELIST imageList = ImageList_Create(iconSize, iconSize, ILC_MASK | ILC_COLOR32, 1, 0);
+        imageList = ImageList_Create(iconSize, iconSize, ILC_MASK | ILC_COLOR32, 1, 0);
         ImageList_AddIcon(imageList, iconSmall);
 
         bool layered = IsWindows8OrGreater();
@@ -559,15 +567,21 @@ void ItemWindow::onCreate() {
         if (captionFont)
             SendMessage(proxyToolbar, WM_SETFONT, (WPARAM)captionFont, FALSE);
         SendMessage(proxyToolbar, TB_SETIMAGELIST, 0, (LPARAM)imageList);
+        SendMessage(proxyToolbar, TB_SETPADDING, 0, MAKELPARAM(PROXY_PADDING.cx, PROXY_PADDING.cy));
         TBBUTTON proxyButton = {0, IDM_PROXY_BUTTON, TBSTATE_ENABLED,
             PROXY_BUTTON_STYLE | BTNS_AUTOSIZE, {}, 0, (INT_PTR)(wchar_t *)title};
         SendMessage(proxyToolbar, TB_ADDBUTTONS, 1, (LPARAM)&proxyButton);
         SIZE ideal;
         SendMessage(proxyToolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
-        int buttonHeight = GET_Y_LPARAM(SendMessage(proxyToolbar, TB_GETBUTTONSIZE, 0, 0));
-        SetWindowPos(proxyToolbar, nullptr,
-            PARENT_BUTTON_MARGIN + PARENT_BUTTON_WIDTH, (CAPTION_HEIGHT - buttonHeight) / 2,
-            ideal.cx, buttonHeight,
+        int top = captionTopMargin();
+        int height = CAPTION_HEIGHT - captionTopMargin();
+        if (IsWindows10OrGreater()) {
+            // center vertically
+            int buttonHeight = GET_Y_LPARAM(SendMessage(proxyToolbar, TB_GETBUTTONSIZE, 0, 0));
+            top += max(0, (height - buttonHeight) / 2);
+            height = min(height, buttonHeight);
+        }
+        SetWindowPos(proxyToolbar, nullptr, PARENT_BUTTON_WIDTH, top, ideal.cx, height,
             SWP_NOZORDER | SWP_NOACTIVATE);
 
         // will succeed for folders and EXEs, and fail for regular files
@@ -653,9 +667,9 @@ void ItemWindow::onCreate() {
         CComPtr<IShellItem> parentItem;
         bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
         // put button in caption with centered proxy, otherwise in status area
-        int top = centeredProxy() ? PARENT_BUTTON_MARGIN : (useCustomFrame() ? CAPTION_HEIGHT : 0);
+        int top = centeredProxy() ? captionTopMargin() : (useCustomFrame() ? CAPTION_HEIGHT : 0);
         int width = centeredProxy() ? PARENT_BUTTON_WIDTH : TOOLBAR_HEIGHT;
-        int height = centeredProxy() ? (CAPTION_HEIGHT - PARENT_BUTTON_MARGIN * 2) : TOOLBAR_HEIGHT;
+        int height = centeredProxy() ? (CAPTION_HEIGHT - captionTopMargin()) : TOOLBAR_HEIGHT;
         parentToolbar = CreateWindowEx(TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
             TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
                 | (showParentButton ? WS_VISIBLE : 0) | WS_CHILD,
@@ -983,7 +997,7 @@ void ItemWindow::onSize(SIZE size) {
         int actualLeft;
         if (centeredProxy()) {
             int idealLeft = (size.cx - ideal.cx) / 2;
-            actualLeft = max(PARENT_BUTTON_WIDTH + PARENT_BUTTON_MARGIN, idealLeft);
+            actualLeft = max(PARENT_BUTTON_WIDTH, idealLeft);
         } else {
             actualLeft = 0; // cover actual window title/icon
         }

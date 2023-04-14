@@ -164,6 +164,7 @@ private:
     HWND proxyToolbar = nullptr, proxyTooltip = nullptr;
     HWND parentToolbar = nullptr, renameBox = nullptr;
     HWND statusText = nullptr, statusTooltip = nullptr, toolbar = nullptr;
+    HIMAGELIST imageList = nullptr;
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;
 
