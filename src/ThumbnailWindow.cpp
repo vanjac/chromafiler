@@ -144,8 +144,14 @@ void ThumbnailWindow::ThumbnailThread::run() {
             LeaveCriticalSection(&requestThumbnailSection);
 
             HBITMAP hBitmap;
-            if (!checkHR(imageFactory->GetImage(size, SIIGBF_BIGGERSIZEOK, &hBitmap)))
-                return;
+            if (FAILED(imageFactory->GetImage(size,
+                    SIIGBF_BIGGERSIZEOK | SIIGBF_THUMBNAILONLY, &hBitmap))) {
+                // no thumbnail, fallback to icon
+                int minDim = max(1, min(size.cx, size.cy)); // make square (for Windows 7)
+                if (!checkHR(imageFactory->GetImage({minDim, minDim},
+                        SIIGBF_BIGGERSIZEOK | SIIGBF_ICONONLY, &hBitmap)))
+                    return;
+            }
             BITMAP bitmap;
             GetObject(hBitmap, sizeof(bitmap), &bitmap);
             compositeBackground(bitmap); // TODO change color for high contrast themes
