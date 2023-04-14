@@ -360,6 +360,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 RedrawWindow(proxyToolbar, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
             return res;
         }
+        case WM_NCPAINT: {
+            LRESULT res = DefWindowProc(hwnd, message, wParam, lParam);
+            if (!compositionEnabled && proxyToolbar)
+                RedrawWindow(proxyToolbar, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
+            return res;
+        }
         case WM_MOUSEACTIVATE: {
             POINT cursor;
             GetCursorPos(&cursor);
