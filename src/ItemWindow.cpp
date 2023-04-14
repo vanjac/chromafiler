@@ -304,7 +304,7 @@ RECT ItemWindow::windowBody() {
     RECT rect = clientRect(hwnd);
     if (useCustomFrame())
         rect.top += CAPTION_HEIGHT;
-    if (statusText || toolbar)
+    if (statusText || cmdToolbar)
         rect.top += TOOLBAR_HEIGHT;
     return rect;
 }
@@ -648,26 +648,26 @@ void ItemWindow::onCreate() {
     }
 
     if (useCustomFrame() && settings::getToolbarEnabled()) {
-        toolbar = checkLE(CreateWindowEx(
+        cmdToolbar = checkLE(CreateWindowEx(
             TBSTYLE_EX_MIXEDBUTTONS, TOOLBARCLASSNAME, nullptr,
             TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER
                 | WS_VISIBLE | WS_CHILD,
             0, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, TOOLBAR_HEIGHT,
             hwnd, nullptr, instance, nullptr));
-        SendMessage(toolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
-        SendMessage(toolbar, TB_SETBUTTONWIDTH, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
-        SendMessage(toolbar, TB_SETBITMAPSIZE, 0, 0);
+        SendMessage(cmdToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
+        SendMessage(cmdToolbar, TB_SETBUTTONWIDTH, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
+        SendMessage(cmdToolbar, TB_SETBITMAPSIZE, 0, 0);
         if (symbolFont)
-            SendMessage(toolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
-        addToolbarButtons(toolbar);
-        SendMessage(toolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
+            SendMessage(cmdToolbar, WM_SETFONT, (WPARAM)symbolFont, FALSE);
+        addToolbarButtons(cmdToolbar);
+        SendMessage(cmdToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
         SIZE ideal;
-        SendMessage(toolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
-        SetWindowPos(toolbar, nullptr, 0, 0, ideal.cx, TOOLBAR_HEIGHT,
+        SendMessage(cmdToolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
+        SetWindowPos(cmdToolbar, nullptr, 0, 0, ideal.cx, TOOLBAR_HEIGHT,
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
 
-    if (centeredProxy() || statusText || toolbar) {
+    if (centeredProxy() || statusText || cmdToolbar) {
         CComPtr<IShellItem> parentItem;
         bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
         // put button in caption with centered proxy, otherwise in status area
@@ -711,8 +711,8 @@ TBBUTTON ItemWindow::makeToolbarButton(const wchar_t *text, WORD command, BYTE s
 }
 
 void ItemWindow::setToolbarButtonState(WORD command, BYTE state) {
-    if (toolbar)
-        SendMessage(toolbar, TB_SETSTATE, command, state);
+    if (cmdToolbar)
+        SendMessage(cmdToolbar, TB_SETSTATE, command, state);
 }
 
 void ItemWindow::addToolbarButtons(HWND tb) {
@@ -1024,9 +1024,9 @@ void ItemWindow::onSize(SIZE size) {
     }
 
     int toolbarLeft = size.cx;
-    if (toolbar) {
-        toolbarLeft = size.cx - clientSize(toolbar).cx;
-        SetWindowPos(toolbar, nullptr, toolbarLeft, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, 0,
+    if (cmdToolbar) {
+        toolbarLeft = size.cx - clientSize(cmdToolbar).cx;
+        SetWindowPos(cmdToolbar, nullptr, toolbarLeft, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, 0,
             SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
     if (statusText) {
@@ -1090,7 +1090,7 @@ LRESULT ItemWindow::hitTestNCA(POINT cursor) {
 
 void ItemWindow::onPaint(PAINTSTRUCT paint) {
     // on Windows 10+ we set the hbrBackground of the class so this isn't necessary
-    if ((statusText || toolbar) && !IsWindows10OrGreater()) {
+    if ((statusText || cmdToolbar) && !IsWindows10OrGreater()) {
         int top = useCustomFrame() ? CAPTION_HEIGHT : 0;
         RECT toolbarRect = {0, top, clientSize(hwnd).cx, top + TOOLBAR_HEIGHT};
         FillRect(paint.hdc, &toolbarRect, GetSysColorBrush(COLOR_3DFACE));
