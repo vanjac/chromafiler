@@ -107,6 +107,7 @@ private:
     bool activateOnShiftRelease = false;
     bool clickActivate = true;
     bool firstODDispInfo = false;
+    bool handlingSetColumnWidth = false;
 
     DWORD clickTime = 0;
     POINT clickPos;

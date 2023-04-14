@@ -256,7 +256,8 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
     } else if (message == WM_LBUTTONDBLCLK) {
         ((FolderWindow *)refData)->clickTime = 0;
     } else if (message == WM_SIZE) {
-        if (ListView_GetView(hwnd) == LV_VIEW_DETAILS) {
+        if (ListView_GetView(hwnd) == LV_VIEW_DETAILS
+                && !((FolderWindow *)refData)->handlingSetColumnWidth) {
             if (HWND header = ListView_GetHeader(hwnd)) {
                 if (Header_GetItemCount(header) == 1) {
                     // post instead of send to reduce scrollbar flicker
@@ -267,6 +268,11 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
     } else if (message == WM_CHAR && wParam == VK_ESCAPE) {
         ((FolderWindow *)refData)->clearSelection();
         // pass to superclass which will also cancel current cut operation
+    } else if (message == LVM_SETCOLUMNWIDTH) {
+        ((FolderWindow *)refData)->handlingSetColumnWidth = true;
+        LRESULT res = DefSubclassProc(hwnd, message, wParam, lParam);
+        ((FolderWindow *)refData)->handlingSetColumnWidth = false;
+        return res;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
