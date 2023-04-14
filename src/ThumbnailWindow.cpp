@@ -1,6 +1,7 @@
 #include "ThumbnailWindow.h"
 #include "GeomUtils.h"
 #include "GDIUtils.h"
+#include "WinUtils.h"
 #include <windowsx.h>
 
 namespace chromafiler {
@@ -72,24 +73,29 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
 
     if (!thumbnailBitmap)
         return;
-    RECT bodyRect = windowBody();
-    SIZE bodySize = rectSize(bodyRect);
+    RECT body = windowBody();
+    SIZE bodySize = rectSize(body);
 
+    HBRUSH bg = GetSysColorBrush(COLOR_WINDOW);
     BITMAP bitmap;
     GetObject(thumbnailBitmap, sizeof(bitmap), &bitmap);
     int xDest, yDest, wDest, hDest;
     float wScale = (float)bodySize.cx / bitmap.bmWidth;
     float hScale = (float)bodySize.cy / bitmap.bmHeight;
     if (wScale < hScale) {
-        xDest = bodyRect.left;
+        xDest = body.left;
         wDest = bodySize.cx;
-        yDest = bodyRect.top + (int)((bodySize.cy - wScale*bitmap.bmHeight) / 2);
+        yDest = body.top + (int)((bodySize.cy - wScale*bitmap.bmHeight) / 2);
         hDest = (int)(wScale*bitmap.bmHeight);
+        FillRect(paint.hdc, tempPtr(RECT{body.left, body.top, body.right, yDest}), bg);
+        FillRect(paint.hdc, tempPtr(RECT{body.left, yDest + hDest, body.right, body.bottom}), bg);
     } else {
-        xDest = bodyRect.left + (int)((bodySize.cx - hScale*bitmap.bmWidth) / 2);
+        xDest = body.left + (int)((bodySize.cx - hScale*bitmap.bmWidth) / 2);
         wDest = (int)(hScale*bitmap.bmWidth);
-        yDest = bodyRect.top;
+        yDest = body.top;
         hDest = bodySize.cy;
+        FillRect(paint.hdc, tempPtr(RECT{body.left, body.top, xDest, body.bottom}), bg);
+        FillRect(paint.hdc, tempPtr(RECT{xDest + wDest, body.top, body.right, body.bottom}), bg);
     }
 
     HDC hdcMem = CreateCompatibleDC(paint.hdc);
