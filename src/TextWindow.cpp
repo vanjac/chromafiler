@@ -448,6 +448,8 @@ void TextWindow::setWordWrap(bool wordWrap) {
     SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
 
     SetFocus(edit);
+    // weird redraw issue when desktop composition disabled
+    RedrawWindow(hwnd, nullptr, nullptr, RDW_FRAME | RDW_INVALIDATE);
 }
 
 void TextWindow::newLine() {
