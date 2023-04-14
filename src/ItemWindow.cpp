@@ -1636,7 +1636,8 @@ void ItemWindow::completeRename() {
     if (!checkHR(operation.CoCreateInstance(__uuidof(FileOperation))))
         return;
     // TODO: FOFX_ADDUNDORECORD requires Windows 8
-    checkHR(operation->SetOperationFlags(FOFX_ADDUNDORECORD));
+    checkHR(operation->SetOperationFlags(
+        IsWindows8OrGreater() ? FOFX_ADDUNDORECORD : FOF_ALLOWUNDO));
     if (!checkHR(operation->RenameItem(item, newName, nullptr)))
         return;
     checkHR(operation->PerformOperations());

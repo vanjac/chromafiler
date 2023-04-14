@@ -9,6 +9,7 @@
 #include <shlobj.h>
 #include <shellapi.h>
 #include <strsafe.h>
+#include <VersionHelpers.h>
 
 namespace chromafiler {
 
@@ -148,8 +149,8 @@ CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder) {
     NewItemSink eventSink;
     DWORD eventSinkCookie = 0;
     checkHR(operation->Advise(&eventSink, &eventSinkCookie));
-    // TODO: FOFX_ADDUNDORECORD requires Windows 8
-    checkHR(operation->SetOperationFlags(FOFX_ADDUNDORECORD | FOF_RENAMEONCOLLISION));
+    checkHR(operation->SetOperationFlags(
+        (IsWindows8OrGreater() ? FOFX_ADDUNDORECORD : FOF_ALLOWUNDO) | FOF_RENAMEONCOLLISION));
     CComHeapPtr<wchar_t> fileName;
     settings::getScratchFileName(fileName);
     checkHR(operation->NewItem(folder, FILE_ATTRIBUTE_NORMAL, fileName, nullptr, nullptr));
