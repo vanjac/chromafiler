@@ -10,6 +10,7 @@
 #include <shellapi.h>
 #include <propkey.h>
 #include <Propvarutil.h>
+#include <VersionHelpers.h>
 
 // Example of how to host an IExplorerBrowser:
 // https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/shell/appplatform/ExplorerBrowserCustomContents
@@ -609,6 +610,8 @@ void FolderWindow::openNewItemMenu(POINT point) {
 }
 
 HMENU findViewMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
+    if (!IsWindows8OrGreater())
+        return GetSubMenu(popupMenu, 0);
     for (int i = 0, count = GetMenuItemCount(popupMenu); i < count; i++) {
         MENUITEMINFO itemInfo = {sizeof(itemInfo)};
         itemInfo.fMask = MIIM_ID | MIIM_SUBMENU;
