@@ -105,7 +105,7 @@
 #define IDC_LEGAL_INFO              1005
 
 #define IDS_SETTINGS_CAPTION    200
-#define IDS_SETTINGS_COMMAND    201
+#define IDS_MENU_COMMAND        201
 #define IDS_REFRESH_COMMAND     202
 #define IDS_NEW_ITEM_COMMAND    203
 #define IDS_VIEW_COMMAND        204

@@ -733,8 +733,8 @@ int ItemWindow::getToolbarTooltip(WORD command) {
     switch (command) {
         case IDM_PREV_WINDOW:
             return IDS_OPEN_PARENT_COMMAND;
-        case IDM_SETTINGS:
-            return IDS_SETTINGS_COMMAND;
+        case IDM_CONTEXT_MENU:
+            return IDS_MENU_COMMAND;
     }
     return 0;
 }
