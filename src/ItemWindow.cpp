@@ -20,6 +20,7 @@ namespace chromafiler {
 
 const wchar_t CHAIN_OWNER_CLASS[] = L"ChromaFile Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
+const UINT SC_DRAGMOVE = SC_MOVE | 2; // https://stackoverflow.com/a/35880547/11525734
 
 // dimensions
 static int PARENT_BUTTON_WIDTH = 34; // caption only, matches close button width in windows 10
@@ -858,6 +859,12 @@ bool ItemWindow::onControlCommand(HWND controlHwnd, WORD notif) {
         if (IsWindowVisible(renameBox))
             completeRename();
         return true;
+    } else if (statusText && controlHwnd == statusText && notif == STN_CLICKED) {
+        POINT cursorPos = {};
+        GetCursorPos(&cursorPos);
+        if (DragDetect(hwnd, cursorPos))
+            SendMessage(hwnd, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
+        return true;
     }
     return false;
 }
@@ -930,7 +937,7 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
             } else {
                 SetActiveWindow(hwnd); // wasn't activated due to handling WM_MOUSEACTIVATE
                 // https://stackoverflow.com/a/35880547/11525734
-                SendMessage(hwnd, WM_SYSCOMMAND, SC_MOVE | 2, 0);
+                SendMessage(hwnd, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
                 return TRUE;
             }
         } else {
@@ -964,7 +971,7 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         NMMOUSE *mouse = (NMMOUSE *)nmHdr;
         POINT screenPos = clientToScreen(parentToolbar, mouse->pt);
         if (DragDetect(hwnd, screenPos)) {
-            SendMessage(hwnd, WM_SYSCOMMAND, SC_MOVE | 2, 0);
+            SendMessage(hwnd, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
         } else {
             onCommand((WORD)mouse->dwItemSpec); // button clicked normally
         }
