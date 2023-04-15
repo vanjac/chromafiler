@@ -673,7 +673,7 @@ void ItemWindow::onCreate() {
             SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
     }
 
-    if (centeredProxy() || statusText || cmdToolbar) {
+    if (useCustomFrame() && (centeredProxy() || statusText || cmdToolbar)) {
         CComPtr<IShellItem> parentItem;
         bool showParentButton = !parent && SUCCEEDED(item->GetParent(&parentItem));
         // put button in caption with centered proxy, otherwise in status area
