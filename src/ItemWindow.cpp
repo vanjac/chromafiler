@@ -1106,7 +1106,7 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
     if ((statusText || cmdToolbar) && !IsWindows10OrGreater()) {
         int top = useCustomFrame() ? CAPTION_HEIGHT : 0;
         RECT toolbarRect = {0, top, clientSize(hwnd).cx, top + TOOLBAR_HEIGHT};
-        FillRect(paint.hdc, &toolbarRect, GetSysColorBrush(COLOR_3DFACE));
+        FillRect(paint.hdc, &toolbarRect, (HBRUSH)(COLOR_3DFACE + 1));
     }
     if (useCustomFrame() && compositionEnabled) {
         // clear alpha channel

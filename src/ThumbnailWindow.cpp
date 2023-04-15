@@ -76,7 +76,7 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
     RECT body = windowBody();
     SIZE bodySize = rectSize(body);
 
-    HBRUSH bg = GetSysColorBrush(COLOR_WINDOW);
+    HBRUSH bg = (HBRUSH)(COLOR_WINDOW + 1);
     BITMAP bitmap;
     GetObject(thumbnailBitmap, sizeof(bitmap), &bitmap);
     int xDest, yDest, wDest, hDest;
