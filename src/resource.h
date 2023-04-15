@@ -133,3 +133,4 @@
 #define IDS_UPDATE_ERROR        226
 #define IDS_WELCOME_UPDATE      227
 #define IDS_OPEN_PARENT_COMMAND 228
+#define IDS_SAVE_ERROR          229

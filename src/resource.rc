@@ -206,6 +206,7 @@ STRINGTABLE {
     IDS_SAVE_BUTTON,        "&Save"
     IDS_DONT_SAVE_BUTTON,   "Do&n't Save"
     IDS_DELETE_BUTTON,      "&Delete"
+    IDS_SAVE_ERROR,         "Couldn't save"
 
     IDS_SUCCESS_CAPTION     "Success"
     IDS_CONFIRM_CAPTION     "Are you sure?"

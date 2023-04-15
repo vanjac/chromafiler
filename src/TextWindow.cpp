@@ -378,9 +378,17 @@ void TextWindow::updateStatus() {
 }
 
 void TextWindow::userSave() {
-    if (saveText()) {
+    HRESULT hr;
+    if (checkHR(hr = saveText())) {
         Edit_SetModify(edit, FALSE);
         setToolbarButtonState(IDM_SAVE, 0);
+    } else {
+        LocalHeapPtr<wchar_t> message;
+        formatErrorMessage(message, hr);
+        enableChain(false);
+        checkHR(TaskDialog(hwnd, GetModuleHandle(nullptr), title,
+            MAKEINTRESOURCE(IDS_SAVE_ERROR), message, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr));
+        enableChain(true);
     }
     isUnsavedScratchFile = false;
 }
@@ -673,8 +681,9 @@ HRESULT TextWindow::loadText() {
     return S_OK;
 }
 
-bool TextWindow::saveText() {
+HRESULT TextWindow::saveText() {
     debugPrintf(L"Saving!\n");
+    HRESULT hr;
     CComPtr<IBindCtx> context;
     if (checkHR(CreateBindCtx(0, &context))) {
         BIND_OPTS options = {sizeof(BIND_OPTS), 0,
@@ -682,10 +691,9 @@ bool TextWindow::saveText() {
         checkHR(context->SetBindOptions(&options));
     }
     CComPtr<IStream> stream;
-    if (!checkHR(item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream))))
-        return false;
+    if (!checkHR(hr = item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream))))
+        return hr;
 
-    HRESULT hr = S_OK;
     switch (encoding) {
         case UTF8BOM:
             hr = IStream_Write(stream, BOM_UTF8BOM, sizeof(BOM_UTF8BOM));
@@ -696,9 +704,11 @@ bool TextWindow::saveText() {
         case UTF16BE:
             hr = IStream_Write(stream, BOM_UTF16BE, sizeof(BOM_UTF16BE));
             break;
+        default:
+            hr = S_OK;
     }
     if (!checkHR(hr))
-        return false;
+        return hr;
 
     WPARAM format = SF_TEXT;
     if (encoding == UTF8 || encoding == UTF8BOM) {
@@ -710,7 +720,7 @@ bool TextWindow::saveText() {
     EDITSTREAM editStream = {(DWORD_PTR)&info, 0, streamOutCallback};
     SendMessage(edit, EM_STREAMOUT, format, (LPARAM)&editStream);
 
-    return editStream.dwError == 0;
+    return editStream.dwError;
 }
 
 DWORD CALLBACK TextWindow::streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
@@ -721,7 +731,10 @@ DWORD CALLBACK TextWindow::streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
         for (int i = 0; i < numBytes; i += 2)
             *(wchar_t *)(buffer + i) = _byteswap_ushort(*(wchar_t *)(buffer + i));
     }
-    return !checkHR(info->stream->Write(buffer, numBytes, (ULONG *)bytesWritten));
+    HRESULT hr;
+    if (!checkHR(hr = info->stream->Write(buffer, numBytes, (ULONG *)bytesWritten)))
+        return hr;
+    return S_OK;
 }
 
 int scrollAccumLines(int *scrollAccum) {

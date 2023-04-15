@@ -62,7 +62,7 @@ private:
     int replaceAll(FINDREPLACE *input);
 
     HRESULT loadText();
-    bool saveText();
+    HRESULT saveText();
     static DWORD CALLBACK streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
         LONG numBytes, LONG *bytesWritten);
 
