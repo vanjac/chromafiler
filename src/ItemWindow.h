@@ -172,6 +172,7 @@ private:
     SIZE lastSize;
     bool isChainPreview = false;
     bool firstActivate = false, closing = false;
+    bool draggingObject;
 
     class StatusTextThread : public StoppableThread {
     public:

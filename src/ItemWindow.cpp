@@ -951,7 +951,7 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         return TRUE;
     } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == TBN_GETOBJECT) {
         NMOBJECTNOTIFY *objNotif = (NMOBJECTNOTIFY *)nmHdr;
-        if (itemDropTarget) {
+        if (itemDropTarget || draggingObject) {
             objNotif->pObject = (IDropTarget *)this;
             objNotif->hResult = S_OK;
             AddRef();
@@ -1582,6 +1582,7 @@ void ItemWindow::proxyDrag(POINT offset) {
 
     DWORD okEffects = DROPEFFECT_COPY | DROPEFFECT_LINK | DROPEFFECT_MOVE;
     DWORD effect;
+    draggingObject = true;
     // effect is supposed to be set to DROPEFFECT_MOVE if the target was unable to delete the
     // original, however the only time I could trigger this was moving a file into a ZIP folder,
     // which does successfully delete the original, only with a delay. So handling this as intended
@@ -1590,6 +1591,7 @@ void ItemWindow::proxyDrag(POINT offset) {
         // TODO: remove this once there's an automatic system for tracking files
         resolveItem();
     }
+    draggingObject = false;
 }
 
 void ItemWindow::beginRename() {
@@ -1694,10 +1696,25 @@ STDMETHODIMP ItemWindow::GiveFeedback(DWORD) {
 
 /* IDropTarget */
 
+DWORD getDropEffect(DWORD keyState) {
+    bool ctrl = (keyState & MK_CONTROL), shift = (keyState & MK_SHIFT), alt = (keyState & MK_ALT);
+    if ((ctrl && shift && !alt) || (!ctrl && !shift && alt))
+        return DROPEFFECT_LINK;
+    else if (ctrl && !shift && !alt)
+        return DROPEFFECT_COPY;
+    else
+        return DROPEFFECT_MOVE;
+}
+
 STDMETHODIMP ItemWindow::DragEnter(IDataObject *dataObject, DWORD keyState, POINTL pt,
         DWORD *effect) {
-    if (!itemDropTarget || !checkHR(itemDropTarget->DragEnter(dataObject, keyState, pt, effect)))
-        return E_FAIL;
+    if (draggingObject) {
+        *effect = getDropEffect(keyState); // pretend we can drop so the drag image is visible
+    } else {
+        if (!itemDropTarget
+                || !checkHR(itemDropTarget->DragEnter(dataObject, keyState, pt, effect)))
+            return E_FAIL;
+    }
     POINT point {pt.x, pt.y};
     if (dropTargetHelper)
         checkHR(dropTargetHelper->DragEnter(hwnd, dataObject, &point, *effect));
@@ -1705,16 +1722,22 @@ STDMETHODIMP ItemWindow::DragEnter(IDataObject *dataObject, DWORD keyState, POIN
 }
 
 STDMETHODIMP ItemWindow::DragLeave() {
-    if (!itemDropTarget || !checkHR(itemDropTarget->DragLeave()))
-        return E_FAIL;
+    if (!draggingObject) {
+        if (!itemDropTarget || !checkHR(itemDropTarget->DragLeave()))
+            return E_FAIL;
+    }
     if (dropTargetHelper)
         checkHR(dropTargetHelper->DragLeave());
     return S_OK;
 }
 
 STDMETHODIMP ItemWindow::DragOver(DWORD keyState, POINTL pt, DWORD *effect) {
-    if (!itemDropTarget || !checkHR(itemDropTarget->DragOver(keyState, pt, effect)))
-        return E_FAIL;
+    if (draggingObject) {
+        *effect = getDropEffect(keyState);
+    } else {
+        if (!itemDropTarget || !checkHR(itemDropTarget->DragOver(keyState, pt, effect)))
+            return E_FAIL;
+    }
     POINT point {pt.x, pt.y};
     if (dropTargetHelper)
         checkHR(dropTargetHelper->DragOver(&point, *effect));
@@ -1722,9 +1745,13 @@ STDMETHODIMP ItemWindow::DragOver(DWORD keyState, POINTL pt, DWORD *effect) {
 }
 
 STDMETHODIMP ItemWindow::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) {
+    if (draggingObject) {
+        *effect = DROPEFFECT_NONE; // can't drop item onto itself
+    } else {
+        if (!itemDropTarget || !checkHR(itemDropTarget->Drop(dataObject, keyState, pt, effect)))
+            return E_FAIL;
+    }
     POINT point {pt.x, pt.y};
-    if (!itemDropTarget || !checkHR(itemDropTarget->Drop(dataObject, keyState, pt, effect)))
-        return E_FAIL;
     if (dropTargetHelper)
         checkHR(dropTargetHelper->Drop(dataObject, &point, *effect));
     return S_OK;
