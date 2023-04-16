@@ -423,13 +423,14 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             // https://www.drdobbs.com/make-it-snappy/184416407
             RECT *desiredRect = (RECT *)lParam;
             RECT curRect = windowRect(hwnd);
+            POINT offset = moveAccum;
             moveAccum.x += desiredRect->left - curRect.left;
             moveAccum.y += desiredRect->top - curRect.top;
             if (parent) {
                 int moveAmount = max(abs(moveAccum.x), abs(moveAccum.y));
                 if (moveAmount > DETACH_DISTANCE) {
                     detachFromParent(GetKeyState(VK_SHIFT) < 0);
-                    OffsetRect(desiredRect, moveAccum.x, moveAccum.y);
+                    OffsetRect(desiredRect, offset.x, offset.y);
                 } else {
                     *desiredRect = curRect;
                 }
