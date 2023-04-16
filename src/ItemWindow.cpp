@@ -392,7 +392,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             break;
         case WM_NCHITTEST: {
             LRESULT defHitTest = DefWindowProc(hwnd, message, wParam, lParam);
-            if (defHitTest != HTCLIENT)
+            if (defHitTest != HTCLIENT && defHitTest != HTSYSMENU)
                 return defHitTest;
             return hitTestNCA(pointFromLParam(lParam));
         }
