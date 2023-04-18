@@ -547,7 +547,9 @@ void FolderWindow::trackContextMenu(POINT pos) {
     CComPtr<IContextMenu> contextMenu;
     if (SUCCEEDED(shellView->GetItemObject(SVGIO_SELECTION, IID_PPV_ARGS(&contextMenu)))) {
         contextFlags |= CMF_ITEMMENU;
-    } else if (!checkHR(shellView->GetItemObject(SVGIO_BACKGROUND, IID_PPV_ARGS(&contextMenu)))) {
+    } else if (checkHR(shellView->GetItemObject(SVGIO_BACKGROUND, IID_PPV_ARGS(&contextMenu)))) {
+        contextFlags |= CMF_NODEFAULT;
+    } else {
         return;
     }
     HMENU menu = CreatePopupMenu();
