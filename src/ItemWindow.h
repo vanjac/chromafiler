@@ -103,7 +103,7 @@ protected:
     virtual void refresh();
 
     void deleteProxy(bool resolve = true);
-    void invokeContextMenuCommand(CComPtr<IContextMenu> contextMenu, int cmd, POINT point);
+    CMINVOKECOMMANDINFOEX makeInvokeInfo(int cmd, POINT point);
 
     HWND hwnd;
     CComHeapPtr<wchar_t> title;

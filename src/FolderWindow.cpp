@@ -561,10 +561,23 @@ void FolderWindow::trackContextMenu(POINT pos) {
         contextMenu2 = nullptr;
         contextMenu3 = nullptr;
         if (cmd >= IDM_SHELL_FIRST && cmd <= IDM_SHELL_LAST) {
+            auto info = makeInvokeInfo(cmd - IDM_SHELL_FIRST, pos);
+            CComHeapPtr<wchar_t> path;
+            checkHR(item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &path));
+            info.lpDirectoryW = path;
+            // convert to ANSI
+            CComHeapPtr<char> pathA;
+            int pathASize = WideCharToMultiByte(CP_ACP, 0, path, -1, nullptr, 0, nullptr, nullptr);
+            if (checkLE(pathASize)) {
+                pathA.Allocate(pathASize);
+                checkLE(WideCharToMultiByte(CP_ACP, 0, path, -1,
+                    pathA, pathASize, nullptr, nullptr));
+                info.lpDirectory = pathA;
+            }
             CComPtr<IFolderView2> folderView;
             if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
                 checkHR(IUnknown_SetSite(contextMenu, folderView));
-            invokeContextMenuCommand(contextMenu, cmd - IDM_SHELL_FIRST, pos);
+            contextMenu->InvokeCommand((CMINVOKECOMMANDINFO *)&info);
             checkHR(IUnknown_SetSite(contextMenu, nullptr));
         }
     }
@@ -647,10 +660,11 @@ void FolderWindow::openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMEN
     int cmd = TrackPopupMenuEx(subMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON,
         point.x, point.y, hwnd, nullptr);
     if (cmd >= IDM_SHELL_FIRST && cmd <= IDM_SHELL_LAST) {
+        auto info = makeInvokeInfo(cmd - IDM_SHELL_FIRST, point);
         CComPtr<IFolderView2> folderView;
         if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
             checkHR(IUnknown_SetSite(contextMenu, folderView));
-        invokeContextMenuCommand(contextMenu, cmd - IDM_SHELL_FIRST, point);
+        contextMenu->InvokeCommand((CMINVOKECOMMANDINFO *)&info);
         checkHR(IUnknown_SetSite(contextMenu, nullptr));
     }
 }

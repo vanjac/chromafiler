@@ -1533,11 +1533,13 @@ void ItemWindow::openProxyContextMenu() {
         if (hasVerb && lstrcmpi(verb, L"rename") == 0) {
             beginRename();
         } else {
-            invokeContextMenuCommand(contextMenu, cmd, point);
+            auto info = makeInvokeInfo(cmd, point);
+            contextMenu->InvokeCommand((CMINVOKECOMMANDINFO *)&info);
         }
 
         if (hasVerb && lstrcmpi(verb, L"delete") == 0) {
             // TODO: remove this once there's an automatic system for tracking files
+            // TODO: since invoke is async, may not be deleted yet?
             resolveItem();
         }
     }
@@ -1555,7 +1557,7 @@ void ItemWindow::openProxyContextMenuFeedback() {
         SendMessage(proxyToolbar, TB_SETSTATE, IDM_PROXY_BUTTON, state);
 }
 
-void ItemWindow::invokeContextMenuCommand(CComPtr<IContextMenu> contextMenu, int cmd, POINT point) {
+CMINVOKECOMMANDINFOEX ItemWindow::makeInvokeInfo(int cmd, POINT point) {
     CMINVOKECOMMANDINFOEX info = {sizeof(info)};
     // TODO must set a thread reference
     // see https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-icontextmenu-invokecommand
@@ -1570,7 +1572,7 @@ void ItemWindow::invokeContextMenuCommand(CComPtr<IContextMenu> contextMenu, int
     info.lpVerbW = MAKEINTRESOURCEW(cmd);
     info.nShow = SW_SHOWNORMAL;
     info.ptInvoke = point;
-    checkHR(contextMenu->InvokeCommand((CMINVOKECOMMANDINFO*)&info));
+    return info;
 }
 
 void ItemWindow::proxyDrag(POINT offset) {
