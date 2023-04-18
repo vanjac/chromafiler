@@ -137,7 +137,7 @@ Language=English
 MessageId=
 SymbolicName=STR_LEGAL_INFO
 Language=English
-Copyright (c) 2022 J. van't Hoog
+Copyright (c) 2023 J. van't Hoog
 
 ChromaFiler is available under the GNU General Public License v3.0.
 The source code and a copy of the license can be found at https://github.com/vanjac/chromafiler

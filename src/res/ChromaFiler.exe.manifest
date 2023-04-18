@@ -2,7 +2,7 @@
 <assembly xmlns='urn:schemas-microsoft-com:asm.v1' manifestVersion='1.0'
     xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
   <assemblyIdentity
-    version="0.5.1.0"
+    version="0.6.0.0"
     processorArchitecture="*"
     name="chroma.file"
     type="win32" />
