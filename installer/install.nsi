@@ -4,10 +4,14 @@ Unicode True
 SetCompressor LZMA
 !addplugindir plugins
 
+!define CHROMAFILER64 ; comment out for 32-bit
+
 !define MULTIUSER_EXECUTIONLEVEL Highest
 !define MULTIUSER_MUI
 !define MULTIUSER_INSTALLMODE_COMMANDLINE
-!define MULTIUSER_USE_PROGRAMFILES64
+!ifdef CHROMAFILER64
+	!define MULTIUSER_USE_PROGRAMFILES64
+!endif
 !define MULTIUSER_INSTALLMODE_DEFAULT_REGISTRY_KEY "Software\ChromaFiler"
 !define MULTIUSER_INSTALLMODE_DEFAULT_REGISTRY_VALUENAME "InstallMode"
 !define MULTIUSER_INSTALLMODE_INSTDIR "ChromaFiler"
@@ -17,6 +21,7 @@ SetCompressor LZMA
 !include MultiUser.nsh
 
 !include MUI2.nsh
+!include x64.nsh
 !include EnumUsersReg.nsh
 !include "nsis-shortcut-properties\shortcut-properties.nsh"
 
@@ -27,7 +32,11 @@ SetCompressor LZMA
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
 !getdllversion /productversion ..\build\ChromaFiler.exe PRODUCT_VERSION_
-BrandingText "$(^Name) v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3}"
+!ifdef CHROMAFILER64
+	BrandingText "$(^Name) v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3} (64-bit)"
+!else
+	BrandingText "$(^Name) v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3} (32-bit)"
+!endif
 
 !insertmacro MULTIUSER_PAGE_INSTALLMODE
 !insertmacro MUI_PAGE_COMPONENTS
@@ -51,15 +60,32 @@ LangString LOCKED_LIST_SUBTITLE ${LANG_ENGLISH} "Make sure all $(^Name) windows 
 
 
 Function .onInit
+!ifdef CHROMAFILER64
+	${IfNot} ${RunningX64}
+		MessageBox MB_ICONSTOP "This is the 64-bit version of ChromaFiler, but you're using 32-bit Windows. Please download the 32-bit installer."
+		Quit
+	${EndIf}
 	SetRegView 64
-	!insertmacro MULTIUSER_INIT
 	File /oname=$PLUGINSDIR\LockedList64.dll `plugins\LockedList64.dll`
+!else
+	${If} ${RunningX64}
+		MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 "This is the 32-bit version of ChromaFiler, but you're using 64-bit Windows. Installing the 64-bit version is recommended. Continue anyway?" IDYES continue32bit
+		Quit
+continue32bit:
+	${EndIf}
+	File /oname=$PLUGINSDIR\LockedList.dll `plugins\LockedList.dll`
+!endif
+	!insertmacro MULTIUSER_INIT
 FunctionEnd
 
 Function un.onInit
+!ifdef CHROMAFILER64
 	SetRegView 64
-	!insertmacro MULTIUSER_UNINIT
 	File /oname=$PLUGINSDIR\LockedList64.dll `plugins\LockedList64.dll`
+!else
+	File /oname=$PLUGINSDIR\LockedList.dll `plugins\LockedList.dll`
+!endif
+	!insertmacro MULTIUSER_UNINIT
 FunctionEnd
 
 Function LockedListShow
@@ -88,7 +114,6 @@ FunctionEnd
 Section "ChromaFiler" SecBase
 	SectionIn RO
 	SetOutPath $INSTDIR
-	SetRegView 64
 
 	${If} ${Silent}
 		LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
@@ -124,7 +149,6 @@ Section "Start Menu shortcut" SecStart
 SectionEnd
 
 Section "Add to Open With menu" SecProgID
-	SetRegView 64
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
 	; hack for ArsClip (TODO: add to all users?)
@@ -132,8 +156,6 @@ Section "Add to Open With menu" SecProgID
 SectionEnd
 
 Section "Add to folder context menu" SecContext
-	SetRegView 64
-
 	Var /GLOBAL default_browser
 	; clear shell defaults if empty / not defined
 	ReadRegStr $default_browser SHCTX "Software\Classes\Directory\Shell" ""
@@ -167,7 +189,6 @@ SectionEnd
 Section "un.Uninstall"
 	Delete $INSTDIR\*.exe
 	RMDir $INSTDIR
-	SetRegView 64
 	DeleteRegKey SHCTX "${REG_UNINST_KEY}"
 	DeleteRegKey SHCTX Software\ChromaFiler
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaFiler.exe"
