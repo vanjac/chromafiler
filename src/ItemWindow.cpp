@@ -403,6 +403,32 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             EndPaint(hwnd, &paint);
             return 0;
         }
+        case WM_THEMECHANGED:
+            // TODO: duplicate code, must be kept in sync with onCreate()
+            // reset fonts
+            if (proxyToolbar && captionFont)
+                PostMessage(proxyToolbar, WM_SETFONT, (WPARAM)captionFont, TRUE);
+            if (proxyTooltip && captionFont)
+                PostMessage(proxyTooltip, WM_SETFONT, (WPARAM)captionFont, TRUE);
+            if (renameBox && captionFont)
+                PostMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, TRUE);
+            if (statusText && statusFont)
+                PostMessage(statusText, WM_SETFONT, (WPARAM)statusFont, TRUE);
+            if (statusTooltip && statusFont)
+                PostMessage(statusTooltip, WM_SETFONT, (WPARAM)statusFont, TRUE);
+            if (cmdToolbar && symbolFont)
+                PostMessage(cmdToolbar, WM_SETFONT, (WPARAM)symbolFont, TRUE);
+            if (parentToolbar && symbolFont)
+                PostMessage(parentToolbar, WM_SETFONT, (WPARAM)symbolFont, TRUE);
+            // reset toolbar button sizes
+            if (cmdToolbar)
+                PostMessage(cmdToolbar, TB_SETBUTTONSIZE, 0,
+                    MAKELPARAM(TOOLBAR_HEIGHT, TOOLBAR_HEIGHT));
+            if (parentToolbar) {
+                SIZE size = rectSize(windowRect(parentToolbar));
+                PostMessage(parentToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(size.cx, size.cy));
+            }
+            break;
         case WM_CTLCOLORSTATIC: { // status text background color
             HDC hdc = (HDC)wParam;
             int colorI = IsWindows10OrGreater() ? COLOR_WINDOW : COLOR_3DFACE;
