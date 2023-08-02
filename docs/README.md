@@ -33,4 +33,4 @@ VS Code must be launched from the "x64 Native Tools Command Prompt" (or equivale
 
 For questions / feedback / bug reports please [email me](https://chroma.zone/contact)
 
-[Donate](https://ko-fi.com/chroma_zone) to support development
+If you enjoy ChromaFiler, please consider [donating](https://chroma.zone/donate) to support development.
