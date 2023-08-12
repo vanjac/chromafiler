@@ -309,11 +309,8 @@ DWORD WINAPI checkForUpdates(void *) {
     notify.hWnd = messageWindow;
     notify.dwInfoFlags = NIIF_RESPECT_QUIET_TIME;
     notify.uVersion = NOTIFYICON_VERSION_4;
-    wchar_t content[] =
-        L"A new version of ChromaFiler is available. Click the purple icon below to download.";
-    wchar_t title[] = L"ChromaFiler update";
-    CopyMemory(notify.szInfo, content, sizeof(content));
-    CopyMemory(notify.szInfoTitle, title, sizeof(title));
+    LoadString(instance, IDS_UPDATE_NOTIF_INFO, notify.szInfo, _countof(notify.szInfo));
+    LoadString(instance, IDS_UPDATE_NOTIF_TITLE, notify.szInfoTitle, _countof(notify.szInfoTitle));
     checkHR(LoadIconMetric(instance, MAKEINTRESOURCE(IDR_APP_ICON), LIM_SMALL, &notify.hIcon));
     if (!checkLE(Shell_NotifyIcon(NIM_ADD, &notify)))
         return 0;

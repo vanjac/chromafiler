@@ -197,6 +197,8 @@ STRINGTABLE {
     IDS_NO_UPDATE_CAPTION,  "No updates available"
     IDS_NO_UPDATE,          "You are using the latest version."
     IDS_UPDATE_ERROR,       "Error checking for updates"
+    IDS_UPDATE_NOTIF_TITLE  "ChromaFiler update"
+    IDS_UPDATE_NOTIF_INFO   "A new version of ChromaFiler is available. Click the purple icon below to download."
 
     IDS_OPEN_PARENT_COMMAND "Open Parent\n(Alt+Up)"
     IDS_MENU_COMMAND,       "Menu..."
