@@ -4,7 +4,6 @@
 #include "Settings.h"
 #include "DPI.h"
 #include "UIStrings.h"
-#include "resource.h"
 #include <cstdint>
 #include <windowsx.h>
 #include <shlobj.h>
@@ -197,10 +196,10 @@ bool TextWindow::handleTopLevelMessage(MSG *msg) {
     return ItemWindow::handleTopLevelMessage(msg);
 }
 
-void undoNameToString(UNDONAMEID id, LocalHeapPtr<wchar_t> &str) {
+const wchar_t * undoNameToString(UNDONAMEID id) {
     if (id > UID_AUTOTABLE)
         id = UID_UNKNOWN;
-    formatMessage(str, id + STR_TEXT_ACTION_UNKNOWN);
+    return getString(id + IDS_TEXT_UNDO_UNKNOWN);
 }
 
 LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -218,17 +217,17 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             if (!Edit_CanUndo(edit)) {
                 EnableMenuItem(menu, IDM_UNDO, MF_GRAYED);
             } else {
-                LocalHeapPtr<wchar_t> undoName, undoMessage;
-                undoNameToString((UNDONAMEID)SendMessage(edit, EM_GETUNDONAME, 0, 0), undoName);
-                formatMessage(undoMessage, STR_TEXT_UNDO, &*undoName);
+                UNDONAMEID undoId = (UNDONAMEID)SendMessage(edit, EM_GETUNDONAME, 0, 0);
+                LocalHeapPtr<wchar_t> undoMessage;
+                formatMessage(undoMessage, STR_TEXT_UNDO, undoNameToString(undoId));
                 ModifyMenu(menu, IDM_UNDO, MF_STRING, IDM_UNDO, undoMessage);
             }
             if (!SendMessage(edit, EM_CANREDO, 0, 0)) {
                 EnableMenuItem(menu, IDM_REDO, MF_GRAYED);
             } else {
-                LocalHeapPtr<wchar_t> redoName, redoMessage;
-                undoNameToString((UNDONAMEID)SendMessage(edit, EM_GETREDONAME, 0, 0), redoName);
-                formatMessage(redoMessage, STR_TEXT_REDO, &*redoName);
+                UNDONAMEID redoId = (UNDONAMEID)SendMessage(edit, EM_GETREDONAME, 0, 0);
+                LocalHeapPtr<wchar_t> redoMessage;
+                formatMessage(redoMessage, STR_TEXT_REDO, undoNameToString(redoId));
                 ModifyMenu(menu, IDM_REDO, MF_STRING, IDM_REDO, redoMessage);
             }
             if (SendMessage(edit, EM_SELECTIONTYPE, 0, 0) == SEL_EMPTY) {
@@ -570,11 +569,7 @@ void TextWindow::findNext(FINDREPLACE *input) {
             checkHR(range->StartOf(tomStory, tomMove, nullptr));
         checkHR(hr = range->FindText(CComBSTR(input->lpstrFindWhat), count, flags, nullptr));
         if (hr != S_OK) {
-            if (hasStatusText()) {
-                LocalHeapPtr<wchar_t> status;
-                formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
-                setStatusText(status);
-            }
+            setStatusText(getString(IDS_TEXT_CANT_FIND));
             MessageBeep(MB_OK);
             return;
         }
@@ -616,12 +611,13 @@ int TextWindow::replaceAll(FINDREPLACE *input) {
     checkHR(document->EndEditCollection());
 
     if (hasStatusText()) {
-        LocalHeapPtr<wchar_t> status;
-        if (numOccurrences == 0)
-            formatMessage(status, STR_TEXT_STATUS_CANT_FIND);
-        else
+        if (numOccurrences == 0) {
+            setStatusText(getString(IDS_TEXT_CANT_FIND));
+        } else {
+            LocalHeapPtr<wchar_t> status;
             formatMessage(status, STR_TEXT_STATUS_REPLACED, numOccurrences);
-        setStatusText(status);
+            setStatusText(status);
+        }
     }
     if (numOccurrences == 0)
         MessageBeep(MB_OK);

@@ -7,6 +7,7 @@
 			"args": [
 				"/D", "_UNICODE",
 				"/D", "UNICODE",
+				"/n",
 				"/fo",
 				"${workspaceFolder}\\build\\resource.res",
 				"${workspaceFolder}\\src\\resource.rc",

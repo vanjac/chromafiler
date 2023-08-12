@@ -7,7 +7,6 @@
 #include "main.h"
 #include "UIStrings.h"
 #include "DPI.h"
-#include "resource.h"
 #include <atlbase.h>
 #include <prsht.h>
 #include <shellapi.h>

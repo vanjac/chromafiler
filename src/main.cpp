@@ -10,7 +10,6 @@
 #include "Update.h"
 #include "DPI.h"
 #include "UIStrings.h"
-#include "resource.h"
 #include <shellapi.h>
 #include <shlobj.h>
 #include <propkey.h>
@@ -350,11 +349,9 @@ DWORD WINAPI updateJumpList(void *) {
             checkHR(scratchLink->SetArguments(L"/scratch"));
             checkHR(scratchLink->SetIconLocation(exePath, IDR_APP_ICON));
 
-            LocalHeapPtr<wchar_t> title;
-            formatMessage(title, STR_NEW_SCRATCH_TASK);
             CComQIPtr<IPropertyStore> trayLinkProps(scratchLink);
             PROPVARIANT propVar;
-            if (checkHR(InitPropVariantFromString(title, &propVar)))
+            if (checkHR(InitPropVariantFromString(getString(IDS_NEW_SCRATCH_TASK), &propVar)))
                 checkHR(trayLinkProps->SetValue(PKEY_Title, propVar));
 
             checkHR(tasks->AddObject(scratchLink));

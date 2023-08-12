@@ -7,7 +7,6 @@
 #include "Settings.h"
 #include "DPI.h"
 #include "UIStrings.h"
-#include "resource.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <dwmapi.h>
@@ -728,14 +727,14 @@ bool ItemWindow::hasStatusText() {
     return statusText != nullptr;
 }
 
-void ItemWindow::setStatusText(wchar_t *text) {
+void ItemWindow::setStatusText(const wchar_t *text) {
     if (statusText)
         SetWindowText(statusText, text);
     if (statusTooltip) {
         TOOLINFO toolInfo = {sizeof(toolInfo)};
         toolInfo.hwnd = hwnd;
         toolInfo.uId = (UINT_PTR)statusText;
-        toolInfo.lpszText = text;
+        toolInfo.lpszText = (wchar_t *)text;
         SendMessage(statusTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
     }
 }

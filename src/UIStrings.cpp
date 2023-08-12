@@ -3,6 +3,13 @@
 
 namespace chromafiler {
 
+const wchar_t * getString(UINT id) {
+    // must use /n flag with rc.exe!
+    wchar_t *str = NULL;
+    LoadString(GetModuleHandle(nullptr), id, (wchar_t *)&str, 0);
+    return str;
+}
+
 bool formatMessage(LocalHeapPtr<wchar_t> &message, DWORD messageId, ...) {
     // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessage#examples
     va_list args = nullptr;

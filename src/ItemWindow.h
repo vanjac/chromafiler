@@ -81,7 +81,7 @@ protected:
     virtual void onPaint(PAINTSTRUCT paint);
 
     bool hasStatusText();
-    void setStatusText(wchar_t *text);
+    void setStatusText(const wchar_t *text);
     static TBBUTTON makeToolbarButton(const wchar_t *text, WORD command, BYTE style,
         BYTE state = TBSTATE_ENABLED);
     void setToolbarButtonState(WORD command, BYTE state);

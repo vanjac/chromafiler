@@ -189,6 +189,10 @@ IDD_SETTINGS_ABOUT      DIALOGEX
 }
 
 STRINGTABLE {
+    IDS_ERROR_CAPTION,      "Error"
+
+    IDS_NEW_SCRATCH_TASK,   "New Scratch File"
+
     IDS_SETTINGS_CAPTION,   "ChromaFiler Settings"
     IDS_NO_UPDATE_CAPTION,  "No updates available"
     IDS_NO_UPDATE,          "You are using the latest version."
@@ -201,6 +205,16 @@ STRINGTABLE {
     IDS_VIEW_COMMAND,       "View..."
     IDS_SAVE_COMMAND,       "Save\n(Ctrl+S)"
     IDS_DELETE_COMMAND,     "Delete file\n(Ctrl+Shift+D)"
+
+    IDS_TEXT_CANT_FIND      "Cannot find text!"
+
+    IDS_TEXT_UNDO_UNKNOWN   ""
+    IDS_TEXT_UNDO_TYPING    "typing"
+    IDS_TEXT_UNDO_DELETE    "delete"
+    IDS_TEXT_UNDO_DRAGDROP  "drag-and-drop"
+    IDS_TEXT_UNDO_CUT       "cut"
+    IDS_TEXT_UNDO_PASTE     "paste"
+    IDS_TEXT_UNDO_AUTOTABLE "table"
 
     IDS_UNSAVED_CAPTION,    "Unsaved changes"
     IDS_SAVE_BUTTON,        "&Save"

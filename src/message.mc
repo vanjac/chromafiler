@@ -9,21 +9,9 @@ Unknown error
 .
 
 MessageId=
-SymbolicName=STR_ERROR_CAPTION
-Language=English
-Error
-.
-
-MessageId=
 SymbolicName=STR_CANT_FIND_ITEM
 Language=English
 Unable to find item at path: %1
-.
-
-MessageId=
-SymbolicName=STR_NEW_SCRATCH_TASK
-Language=English
-New Scratch File
 .
 
 MessageId=
@@ -63,12 +51,6 @@ Ln %1!d!, Col %2!d! (%3!d! selected)
 .
 
 MessageId=
-SymbolicName=STR_TEXT_STATUS_CANT_FIND
-Language=English
-Cannot find text!
-.
-
-MessageId=
 SymbolicName=STR_TEXT_STATUS_REPLACED
 Language=English
 Replaced %1!d! occurrences.
@@ -84,48 +66,6 @@ MessageId=
 SymbolicName=STR_TEXT_REDO
 Language=English
 &Redo %1
-.
-
-MessageId=
-SymbolicName=STR_TEXT_ACTION_UNKNOWN
-Language=English
-%b
-.
-
-MessageId=
-SymbolicName=STR_TEXT_ACTION_TYPING
-Language=English
-typing
-.
-
-MessageId=
-SymbolicName=STR_TEXT_ACTION_DELETE
-Language=English
-delete
-.
-
-MessageId=
-SymbolicName=STR_TEXT_ACTION_DRAGDROP
-Language=English
-drag-and-drop
-.
-
-MessageId=
-SymbolicName=STR_TEXT_ACTION_CUT
-Language=English
-cut
-.
-
-MessageId=
-SymbolicName=STR_TEXT_ACTION_PASTE
-Language=English
-paste
-.
-
-MessageId=
-SymbolicName=STR_TEXT_ACTION_AUTOTABLE
-Language=English
-table
 .
 
 MessageId=

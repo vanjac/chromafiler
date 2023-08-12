@@ -93,10 +93,10 @@ CComPtr<IShellItem> itemFromPath(wchar_t *path) {
         // parse name vs display name https://stackoverflow.com/q/42966489
         if (checkHR(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&item))))
             return item;
-        LocalHeapPtr<wchar_t> caption, message;
-        formatMessage(caption, STR_ERROR_CAPTION);
+        LocalHeapPtr<wchar_t> message;
         formatMessage(message, STR_CANT_FIND_ITEM, path);
-        int result = MessageBox(nullptr, message, caption, MB_CANCELTRYCONTINUE | MB_ICONERROR);
+        int result = MessageBox(nullptr, message, getString(IDS_ERROR_CAPTION),
+            MB_CANCELTRYCONTINUE | MB_ICONERROR);
         if (result == IDCANCEL) {
             return nullptr;
         } else if (result == IDCONTINUE) {
