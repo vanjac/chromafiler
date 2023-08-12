@@ -206,7 +206,8 @@ DWORD WINAPI checkLastVersion(void *) {
 void showWelcomeDialog() {
     TASKDIALOGCONFIG config = {sizeof(config)};
     config.hInstance = GetModuleHandle(nullptr);
-    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS
+        | TDF_VERIFICATION_FLAG_CHECKED;
     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
     config.pszWindowTitle = MAKEINTRESOURCE(IDS_WELCOME_CAPTION);
     config.pszMainIcon = MAKEINTRESOURCE(IDR_APP_ICON);
