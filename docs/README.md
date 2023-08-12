@@ -27,9 +27,10 @@ VS Code must be launched from the "x64 Native Tools Command Prompt" (or equivale
 ## Suggested pairings
 
 - [Everything](https://www.voidtools.com/) by voidtools (recommend installing with folder context menus)
-- [Microsoft PowerToys](https://github.com/microsoft/PowerToys) (see notes on [preview handlers](https://github.com/vanjac/chromafiler/wiki/Installation#preview-handlers))
-- [ExplorerPatcher](https://github.com/valinet/ExplorerPatcher)
+- [Microsoft PowerToys](https://github.com/microsoft/PowerToys) (see notes on [preview handlers](https://github.com/vanjac/chromafiler/wiki/Preview-Handlers))
 
 ## Contact me:
 
 For questions / feedback / bug reports please [email me](https://chroma.zone/contact)
+
+If you enjoy ChromaFiler, please consider [donating](https://chroma.zone/donate) to support development.
