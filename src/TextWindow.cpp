@@ -102,7 +102,7 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
     SendMessage(control, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
     SendMessage(control, EM_SETEVENTMASK, 0, ENM_SELCHANGE | ENM_CHANGE);
     SendMessage(control, EM_EXLIMITTEXT, 0, MAX_FILE_SIZE);
-    // TODO: SES_XLTCRCRLFTOCR?
+    SendMessage(control, EM_SETEDITSTYLE, SES_XLTCRCRLFTOCR, SES_XLTCRCRLFTOCR);
     return control;
 }
 
