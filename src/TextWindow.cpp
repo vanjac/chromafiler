@@ -651,23 +651,30 @@ HRESULT TextWindow::loadText() {
     }
 
     // https://docs.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks
-    if (CHECK_BOM(buffer, size, BOM_UTF16LE)) {
-        encoding = UTF16LE;
-        SendMessage(edit, WM_SETTEXT, 0, (LPARAM)(buffer + sizeof(BOM_UTF16LE)));
-    } else if (CHECK_BOM(buffer, size, BOM_UTF16BE)) {
-        encoding = UTF16BE;
-        wchar_t *wcBuffer = (wchar_t *)(void *)buffer; // includes BOM
-        ULONG wcSize = size / sizeof(wchar_t);
-        for (ULONG i = 1; i < wcSize; i++)
-            wcBuffer[i] = _byteswap_ushort(wcBuffer[i]);
-        SendMessage(edit, WM_SETTEXT, 0, (LPARAM)(wcBuffer + 1));
+    bool utf16be = CHECK_BOM(buffer, size, BOM_UTF16BE);
+    bool utf16le = !utf16be && CHECK_BOM(buffer, size, BOM_UTF16LE);
+    if (utf16le || utf16be) {
+        encoding = utf16be ? UTF16BE : UTF16LE;
+        wchar_t *wcString = ((wchar_t *)(void *)buffer) + 1; // skip BOM
+        wchar_t *wcEnd = (wchar_t *)(void *)(buffer + size);
+        for (wchar_t *c = wcString; c < wcEnd; c++) {
+            if (*c == 0)
+                *c = L' ';
+            else if (utf16be)
+                *c = _byteswap_ushort(*c);
+        }
+        SendMessage(edit, WM_SETTEXT, 0, (LPARAM)wcString);
     } else { // assume UTF-8
-        uint8_t *utf8String = buffer;
+        uint8_t *utf8String = buffer, *utf8End = buffer + size;
         if (CHECK_BOM(buffer, size, BOM_UTF8BOM)) {
             encoding = UTF8BOM;
             utf8String += sizeof(BOM_UTF8BOM);
         } else {
             encoding = UTF8;
+        }
+        for (uint8_t *c = utf8String; c < utf8End; c++) {
+            if (*c == 0)
+                *c = ' ';
         }
         SETTEXTEX setText = {};
         setText.codepage = CP_UTF8;
