@@ -219,7 +219,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             } else {
                 UNDONAMEID undoId = (UNDONAMEID)SendMessage(edit, EM_GETUNDONAME, 0, 0);
                 LocalHeapPtr<wchar_t> undoMessage;
-                formatMessage(undoMessage, STR_TEXT_UNDO, undoNameToString(undoId));
+                formatString(undoMessage, IDS_TEXT_UNDO, undoNameToString(undoId));
                 ModifyMenu(menu, IDM_UNDO, MF_STRING, IDM_UNDO, undoMessage);
             }
             if (!SendMessage(edit, EM_CANREDO, 0, 0)) {
@@ -227,7 +227,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             } else {
                 UNDONAMEID redoId = (UNDONAMEID)SendMessage(edit, EM_GETREDONAME, 0, 0);
                 LocalHeapPtr<wchar_t> redoMessage;
-                formatMessage(redoMessage, STR_TEXT_REDO, undoNameToString(redoId));
+                formatString(redoMessage, IDS_TEXT_REDO, undoNameToString(redoId));
                 ModifyMenu(menu, IDM_REDO, MF_STRING, IDM_REDO, redoMessage);
             }
             if (SendMessage(edit, EM_SELECTIONTYPE, 0, 0) == SEL_EMPTY) {
@@ -369,9 +369,9 @@ void TextWindow::updateStatus() {
     checkHR(range->StartOf(tomParagraph, tomMove, &toStart));
     LocalHeapPtr<wchar_t> status;
     if (start == end) {
-        formatMessage(status, STR_TEXT_STATUS, line, 1 - toStart);
+        formatString(status, IDS_TEXT_STATUS, line, 1 - toStart);
     } else {
-        formatMessage(status, STR_TEXT_STATUS_SEL, line, 1 - toStart, end - start);
+        formatString(status, IDS_TEXT_STATUS_SEL, line, 1 - toStart, end - start);
     }
     setStatusText(status);
 }
@@ -397,7 +397,7 @@ bool TextWindow::confirmSave(bool willDelete) {
     enableChain(false);
 
     LocalHeapPtr<wchar_t> text;
-    formatMessage(text, willDelete ? STR_DELETE_PROMPT : STR_SAVE_PROMPT, &*title);
+    formatString(text, willDelete ? IDS_DELETE_PROMPT : IDS_SAVE_PROMPT, &*title);
     TASKDIALOGCONFIG config = {sizeof(config)};
     config.hInstance = GetModuleHandle(nullptr);
     config.hwndParent = hwnd;
@@ -615,7 +615,7 @@ int TextWindow::replaceAll(FINDREPLACE *input) {
             setStatusText(getString(IDS_TEXT_CANT_FIND));
         } else {
             LocalHeapPtr<wchar_t> status;
-            formatMessage(status, STR_TEXT_STATUS_REPLACED, numOccurrences);
+            formatString(status, IDS_TEXT_STATUS_REPLACE, numOccurrences);
             setStatusText(status);
         }
     }

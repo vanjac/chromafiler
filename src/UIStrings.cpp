@@ -10,12 +10,12 @@ const wchar_t * getString(UINT id) {
     return str;
 }
 
-bool formatMessage(LocalHeapPtr<wchar_t> &message, DWORD messageId, ...) {
+bool formatString(LocalHeapPtr<wchar_t> &message, UINT id, ...) {
     // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessage#examples
     va_list args = nullptr;
-    va_start(args, messageId);
-    DWORD result = FormatMessage(FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_ALLOCATE_BUFFER,
-        nullptr, messageId, 0, (wchar_t *)(wchar_t **)&message, 0, &args);
+    va_start(args, id);
+    DWORD result = FormatMessage(FORMAT_MESSAGE_FROM_STRING | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+        getString(id), 0, 0, (wchar_t *)(wchar_t **)&message, 0, &args);
     va_end(args);
     return !!checkLE(result);
 }
@@ -36,7 +36,7 @@ void formatErrorMessage(LocalHeapPtr<wchar_t> &message, DWORD error) {
                 message[len - 2] = 0;
         }
     } else {
-        formatMessage(message, STR_UNKNOWN_ERROR);
+        formatString(message, IDS_UNKNOWN_ERROR);
     }
 }
 

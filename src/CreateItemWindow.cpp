@@ -94,7 +94,7 @@ CComPtr<IShellItem> itemFromPath(wchar_t *path) {
         if (checkHR(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&item))))
             return item;
         LocalHeapPtr<wchar_t> message;
-        formatMessage(message, STR_CANT_FIND_ITEM, path);
+        formatString(message, IDS_CANT_FIND_ITEM, path);
         int result = MessageBox(nullptr, message, getString(IDS_ERROR_CAPTION),
             MB_CANCELTRYCONTINUE | MB_ICONERROR);
         if (result == IDCANCEL) {

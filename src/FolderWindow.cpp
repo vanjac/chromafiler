@@ -465,9 +465,9 @@ void FolderWindow::updateStatus() {
     checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected));
     LocalHeapPtr<wchar_t> status;
     if (numSelected == 0) {
-        formatMessage(status, STR_FOLDER_STATUS, numItems);
+        formatString(status, IDS_FOLDER_STATUS, numItems);
     } else {
-        formatMessage(status, STR_FOLDER_STATUS_SEL, numItems, numSelected);
+        formatString(status, IDS_FOLDER_STATUS_SEL, numItems, numSelected);
     }
     setStatusText(status);
 }

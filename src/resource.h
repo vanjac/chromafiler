@@ -139,6 +139,19 @@
 #define IDS_TEXT_CANT_FIND      232
 #define IDS_UPDATE_NOTIF_TITLE  233
 #define IDS_UPDATE_NOTIF_INFO   234
+#define IDS_CANT_FIND_ITEM      235
+#define IDS_FOLDER_STATUS       236
+#define IDS_FOLDER_STATUS_SEL   237
+#define IDS_SAVE_PROMPT         238
+#define IDS_DELETE_PROMPT       239
+#define IDS_TEXT_STATUS         240
+#define IDS_TEXT_STATUS_SEL     241
+#define IDS_TEXT_STATUS_REPLACE 242
+#define IDS_TEXT_UNDO           243
+#define IDS_TEXT_REDO           244
+#define IDS_FONT_NAME           245
+#define IDS_UNKNOWN_ERROR       246
+#define IDS_LEGAL_INFO          247
 
 // corresponds to UNDONAMEID
 #define IDS_TEXT_UNDO_UNKNOWN   300

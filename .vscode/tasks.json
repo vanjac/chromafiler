@@ -17,35 +17,9 @@
 			},
 		},
 		{
-			"label": "Compile message script",
-			"command": "mc.exe",
-			"args": [
-				"-h", "${workspaceFolder}\\build",
-				"-r", "${workspaceFolder}\\build",
-				"-n",
-				"${workspaceFolder}\\src\\message.mc",
-			],
-			"group": {
-				"kind": "build",
-			},
-		},
-		{
-			"label": "Compile message resource",
-			"dependsOn": ["Compile message script"],
-			"command": "rc.exe",
-			"args": [
-				"/fo",
-				"${workspaceFolder}\\build\\message.res",
-				"${workspaceFolder}\\build\\message.rc",
-			],
-			"group": {
-				"kind": "build",
-			},
-		},
-		{
 			"type": "cppbuild",
 			"label": "Debug build",
-			"dependsOn": ["Build resources", "Compile message resource"],
+			"dependsOn": ["Build resources"],
 			"command": "cl.exe",
 			"args": [
 				"/Zi",      // debug only
@@ -58,10 +32,8 @@
 				"/W4",
 				"/Fe:", "${workspaceFolder}\\build\\ChromaFiler.exe",
 				"/I", "${workspaceFolder}\\src",
-				"/I", "${workspaceFolder}\\build",	// for message.h
 				"${workspaceFolder}\\src\\*.cpp",
 				"${workspaceFolder}\\build\\resource.res",
-				"${workspaceFolder}\\build\\message.res",
 				"/link",
 				"/incremental:no",
 				"/manifest:no",
@@ -81,7 +53,7 @@
 		{
 			"type": "cppbuild",
 			"label": "Release build",
-			"dependsOn": ["Build resources", "Compile message resource"],
+			"dependsOn": ["Build resources"],
 			"command": "cl.exe",
 			"args": [
 				"/GL",      // release only
@@ -92,10 +64,8 @@
 				"/W4",
 				"/Fe:", "${workspaceFolder}\\build\\ChromaFiler.exe",
 				"/I", "${workspaceFolder}\\src",
-				"/I", "${workspaceFolder}\\build",
 				"${workspaceFolder}\\src\\*.cpp",
 				"${workspaceFolder}\\build\\resource.res",
-				"${workspaceFolder}\\build\\message.res",
 				"/link",
 				"/incremental:no",
 				"/manifest:no",

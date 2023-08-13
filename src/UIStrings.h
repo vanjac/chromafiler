@@ -1,7 +1,6 @@
 #pragma once
 #include <common.h>
 
-#include "message.h" // for convenience
 #include "resource.h"
 #include <windows.h>
 #include <atlmem.h>
@@ -27,8 +26,8 @@ template<typename T>
 using LocalHeapPtr = CHeapPtr<T, LocalAllocator>;
 
 const wchar_t * getString(UINT id);
+bool formatString(LocalHeapPtr<wchar_t> &message, UINT id, ...);
 
-bool formatMessage(LocalHeapPtr<wchar_t> &message, DWORD messageId, ...);
 void formatErrorMessage(LocalHeapPtr<wchar_t> &message, DWORD error);
 
 void showDebugMessage(HWND owner, wchar_t *title, wchar_t *format, ...);

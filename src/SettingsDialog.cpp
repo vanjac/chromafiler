@@ -5,6 +5,7 @@
 #include "CreateItemWindow.h"
 #include "Update.h"
 #include "main.h"
+#include "WinUtils.h"
 #include "UIStrings.h"
 #include "DPI.h"
 #include <atlbase.h>
@@ -133,7 +134,7 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 
 void updateFontNameText(HWND hwnd, const LOGFONT &logFont) {
     LocalHeapPtr<wchar_t> fontName;
-    formatMessage(fontName, STR_FONT_NAME, logFont.lfFaceName, logFont.lfHeight);
+    formatString(fontName, IDS_FONT_NAME, logFont.lfFaceName, logFont.lfHeight);
     SetDlgItemText(hwnd, IDC_TEXT_FONT_NAME, fontName);
 }
 
@@ -379,11 +380,10 @@ INT_PTR CALLBACK browserProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_INITDIALOG: {
+            SendDlgItemMessage(hwnd, IDC_LEGAL_INFO, EM_SETTABSTOPS, 1, (LPARAM)tempPtr(16u));
             CheckDlgButton(hwnd, IDC_AUTO_UPDATE,
                 settings::getUpdateCheckEnabled() ? BST_CHECKED : BST_UNCHECKED);
-            LocalHeapPtr<wchar_t> legalInfo;
-            formatMessage(legalInfo, STR_LEGAL_INFO);
-            SetDlgItemText(hwnd, IDC_LEGAL_INFO, legalInfo);
+            SetDlgItemText(hwnd, IDC_LEGAL_INFO, getString(IDS_LEGAL_INFO));
             return TRUE;
         }
         case WM_NOTIFY: {
