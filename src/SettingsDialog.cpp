@@ -151,6 +151,20 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 settings::getTextWrap() ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hwnd, IDC_TEXT_AUTO_INDENT,
                 settings::getTextAutoIndent() ? BST_CHECKED : BST_UNCHECKED);
+            for (int i = 0; i < IDS_NEWLINES_COUNT; i++) {
+                SendDlgItemMessage(hwnd, IDC_TEXT_NEWLINES, CB_ADDSTRING, 0,
+                    (LPARAM)getString(IDS_NEWLINES_CRLF + i));
+            }
+            SendDlgItemMessage(hwnd, IDC_TEXT_NEWLINES, CB_SETCURSEL,
+                settings::getTextDefaultNewlines() - NL_CRLF, 0);
+            CheckDlgButton(hwnd, IDC_TEXT_AUTO_NEWLINES, settings::getTextAutoNewlines());
+            for (int i = 0; i < IDS_ENCODING_COUNT; i++) {
+                SendDlgItemMessage(hwnd, IDC_TEXT_ENCODING, CB_ADDSTRING, 0,
+                    (LPARAM)getString(IDS_ENCODING_UTF8 + i));
+            }
+            SendDlgItemMessage(hwnd, IDC_TEXT_ENCODING, CB_SETCURSEL,
+                settings::getTextDefaultEncoding() - ENC_UTF8, 0);
+            CheckDlgButton(hwnd, IDC_TEXT_AUTO_ENCODING, settings::getTextAutoEncoding());
             SendDlgItemMessage(hwnd, IDC_SCRATCH_FOLDER_PATH, CB_ADDSTRING, 0,
                 (LPARAM)settings::DEFAULT_SCRATCH_FOLDER);
             CComHeapPtr<wchar_t> scratchFolder, scratchFileName;
@@ -170,6 +184,12 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 settings::setTextFont(logFont);
                 settings::setTextWrap(!!IsDlgButtonChecked(hwnd, IDC_TEXT_WRAP));
                 settings::setTextAutoIndent(!!IsDlgButtonChecked(hwnd, IDC_TEXT_AUTO_INDENT));
+                settings::setTextDefaultNewlines((TextNewlines)(NL_CRLF +
+                    SendDlgItemMessage(hwnd, IDC_TEXT_NEWLINES, CB_GETCURSEL, 0, 0)));
+                settings::setTextAutoNewlines(!!IsDlgButtonChecked(hwnd, IDC_TEXT_AUTO_NEWLINES));
+                settings::setTextDefaultEncoding((TextEncoding)(ENC_UTF8 +
+                    SendDlgItemMessage(hwnd, IDC_TEXT_ENCODING, CB_GETCURSEL, 0, 0)));
+                settings::setTextAutoEncoding(!!IsDlgButtonChecked(hwnd, IDC_TEXT_AUTO_ENCODING));
                 wchar_t scratchFolder[MAX_PATH], scratchFileName[MAX_PATH];
                 if (GetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH,
                         scratchFolder, _countof(scratchFolder)))
@@ -214,6 +234,10 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             } else if (LOWORD(wParam) == IDC_TEXT_EDITOR_ENABLED && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TEXT_WRAP && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TEXT_AUTO_INDENT && HIWORD(wParam) == BN_CLICKED
+                    || LOWORD(wParam) == IDC_TEXT_AUTO_NEWLINES && HIWORD(wParam) == BN_CLICKED
+                    || LOWORD(wParam) == IDC_TEXT_AUTO_ENCODING && HIWORD(wParam) == BN_CLICKED
+                    || LOWORD(wParam) == IDC_TEXT_NEWLINES && HIWORD(wParam) == CBN_SELCHANGE
+                    || LOWORD(wParam) == IDC_TEXT_ENCODING && HIWORD(wParam) == CBN_SELCHANGE
                     || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && HIWORD(wParam) == CBN_EDITCHANGE
                     || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && HIWORD(wParam) == CBN_SELCHANGE
                     || LOWORD(wParam) == IDC_SCRATCH_FILE_NAME && HIWORD(wParam) == EN_CHANGE) {
