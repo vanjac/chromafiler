@@ -15,6 +15,8 @@ const wchar_t TEXT_WINDOW_CLASS[] = L"ChromaFile Text";
 
 const ULONG MAX_FILE_SIZE = 50'000'000;
 
+const UINT CP_UTF16LE = 1200;
+
 const uint8_t BOM_UTF8BOM[] = {0xEF, 0xBB, 0xBF};
 const uint8_t BOM_UTF16LE[] = {0xFF, 0xFE};
 const uint8_t BOM_UTF16BE[] = {0xFE, 0xFF};
@@ -433,13 +435,13 @@ void TextWindow::setWordWrap(bool wordWrap) {
     if (!isValid)
         return;
     // can't use WM_GETTEXTLENGTH because it counts CRLFs instead of LFs
-    GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200};
+    GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, CP_UTF16LE};
     LONG textLength = (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
     CComHeapPtr<wchar_t> buffer;
     buffer.Allocate(textLength + 1);
     GETTEXTEX getText = {};
     getText.cb = (textLength + 1) * sizeof(wchar_t);
-    getText.codepage = 1200;
+    getText.codepage = CP_UTF16LE;
     SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)&*buffer);
 
     // other state
@@ -451,7 +453,7 @@ void TextWindow::setWordWrap(bool wordWrap) {
     edit = createRichEdit(wordWrap);
     onSize(clientSize(hwnd));
 
-    SETTEXTEX setText = {ST_UNICODE, 1200};
+    SETTEXTEX setText = {ST_UNICODE, CP_UTF16LE};
     SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)&*buffer);
     Edit_SetModify(edit, modify);
     SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
@@ -667,35 +669,40 @@ HRESULT TextWindow::loadText() {
     }
 
     // https://docs.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks
-    bool utf16be = CHECK_BOM(buffer, size, BOM_UTF16BE);
-    bool utf16le = !utf16be && CHECK_BOM(buffer, size, BOM_UTF16LE);
-    if (utf16le || utf16be) {
-        detectEncoding = utf16be ? ENC_UTF16BE : ENC_UTF16LE;
+    if (CHECK_BOM(buffer, size, BOM_UTF16BE)) {
+        detectEncoding = ENC_UTF16BE;
+    } else if (CHECK_BOM(buffer, size, BOM_UTF16LE)) {
+        detectEncoding = ENC_UTF16LE;
+    } else if (CHECK_BOM(buffer, size, BOM_UTF8BOM)) {
+        detectEncoding = ENC_UTF8BOM;
+    } else if (size > 0) {
+        detectEncoding = ENC_UTF8; // could be ANSI!
+    } else {
+        detectEncoding = ENC_UNK;
+    }
+
+    uint8_t *textStart;
+    SETTEXTEX setText = {};
+    if (detectEncoding == ENC_UTF16BE || detectEncoding == ENC_UTF16LE) {
         wchar_t *wcString = ((wchar_t *)(void *)buffer) + 1; // skip BOM
         wchar_t *wcEnd = (wchar_t *)(void *)(buffer + size);
         for (wchar_t *c = wcString; c < wcEnd; c++) {
             if (*c == 0)
                 *c = L' ';
-            else if (utf16be)
+            else if (detectEncoding == ENC_UTF16BE)
                 *c = _byteswap_ushort(*c);
         }
         detectNewlines = detectNewlineType(wcString, wcEnd);
-        SendMessage(edit, WM_SETTEXT, 0, (LPARAM)wcString);
-    } else { // assume UTF-8
-        uint8_t *utf8String = buffer, *utf8End = buffer + size;
-        if (CHECK_BOM(buffer, size, BOM_UTF8BOM)) {
-            detectEncoding = ENC_UTF8BOM;
-            utf8String += sizeof(BOM_UTF8BOM);
-        } else if (size > 0) {
-            detectEncoding = ENC_UTF8;
-        } else {
-            detectEncoding = ENC_UNK;
-        }
+        textStart = (uint8_t *)wcString;
+        setText = {ST_UNICODE, CP_UTF16LE};
+    } else { // UTF-8 or ANSI
+        textStart = (detectEncoding == ENC_UTF8BOM) ? (buffer + sizeof(BOM_UTF8BOM)) : buffer;
         // replace null bytes with spaces and validate UTF-8 encoding
         // https://en.wikipedia.org/wiki/UTF-8#Encoding
         // TODO: check for overlong encodings and invalid code points
-        char continuation = 0;
-        for (uint8_t *c = utf8String; c < utf8End; c++) {
+        uint8_t *textEnd = buffer + size;
+        char continuation = 0; // num continuation bytes remaining in code point
+        for (uint8_t *c = textStart; c < textEnd; c++) {
             if (*c == 0)
                 *c = ' ';
             if (detectEncoding == ENC_UTF8) {
@@ -721,15 +728,15 @@ HRESULT TextWindow::loadText() {
                 }
             }
         }
-        if (continuation)
+        if (continuation) // incomplete code point
             detectEncoding = ENC_ANSI;
-        detectNewlines = detectNewlineType(utf8String, utf8End);
-        SETTEXTEX setText = {};
+
+        detectNewlines = detectNewlineType(textStart, textEnd);
         setText.codepage = (detectEncoding == ENC_ANSI) ? CP_ACP : CP_UTF8;
-        SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)utf8String);
     }
     debugPrintf(L"Detected encoding %d\n", detectEncoding);
     debugPrintf(L"Detected newlines %d\n", detectNewlines);
+    SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)textStart);
     return S_OK;
 }
 
@@ -748,7 +755,7 @@ HRESULT TextWindow::saveText() {
     getLength.flags = (isUtf16 ? GTL_NUMCHARS : GTL_NUMBYTES) | GTL_CLOSE;
     if (saveNewlines == NL_CRLF) getLength.flags |= GTL_USECRLF;
     if (isUtf16)
-        getLength.codepage = 1200; // 1201 (big-endian) doesn't work!
+        getLength.codepage = CP_UTF16LE; // 1201 (big-endian) doesn't work!
     else if (saveEncoding == ENC_ANSI)
         getLength.codepage = CP_ACP;
     else
