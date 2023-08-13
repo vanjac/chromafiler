@@ -164,9 +164,9 @@ POINT TrayWindow::childPos(SIZE size) {
     switch (settings::getTrayDirection()) {
         default: // TRAY_UP
             return {rect.left, rect.top - size.cy}; // ignore drop shadow, space is ok
-        case settings::TRAY_DOWN:
+        case TRAY_DOWN:
             return {rect.left, rect.bottom};
-        case settings::TRAY_RIGHT:
+        case TRAY_RIGHT:
             return FolderWindow::childPos(size);
     }
 }

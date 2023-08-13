@@ -250,13 +250,13 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             settings::getTrayFolder(trayFolder);
             SetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, trayFolder);
             switch (settings::getTrayDirection()) {
-                case settings::TRAY_UP:
+                case TRAY_UP:
                     CheckDlgButton(hwnd, IDC_TRAY_DIR_ABOVE, BST_CHECKED);
                     break;
-                case settings::TRAY_DOWN:
+                case TRAY_DOWN:
                     CheckDlgButton(hwnd, IDC_TRAY_DIR_BELOW, BST_CHECKED);
                     break;
-                case settings::TRAY_RIGHT:
+                case TRAY_RIGHT:
                     CheckDlgButton(hwnd, IDC_TRAY_DIR_RIGHT, BST_CHECKED);
                     break;
             }
@@ -274,11 +274,11 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, trayFolder, _countof(trayFolder)))
                     settings::setTrayFolder(trayFolder);
                 if (IsDlgButtonChecked(hwnd, IDC_TRAY_DIR_ABOVE))
-                    settings::setTrayDirection(settings::TRAY_UP);
+                    settings::setTrayDirection(TRAY_UP);
                 else if (IsDlgButtonChecked(hwnd, IDC_TRAY_DIR_BELOW))
-                    settings::setTrayDirection(settings::TRAY_DOWN);
+                    settings::setTrayDirection(TRAY_DOWN);
                 else if (IsDlgButtonChecked(hwnd, IDC_TRAY_DIR_RIGHT))
-                    settings::setTrayDirection(settings::TRAY_RIGHT);
+                    settings::setTrayDirection(TRAY_RIGHT);
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             } else if (notif->code == PSN_HELP) {

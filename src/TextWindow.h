@@ -2,6 +2,7 @@
 #include <common.h>
 
 #include "ItemWindow.h"
+#include "Settings.h"
 #include <Richedit.h>
 #include <commdlg.h>
 #include <TOM.h>
@@ -67,14 +68,11 @@ private:
     static LRESULT CALLBACK richEditProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
-    enum Encoding {
-        FAIL, UTF8, UTF8BOM, UTF16LE, UTF16BE
-    };
-
     HWND edit = nullptr;
     LOGFONT logFont; // NOT scaled for DPI
     HFONT font = nullptr; // scaled for DPI
-    Encoding encoding = FAIL;
+    TextEncoding detectEncoding = ENC_UNK;
+    bool isValid = false;
     bool isUnsavedScratchFile;
     int vScrollAccum = 0, hScrollAccum = 0; // for high resolution scrolling
 

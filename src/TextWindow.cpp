@@ -76,7 +76,8 @@ void TextWindow::onCreate() {
     edit = createRichEdit(settings::getTextWrap());
 
     HRESULT hr;
-    if (!checkHR(hr = loadText())) {
+    isValid = checkHR(hr = loadText());
+    if (!isValid) {
         SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
         if (hasStatusText()) {
             LocalHeapPtr<wchar_t> status;
@@ -126,7 +127,7 @@ void TextWindow::updateFont() {
 }
 
 bool TextWindow::onCloseRequest() {
-    if (encoding != FAIL && Edit_GetModify(edit)) {
+    if (isValid && Edit_GetModify(edit)) {
         SFGAOF attr;
         if (confirmSave(isUnsavedScratchFile
                 || FAILED(item->GetAttributes(SFGAO_VALIDATE, &attr)))) // doesn't exist
@@ -266,7 +267,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
 }
 
 bool TextWindow::onCommand(WORD command) {
-    if (encoding == FAIL)
+    if (!isValid)
         return ItemWindow::onCommand(command);
     switch (command) {
         case IDM_SAVE:
@@ -357,7 +358,7 @@ LRESULT TextWindow::onNotify(NMHDR *nmHdr) {
 }
 
 void TextWindow::updateStatus() {
-    if (encoding == FAIL)
+    if (!isValid)
         return;
     CComPtr<ITextDocument> doc = getTOMDocument();
     CComPtr<ITextSelection> sel;
@@ -429,7 +430,7 @@ bool TextWindow::isWordWrap() {
 }
 
 void TextWindow::setWordWrap(bool wordWrap) {
-    if (encoding == FAIL)
+    if (!isValid)
         return;
     // can't use WM_GETTEXTLENGTH because it counts CRLFs instead of LFs
     GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, 1200};
@@ -627,7 +628,6 @@ int TextWindow::replaceAll(FINDREPLACE *input) {
 
 HRESULT TextWindow::loadText() {
     HRESULT hr;
-    encoding = FAIL;
     CComHeapPtr<uint8_t> buffer; // null terminated!
     ULONG size;
     {
@@ -655,7 +655,7 @@ HRESULT TextWindow::loadText() {
     bool utf16be = CHECK_BOM(buffer, size, BOM_UTF16BE);
     bool utf16le = !utf16be && CHECK_BOM(buffer, size, BOM_UTF16LE);
     if (utf16le || utf16be) {
-        encoding = utf16be ? UTF16BE : UTF16LE;
+        detectEncoding = utf16be ? ENC_UTF16BE : ENC_UTF16LE;
         wchar_t *wcString = ((wchar_t *)(void *)buffer) + 1; // skip BOM
         wchar_t *wcEnd = (wchar_t *)(void *)(buffer + size);
         for (wchar_t *c = wcString; c < wcEnd; c++) {
@@ -668,10 +668,12 @@ HRESULT TextWindow::loadText() {
     } else { // assume UTF-8
         uint8_t *utf8String = buffer, *utf8End = buffer + size;
         if (CHECK_BOM(buffer, size, BOM_UTF8BOM)) {
-            encoding = UTF8BOM;
+            detectEncoding = ENC_UTF8BOM;
             utf8String += sizeof(BOM_UTF8BOM);
+        } else if (size > 0) {
+            detectEncoding = ENC_UTF8;
         } else {
-            encoding = UTF8;
+            detectEncoding = ENC_UNK;
         }
         for (uint8_t *c = utf8String; c < utf8End; c++) {
             if (*c == 0)
@@ -681,7 +683,7 @@ HRESULT TextWindow::loadText() {
         setText.codepage = CP_UTF8;
         SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)utf8String);
     }
-    debugPrintf(L"Encoding %d\n", encoding);
+    debugPrintf(L"Detected encoding %d\n", detectEncoding);
     return S_OK;
 }
 
@@ -698,14 +700,20 @@ HRESULT TextWindow::saveText() {
     if (!checkHR(hr = item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream))))
         return hr;
 
-    switch (encoding) {
-        case UTF8BOM:
+    TextEncoding saveEncoding = detectEncoding;
+    if (saveEncoding == ENC_UNK)
+        saveEncoding = settings::getTextDefaultEncoding();
+    bool isUtf16 = saveEncoding == ENC_UTF16LE || saveEncoding == ENC_UTF16BE;
+    TextNewlines saveNewlines = settings::getTextDefaultNewlines();
+
+    switch (saveEncoding) {
+        case ENC_UTF8BOM:
             hr = IStream_Write(stream, BOM_UTF8BOM, sizeof(BOM_UTF8BOM));
             break;
-        case UTF16LE:
+        case ENC_UTF16LE:
             hr = IStream_Write(stream, BOM_UTF16LE, sizeof(BOM_UTF16LE));
             break;
-        case UTF16BE:
+        case ENC_UTF16BE:
             hr = IStream_Write(stream, BOM_UTF16BE, sizeof(BOM_UTF16BE));
             break;
         default:
@@ -714,9 +722,9 @@ HRESULT TextWindow::saveText() {
     if (!checkHR(hr))
         return hr;
 
-    bool isUtf16 = encoding == UTF16LE || encoding == UTF16BE;
     GETTEXTLENGTHEX getLength = {};
-    getLength.flags = (isUtf16 ? GTL_NUMCHARS : GTL_NUMBYTES) | GTL_CLOSE | GTL_USECRLF;
+    getLength.flags = (isUtf16 ? GTL_NUMCHARS : GTL_NUMBYTES) | GTL_CLOSE;
+    if (saveNewlines == NL_CRLF) getLength.flags |= GTL_USECRLF;
     getLength.codepage = isUtf16 ? 1200 : CP_UTF8;
     // may be greater than actual size, because we're using GTL_CLOSE
     ULONG numChars = (ULONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
@@ -729,17 +737,33 @@ HRESULT TextWindow::saveText() {
 
     GETTEXTEX getText = {};
     getText.cb = bufSize;
-    getText.flags = GT_USECRLF;
+    getText.flags = (saveNewlines == NL_CRLF) ? GT_USECRLF : 0;
     getText.codepage = getLength.codepage;
     numChars = (ULONG)SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)&*buffer);
 
-    if (encoding == UTF16BE) {
-        for (wchar_t *c = (wchar_t *)&*buffer, *end = c + numChars; c < end; c++)
-            *c = _byteswap_ushort(*c);
+    if (saveEncoding == ENC_UTF16BE) {
+        for (wchar_t *c = (wchar_t *)&*buffer, *end = c + numChars; c < end; c++) {
+            if (saveNewlines == NL_LF && *c == L'\r')
+                *c = 0x0A00;
+            else
+                *c = _byteswap_ushort(*c);
+        }
+    } else if (saveEncoding == ENC_UTF16LE && saveNewlines == NL_LF) {
+        for (wchar_t *c = (wchar_t *)&*buffer, *end = c + numChars; c < end; c++) {
+            if (*c == L'\r') *c = L'\n';
+        }
+    } else if (saveNewlines == NL_LF) {
+        for (uint8_t *c = buffer; c < buffer + numChars; c++) {
+            if (*c == '\r') *c = '\n';
+        }
     }
 
     ULONG writeLen = isUtf16 ? (numChars * sizeof(wchar_t)) : numChars;
-    return IStream_Write(stream, buffer, writeLen);
+    if (!checkHR(hr = IStream_Write(stream, buffer, writeLen)))
+        return hr;
+
+    detectEncoding = saveEncoding;
+    return S_OK;
 }
 
 int scrollAccumLines(int *scrollAccum) {

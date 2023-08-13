@@ -5,9 +5,12 @@
 #include <atlbase.h>
 
 namespace chromafiler {
-namespace settings {
 
 enum TrayDirection : DWORD { TRAY_UP, TRAY_DOWN, TRAY_RIGHT };
+enum TextEncoding : DWORD { ENC_UNK, ENC_UTF8, ENC_UTF8BOM, ENC_UTF16LE, ENC_UTF16BE };
+enum TextNewlines : DWORD { NL_UNK, NL_CRLF, NL_LF, NL_CR };
+
+namespace settings {
 
 // http://smallvoid.com/article/winnt-shell-keyword.html
 const DWORD     DEFAULT_LAST_OPENED_VERSION = 0;
@@ -30,6 +33,8 @@ const LOGFONT   DEFAULT_TEXT_FONT           = {
     DEFAULT_PITCH | FF_DONTCARE, L"Consolas" };
 const bool      DEFAULT_TEXT_WRAP           = false;
 const bool      DEFAULT_TEXT_AUTO_INDENT    = true;
+const TextEncoding  DEFAULT_TEXT_ENCODING   = ENC_UTF8;
+const TextNewlines  DEFAULT_TEXT_NEWLINES   = NL_CRLF;
 const wchar_t   DEFAULT_TRAY_FOLDER[]       = L"shell:Links";
 const int       DEFAULT_TRAY_DPI            = 96;
 const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
@@ -76,6 +81,10 @@ bool getTextWrap();
 void setTextWrap(bool value);
 bool getTextAutoIndent();
 void setTextAutoIndent(bool value);
+TextEncoding getTextDefaultEncoding();
+void setTextDefaultEncoding(TextEncoding value);
+TextNewlines getTextDefaultNewlines();
+void setTextDefaultNewlines(TextNewlines value);
 
 bool getTrayOpenOnStartup();
 void setTrayOpenOnStartup(bool value);
