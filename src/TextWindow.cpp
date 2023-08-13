@@ -735,16 +735,6 @@ HRESULT TextWindow::loadText() {
 
 HRESULT TextWindow::saveText() {
     debugPrintf(L"Saving!\n");
-    HRESULT hr;
-    CComPtr<IBindCtx> context;
-    if (checkHR(CreateBindCtx(0, &context))) {
-        BIND_OPTS options = {sizeof(BIND_OPTS), 0,
-            STGM_WRITE | STGM_CREATE | STGM_SHARE_DENY_NONE, 0};
-        checkHR(context->SetBindOptions(&options));
-    }
-    CComPtr<IStream> stream;
-    if (!checkHR(hr = item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream))))
-        return hr;
 
     TextEncoding saveEncoding = detectEncoding;
     if (saveEncoding == ENC_UNK || !settings::getTextAutoEncoding())
@@ -754,27 +744,11 @@ HRESULT TextWindow::saveText() {
     if (saveNewlines == NL_UNK || !settings::getTextAutoNewlines())
         saveNewlines = settings::getTextDefaultNewlines();
 
-    switch (saveEncoding) {
-        case ENC_UTF8BOM:
-            hr = IStream_Write(stream, BOM_UTF8BOM, sizeof(BOM_UTF8BOM));
-            break;
-        case ENC_UTF16LE:
-            hr = IStream_Write(stream, BOM_UTF16LE, sizeof(BOM_UTF16LE));
-            break;
-        case ENC_UTF16BE:
-            hr = IStream_Write(stream, BOM_UTF16BE, sizeof(BOM_UTF16BE));
-            break;
-        default:
-            hr = S_OK;
-    }
-    if (!checkHR(hr))
-        return hr;
-
     GETTEXTLENGTHEX getLength = {};
     getLength.flags = (isUtf16 ? GTL_NUMCHARS : GTL_NUMBYTES) | GTL_CLOSE;
     if (saveNewlines == NL_CRLF) getLength.flags |= GTL_USECRLF;
     if (isUtf16)
-        getLength.codepage = 1200; // TODO 1201 for BE?
+        getLength.codepage = 1200; // 1201 (big-endian) doesn't work!
     else if (saveEncoding == ENC_ANSI)
         getLength.codepage = CP_ACP;
     else
@@ -793,6 +767,7 @@ HRESULT TextWindow::saveText() {
     getText.flags = (saveNewlines == NL_CRLF) ? GT_USECRLF : 0;
     getText.codepage = getLength.codepage;
     numChars = (ULONG)SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)&*buffer);
+    ULONG writeLen = isUtf16 ? (numChars * sizeof(wchar_t)) : numChars;
 
     if (saveEncoding == ENC_UTF16BE) {
         for (wchar_t *c = (wchar_t *)&*buffer, *end = c + numChars; c < end; c++) {
@@ -811,7 +786,26 @@ HRESULT TextWindow::saveText() {
         }
     }
 
-    ULONG writeLen = isUtf16 ? (numChars * sizeof(wchar_t)) : numChars;
+    HRESULT hr;
+    CComPtr<IBindCtx> context;
+    if (checkHR(CreateBindCtx(0, &context))) {
+        BIND_OPTS options = {sizeof(BIND_OPTS), 0,
+            STGM_WRITE | STGM_CREATE | STGM_SHARE_DENY_NONE, 0};
+        checkHR(context->SetBindOptions(&options));
+    }
+    CComPtr<IStream> stream;
+    if (!checkHR(hr = item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream))))
+        return hr;
+
+    switch (saveEncoding) {
+        case ENC_UTF8BOM:   hr = IStream_Write(stream, BOM_UTF8BOM, sizeof(BOM_UTF8BOM));   break;
+        case ENC_UTF16LE:   hr = IStream_Write(stream, BOM_UTF16LE, sizeof(BOM_UTF16LE));   break;
+        case ENC_UTF16BE:   hr = IStream_Write(stream, BOM_UTF16BE, sizeof(BOM_UTF16BE));   break;
+        default:            hr = S_OK;
+    }
+    if (!checkHR(hr))
+        return hr;
+
     if (!checkHR(hr = IStream_Write(stream, buffer, writeLen)))
         return hr;
 
