@@ -146,8 +146,10 @@ SETTINGS_BOOL_VALUE(TextWrap, L"TextWrap", DEFAULT_TEXT_WRAP)
 SETTINGS_BOOL_VALUE(TextAutoIndent, L"TextAutoIndent", DEFAULT_TEXT_AUTO_INDENT)
 SETTINGS_DWORD_VALUE(TextDefaultEncoding, TextEncoding,
     L"TextDefaultEncoding", DEFAULT_TEXT_ENCODING)
+SETTINGS_BOOL_VALUE(TextAutoEncoding, L"TextAutoEncoding", DEFAULT_TEXT_AUTO_ENCODING)
 SETTINGS_DWORD_VALUE(TextDefaultNewlines, TextNewlines,
     L"TextDefaultNewlines", DEFAULT_TEXT_NEWLINES)
+SETTINGS_BOOL_VALUE(TextAutoNewlines, L"TextAutoNewlines", DEFAULT_TEXT_AUTO_NEWLINES)
 
 bool getTrayOpenOnStartup() {
     return !RegGetValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP,

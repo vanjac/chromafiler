@@ -719,11 +719,11 @@ HRESULT TextWindow::saveText() {
         return hr;
 
     TextEncoding saveEncoding = detectEncoding;
-    if (saveEncoding == ENC_UNK)
+    if (saveEncoding == ENC_UNK || !settings::getTextAutoEncoding())
         saveEncoding = settings::getTextDefaultEncoding();
     bool isUtf16 = saveEncoding == ENC_UTF16LE || saveEncoding == ENC_UTF16BE;
     TextNewlines saveNewlines = detectNewlines;
-    if (saveNewlines == NL_UNK)
+    if (saveNewlines == NL_UNK || !settings::getTextAutoNewlines())
         saveNewlines = settings::getTextDefaultNewlines();
 
     switch (saveEncoding) {

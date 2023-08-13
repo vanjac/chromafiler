@@ -34,7 +34,9 @@ const LOGFONT   DEFAULT_TEXT_FONT           = {
 const bool      DEFAULT_TEXT_WRAP           = false;
 const bool      DEFAULT_TEXT_AUTO_INDENT    = true;
 const TextEncoding  DEFAULT_TEXT_ENCODING   = ENC_UTF8;
+const bool      DEFAULT_TEXT_AUTO_ENCODING  = true;
 const TextNewlines  DEFAULT_TEXT_NEWLINES   = NL_CRLF;
+const bool      DEFAULT_TEXT_AUTO_NEWLINES  = true;
 const wchar_t   DEFAULT_TRAY_FOLDER[]       = L"shell:Links";
 const int       DEFAULT_TRAY_DPI            = 96;
 const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
@@ -83,8 +85,12 @@ bool getTextAutoIndent();
 void setTextAutoIndent(bool value);
 TextEncoding getTextDefaultEncoding();
 void setTextDefaultEncoding(TextEncoding value);
+bool getTextAutoEncoding();
+void setTextAutoEncoding(bool value);
 TextNewlines getTextDefaultNewlines();
 void setTextDefaultNewlines(TextNewlines value);
+bool getTextAutoNewlines();
+void setTextAutoNewlines(bool value);
 
 bool getTrayOpenOnStartup();
 void setTrayOpenOnStartup(bool value);
