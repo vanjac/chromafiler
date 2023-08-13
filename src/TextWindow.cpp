@@ -732,7 +732,7 @@ HRESULT TextWindow::loadText() {
             detectEncoding = ENC_ANSI;
 
         detectNewlines = detectNewlineType(textStart, textEnd);
-        setText.codepage = (detectEncoding == ENC_ANSI) ? CP_ACP : CP_UTF8;
+        setText.codepage = (detectEncoding == ENC_ANSI) ? settings::getTextAnsiCodepage() : CP_UTF8;
     }
     debugPrintf(L"Detected encoding %d\n", detectEncoding);
     debugPrintf(L"Detected newlines %d\n", detectNewlines);
@@ -757,7 +757,7 @@ HRESULT TextWindow::saveText() {
     if (isUtf16)
         getLength.codepage = CP_UTF16LE; // 1201 (big-endian) doesn't work!
     else if (saveEncoding == ENC_ANSI)
-        getLength.codepage = CP_ACP;
+        getLength.codepage = settings::getTextAnsiCodepage();
     else
         getLength.codepage = CP_UTF8;
     // may be greater than actual size, because we're using GTL_CLOSE
