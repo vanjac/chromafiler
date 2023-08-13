@@ -626,6 +626,21 @@ int TextWindow::replaceAll(FINDREPLACE *input) {
     return numOccurrences;
 }
 
+template<typename T>
+TextNewlines detectNewlineType(T *start, T*end) {
+    for (T *c = start; c < end; c++) {
+        if (*c == '\n') {
+            return NL_LF;
+        } else if (*c == '\r') {
+            if (c + 1 < end && *(c + 1) == '\n')
+                return NL_CRLF;
+            else
+                return NL_CR;
+        }
+    }
+    return NL_UNK;
+}
+
 HRESULT TextWindow::loadText() {
     HRESULT hr;
     CComHeapPtr<uint8_t> buffer; // null terminated!
@@ -664,6 +679,7 @@ HRESULT TextWindow::loadText() {
             else if (utf16be)
                 *c = _byteswap_ushort(*c);
         }
+        detectNewlines = detectNewlineType(wcString, wcEnd);
         SendMessage(edit, WM_SETTEXT, 0, (LPARAM)wcString);
     } else { // assume UTF-8
         uint8_t *utf8String = buffer, *utf8End = buffer + size;
@@ -679,11 +695,13 @@ HRESULT TextWindow::loadText() {
             if (*c == 0)
                 *c = ' ';
         }
+        detectNewlines = detectNewlineType(utf8String, utf8End);
         SETTEXTEX setText = {};
         setText.codepage = CP_UTF8;
         SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)utf8String);
     }
     debugPrintf(L"Detected encoding %d\n", detectEncoding);
+    debugPrintf(L"Detected newlines %d\n", detectNewlines);
     return S_OK;
 }
 
@@ -704,7 +722,9 @@ HRESULT TextWindow::saveText() {
     if (saveEncoding == ENC_UNK)
         saveEncoding = settings::getTextDefaultEncoding();
     bool isUtf16 = saveEncoding == ENC_UTF16LE || saveEncoding == ENC_UTF16BE;
-    TextNewlines saveNewlines = settings::getTextDefaultNewlines();
+    TextNewlines saveNewlines = detectNewlines;
+    if (saveNewlines == NL_UNK)
+        saveNewlines = settings::getTextDefaultNewlines();
 
     switch (saveEncoding) {
         case ENC_UTF8BOM:
@@ -763,6 +783,7 @@ HRESULT TextWindow::saveText() {
         return hr;
 
     detectEncoding = saveEncoding;
+    detectNewlines = saveNewlines;
     return S_OK;
 }
 

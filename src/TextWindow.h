@@ -72,6 +72,7 @@ private:
     LOGFONT logFont; // NOT scaled for DPI
     HFONT font = nullptr; // scaled for DPI
     TextEncoding detectEncoding = ENC_UNK;
+    TextNewlines detectNewlines = NL_UNK;
     bool isValid = false;
     bool isUnsavedScratchFile;
     int vScrollAccum = 0, hScrollAccum = 0; // for high resolution scrolling
