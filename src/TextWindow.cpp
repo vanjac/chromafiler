@@ -632,7 +632,7 @@ TextNewlines detectNewlineType(T *start, T*end) {
         if (*c == '\n') {
             return NL_LF;
         } else if (*c == '\r') {
-            if (c + 1 < end && *(c + 1) == '\n')
+            if (*(c + 1) == '\n') // this is safe since buffer has extra null character
                 return NL_CRLF;
             else
                 return NL_CR;
@@ -698,7 +698,7 @@ HRESULT TextWindow::loadText() {
         for (uint8_t *c = utf8String; c < utf8End; c++) {
             if (*c == 0)
                 *c = ' ';
-            if (detectEncoding != ENC_ANSI) {
+            if (detectEncoding == ENC_UTF8) {
                 if (*c & 0x80) {
                     if (*c & 0x40) { // leading byte
                         if (continuation) // incomplete code point
