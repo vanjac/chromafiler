@@ -7,7 +7,7 @@
 namespace chromafiler {
 
 enum TrayDirection : DWORD { TRAY_UP, TRAY_DOWN, TRAY_RIGHT };
-enum TextEncoding : DWORD { ENC_UNK, ENC_UTF8, ENC_UTF8BOM, ENC_UTF16LE, ENC_UTF16BE };
+enum TextEncoding : DWORD { ENC_UNK, ENC_UTF8, ENC_UTF8BOM, ENC_UTF16LE, ENC_UTF16BE, ENC_ANSI };
 enum TextNewlines : DWORD { NL_UNK, NL_CRLF, NL_LF, NL_CR };
 
 namespace settings {

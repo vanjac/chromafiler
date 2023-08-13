@@ -691,13 +691,41 @@ HRESULT TextWindow::loadText() {
         } else {
             detectEncoding = ENC_UNK;
         }
+        // replace null bytes with spaces and validate UTF-8 encoding
+        // https://en.wikipedia.org/wiki/UTF-8#Encoding
+        // TODO: check for overlong encodings and invalid code points
+        char continuation = 0;
         for (uint8_t *c = utf8String; c < utf8End; c++) {
             if (*c == 0)
                 *c = ' ';
+            if (detectEncoding != ENC_ANSI) {
+                if (*c & 0x80) {
+                    if (*c & 0x40) { // leading byte
+                        if (continuation) // incomplete code point
+                            detectEncoding = ENC_ANSI;
+                        else if (!(*c & 0x20))
+                            continuation = 1;
+                        else if (!(*c & 0x10))
+                            continuation = 2;
+                        else if (!(*c & 0x0F))
+                            continuation = 3;
+                        else // invalid byte
+                            detectEncoding = ENC_ANSI;
+                    } else if (continuation) {
+                        continuation--;
+                    } else {
+                        detectEncoding = ENC_ANSI; // unexpected continuation
+                    }
+                } else if (continuation) { // incomplete code point
+                    detectEncoding = ENC_ANSI;
+                }
+            }
         }
+        if (continuation)
+            detectEncoding = ENC_ANSI;
         detectNewlines = detectNewlineType(utf8String, utf8End);
         SETTEXTEX setText = {};
-        setText.codepage = CP_UTF8;
+        setText.codepage = (detectEncoding == ENC_ANSI) ? CP_ACP : CP_UTF8;
         SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)utf8String);
     }
     debugPrintf(L"Detected encoding %d\n", detectEncoding);
@@ -745,7 +773,12 @@ HRESULT TextWindow::saveText() {
     GETTEXTLENGTHEX getLength = {};
     getLength.flags = (isUtf16 ? GTL_NUMCHARS : GTL_NUMBYTES) | GTL_CLOSE;
     if (saveNewlines == NL_CRLF) getLength.flags |= GTL_USECRLF;
-    getLength.codepage = isUtf16 ? 1200 : CP_UTF8;
+    if (isUtf16)
+        getLength.codepage = 1200; // TODO 1201 for BE?
+    else if (saveEncoding == ENC_ANSI)
+        getLength.codepage = CP_ACP;
+    else
+        getLength.codepage = CP_UTF8;
     // may be greater than actual size, because we're using GTL_CLOSE
     ULONG numChars = (ULONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
     if (numChars == E_INVALIDARG)
