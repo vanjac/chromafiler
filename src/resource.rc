@@ -65,8 +65,8 @@ IDR_TEXT_ACCEL  ACCELERATORS {
 }
 
 IDR_ITEM_MENU   MENU {
-    MENUITEM    "ChromaFiler Settings\tCtrl+,"  IDM_SETTINGS
-    MENUITEM    "Help\tF1"                      IDM_HELP
+    MENUITEM    "ChromaFiler Settings\tCtrl+,", IDM_SETTINGS
+    MENUITEM    "Help\tF1",                     IDM_HELP
 }
 
 IDR_TEXT_MENU   MENU {
