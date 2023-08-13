@@ -31,6 +31,7 @@ static UINT updateSettingsMessage, findReplaceMessage;
 void TextWindow::init() {
     RegisterClass(tempPtr(createWindowClass(TEXT_WINDOW_CLASS)));
     // http://www.jose.it-berater.org/richedit/rich_edit_control.htm
+    // https://devblogs.microsoft.com/math-in-office/richedit-hot-keys/
     checkLE(LoadLibrary(L"Msftedit.dll"));
 
     textAccelTable = LoadAccelerators(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_ACCEL));
@@ -713,31 +714,32 @@ HRESULT TextWindow::saveText() {
     if (!checkHR(hr))
         return hr;
 
-    WPARAM format = SF_TEXT;
-    if (encoding == UTF8 || encoding == UTF8BOM) {
-        format |= SF_USECODEPAGE | (CP_UTF8 << 16);
-    } else if (encoding == UTF16LE || encoding == UTF16BE) {
-        format |= SF_UNICODE;
-    }
-    StreamInfo info = {stream, encoding};
-    EDITSTREAM editStream = {(DWORD_PTR)&info, 0, streamOutCallback};
-    SendMessage(edit, EM_STREAMOUT, format, (LPARAM)&editStream);
+    bool isUtf16 = encoding == UTF16LE || encoding == UTF16BE;
+    GETTEXTLENGTHEX getLength = {};
+    getLength.flags = (isUtf16 ? GTL_NUMCHARS : GTL_NUMBYTES) | GTL_CLOSE | GTL_USECRLF;
+    getLength.codepage = isUtf16 ? 1200 : CP_UTF8;
+    // may be greater than actual size, because we're using GTL_CLOSE
+    ULONG numChars = (ULONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
+    if (numChars == E_INVALIDARG)
+        return (HRESULT)numChars;
 
-    return editStream.dwError;
-}
+    ULONG bufSize = isUtf16 ? ((numChars + 1) * sizeof(wchar_t)) : (numChars + 1); // room for null
+    CComHeapPtr<uint8_t> buffer;
+    buffer.AllocateBytes(bufSize);
 
-DWORD CALLBACK TextWindow::streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
-        LONG numBytes, LONG *bytesWritten) {
-    StreamInfo *info = (StreamInfo *)cookie;
-    if (info->encoding == UTF16BE) {
-        numBytes &= ~1; // only write even number of bytes
-        for (int i = 0; i < numBytes; i += 2)
-            *(wchar_t *)(buffer + i) = _byteswap_ushort(*(wchar_t *)(buffer + i));
+    GETTEXTEX getText = {};
+    getText.cb = bufSize;
+    getText.flags = GT_USECRLF;
+    getText.codepage = getLength.codepage;
+    numChars = (ULONG)SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)&*buffer);
+
+    if (encoding == UTF16BE) {
+        for (wchar_t *c = (wchar_t *)&*buffer, *end = c + numChars; c < end; c++)
+            *c = _byteswap_ushort(*c);
     }
-    HRESULT hr;
-    if (!checkHR(hr = info->stream->Write(buffer, numBytes, (ULONG *)bytesWritten)))
-        return hr;
-    return S_OK;
+
+    ULONG writeLen = isUtf16 ? (numChars * sizeof(wchar_t)) : numChars;
+    return IStream_Write(stream, buffer, writeLen);
 }
 
 int scrollAccumLines(int *scrollAccum) {

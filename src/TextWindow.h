@@ -63,18 +63,12 @@ private:
 
     HRESULT loadText();
     HRESULT saveText();
-    static DWORD CALLBACK streamOutCallback(DWORD_PTR cookie, LPBYTE buffer,
-        LONG numBytes, LONG *bytesWritten);
 
     static LRESULT CALLBACK richEditProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     enum Encoding {
         FAIL, UTF8, UTF8BOM, UTF16LE, UTF16BE
-    };
-    struct StreamInfo {
-        CComPtr<IStream> stream;
-        Encoding encoding;
     };
 
     HWND edit = nullptr;
