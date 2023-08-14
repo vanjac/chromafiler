@@ -92,108 +92,6 @@ IDR_TEXT_MENU   MENU {
     }
 }
 
-// Dialog boxes are designed using RisohEditor.
-// Prefer multiples of 7 in all coordinates for consistency.
-
-IDD_SETTINGS_GENERAL    DIALOGEX
-        0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
-        STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
-        CAPTION "General"
-        FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
-    GROUPBOX "&Starting folder", -1, 7, 7, 213, 35
-    COMBOBOX IDC_START_FOLDER_PATH, 14, 21, 136, 300, CBS_HASSTRINGS | CBS_AUTOHSCROLL | CBS_DROPDOWN | WS_TABSTOP
-    PUSHBUTTON "&Browse...", IDC_START_FOLDER_BROWSE, 157, 21, 56, 14
-    GROUPBOX "Default window sizes", -1, 7, 49, 213, 49
-    RTEXT "&Folder", -1, 14, 66, 70, 8
-    EDITTEXT IDC_FOLDER_WINDOW_WIDTH, 91, 63, 21, 14, ES_NUMBER
-    CTEXT "x", -1, 113, 66, 12, 8
-    EDITTEXT IDC_FOLDER_WINDOW_HEIGHT, 126, 63, 21, 14, ES_NUMBER
-    RTEXT "File &preview", -1, 14, 80, 70, 8
-    EDITTEXT IDC_ITEM_WINDOW_WIDTH, 91, 77, 21, 14, ES_NUMBER
-    CTEXT "x", -1, 113, 80, 12, 8
-    EDITTEXT IDC_ITEM_WINDOW_HEIGHT, 126, 77, 21, 14, ES_NUMBER
-    GROUPBOX "Toolbar", -1, 7, 105, 103, 49
-    AUTOCHECKBOX "Show i&nfo text", IDC_STATUS_TEXT_ENABLED, 14, 119, 89, 14
-    AUTOCHECKBOX "Show &toolbar", IDC_TOOLBAR_ENABLED, 14, 133, 89, 14
-    GROUPBOX "Previews", -1, 117, 105, 103, 49
-    AUTOCHECKBOX "Use Preview &Handlers", IDC_PREVIEWS_ENABLED, 124, 119, 89, 14
-    GROUPBOX "File Explorer options", -1, 7, 161, 213, 35
-    LTEXT "Some File Explorer options also affect ChromaFiler folder windows.", -1, 14, 175, 136, 16
-    PUSHBUTTON "&Options...", IDC_EXPLORER_SETTINGS, 157, 175, 56, 14
-}
-
-IDD_SETTINGS_TRAY       DIALOGEX
-        0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
-        STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
-        CAPTION "Tray"
-        FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
-    AUTOCHECKBOX "Show &tray", IDC_TRAY_ENABLED, 7, 7, 103, 14
-    AUTOCHECKBOX "Open tray on &startup", IDC_OPEN_TRAY_ON_STARTUP, 117, 7, 103, 14
-    GROUPBOX "Tray &folder", -1, 7, 28, 213, 35
-    COMBOBOX IDC_TRAY_FOLDER_PATH, 14, 42, 136, 300, CBS_HASSTRINGS | CBS_AUTOHSCROLL | CBS_DROPDOWN | WS_TABSTOP
-    PUSHBUTTON "&Browse...", IDC_TRAY_FOLDER_BROWSE, 157, 42, 56, 14
-    GROUPBOX "Tray direction", -1, 7, 70, 213, 35
-    LTEXT "Open items...", -1, 14, 87, 56, 8
-    AUTORADIOBUTTON "Abo&ve", IDC_TRAY_DIR_ABOVE, 70, 84, 42, 14
-    AUTORADIOBUTTON "Belo&w", IDC_TRAY_DIR_BELOW, 112, 84, 42, 14
-    AUTORADIOBUTTON "&Right", IDC_TRAY_DIR_RIGHT, 154, 84, 42, 14
-    ICON IDI_INFORMATION, -1, 14, 114, 0, 0
-    LTEXT "Drag the upper-left corner of the tray to move. Drag the lower-right corner to resize.", -1, 42, 115, 175, 16
-    PUSHBUTTON "R&eset tray position", IDC_RESET_TRAY_POSITION, 42, 135, 70, 14
-}
-
-IDD_SETTINGS_TEXT       DIALOGEX
-        0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
-        STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
-        CAPTION "Text Editor"
-        FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
-    AUTOCHECKBOX "&Enable text editor", IDC_TEXT_EDITOR_ENABLED, 7, 7, 77, 14
-    PUSHBUTTON "&Font...", IDC_TEXT_FONT, 7, 28, 56, 14
-    LTEXT "", IDC_TEXT_FONT_NAME, 70, 31, 129, 8
-    GROUPBOX "Behavior", -1, 7, 49, 213, 35
-    AUTOCHECKBOX "&Word wrap", IDC_TEXT_WRAP, 14, 63, 56, 14
-    AUTOCHECKBOX "Auto-i&ndent", IDC_TEXT_AUTO_INDENT, 112, 63, 56, 14
-    GROUPBOX "Save format", -1, 7, 91, 213, 49
-    RTEXT "&Line endings", -1, 14, 108, 42, 8
-    COMBOBOX IDC_TEXT_NEWLINES, 63, 105, 77, 300, CBS_HASSTRINGS | CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    AUTOCHECKBOX "Auto-detect", IDC_TEXT_AUTO_NEWLINES, 154, 105, 56, 14
-    RTEXT "En&coding", -1, 14, 122, 42, 8
-    COMBOBOX IDC_TEXT_ENCODING, 63, 119, 77, 300, CBS_HASSTRINGS | CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    AUTOCHECKBOX "Auto-detect", IDC_TEXT_AUTO_ENCODING, 154, 119, 56, 14
-    GROUPBOX "&Scratch folder", -1, 7, 147, 213, 56
-    COMBOBOX IDC_SCRATCH_FOLDER_PATH, 14, 161, 136, 300, CBS_HASSTRINGS | CBS_AUTOHSCROLL | CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON "&Browse...", IDC_SCRATCH_FOLDER_BROWSE, 157, 161, 56, 14
-    LTEXT "File name:", -1, 14, 185, 35, 8
-    EDITTEXT IDC_SCRATCH_FILE_NAME, 56, 182, 158, 14
-}
-
-IDD_SETTINGS_BROWSER    DIALOGEX
-        0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
-        STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
-        CAPTION "Default Browser"
-        FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
-    ICON 32516, -1, 14, 7, 0, 0
-    LTEXT "Replace File Explorer as the default program for opening folders. Use at your own risk!", -1, 42, 8, 175, 16
-    PUSHBUTTON "&Set as default browser", IDC_SET_DEFAULT_BROWSER, 7, 35, 84, 14
-    PUSHBUTTON "&Reset default browser", IDC_RESET_DEFAULT_BROWSER, 7, 56, 84, 14
-}
-
-IDD_SETTINGS_ABOUT      DIALOGEX
-        0, 0, 227, 215 // PROP_MED_CXDLG, PROP_MED_CYDLG
-        STYLE DS_SHELLFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
-        CAPTION "Update/About"
-        FONT 8, "MS Shell Dlg", 400, 0, 0x0 {
-    ICON IDR_APP_ICON, -1, 7, 7, 0, 0
-    LTEXT "ChromaFiler", 12, 35, 7, 49, 8, 131328
-    LTEXT "Version:", -1, 35, 15, 28, 8
-    LTEXT "", IDC_VERSION, 70, 15, 28, 8
-    PUSHBUTTON "&Check for updates", IDC_UPDATES_LINK, 7, 28, 66, 14
-    PUSHBUTTON "&Help", IDC_HELP_LINK, 80, 28, 66, 14
-    PUSHBUTTON "&Website", IDC_SOURCE_LINK, 153, 28, 66, 14
-    AUTOCHECKBOX "A&utomatically check for updates weekly", IDC_AUTO_UPDATE, 7, 49, 213, 14
-    EDITTEXT IDC_LEGAL_INFO, 7, 70, 213, 138, ES_READONLY | ES_MULTILINE | WS_VSCROLL
-}
-
 STRINGTABLE {
     IDS_UNKNOWN_ERROR,      "Unknown error"
     IDS_ERROR_CAPTION,      "Error"
@@ -287,3 +185,7 @@ The ChromaFiler installer uses the following open source libraries:\r\n\
 \thttps://nsis.sourceforge.io/LockedList_plug-in\r\n\
 "
 }
+
+// Dialog boxes are designed using RisohEditor.
+// Prefer multiples of 7 in all coordinates for consistency.
+#include "dialog.rc"
