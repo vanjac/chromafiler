@@ -66,18 +66,18 @@ bool previewHandlerCLSID(wchar_t *ext, CLSID *previewID) {
     return checkHR(CLSIDFromString(resultGUID, previewID));
 }
 
-CComPtr<IShellItem> resolveLink(HWND hwnd, CComPtr<IShellItem> linkItem) {
+CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem) {
     // https://stackoverflow.com/a/46064112
     CComPtr<IShellLink> link;
     if (SUCCEEDED(linkItem->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&link)))) {
-        DWORD resolveFlags = SLR_UPDATE;
-        if (hwnd == nullptr)
-            resolveFlags |= SLR_NO_UI;
-        if (checkHR(link->Resolve(hwnd, resolveFlags))) {
+        if (checkHR(link->Resolve(nullptr, SLR_NO_UI | SLR_UPDATE))) {
             CComHeapPtr<ITEMIDLIST> targetPIDL;
             if (checkHR(link->GetIDList(&targetPIDL))) {
                 CComPtr<IShellItem> targetItem;
                 if (checkHR(SHCreateItemFromIDList(targetPIDL, IID_PPV_ARGS(&targetItem)))) {
+                    SFGAOF attr;
+                    if (FAILED(targetItem->GetAttributes(SFGAO_VALIDATE, &attr))) // doesn't exist
+                        return linkItem;
                     // don't need to recurse, shortcuts to shortcuts are not allowed
                     return targetItem;
                 }

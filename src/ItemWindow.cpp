@@ -1167,7 +1167,7 @@ void ItemWindow::limitChainWindowRect(RECT *rect) {
 }
 
 void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
-    childItem = resolveLink(hwnd, childItem);
+    childItem = resolveLink(childItem);
     if (child) {
         const int compareFlags = SICHINT_CANONICAL | SICHINT_TEST_FILESYSPATH_IF_NOT_EQUAL;
         int compare;

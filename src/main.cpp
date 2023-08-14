@@ -123,7 +123,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         CComPtr<IShellItem> startItem = itemFromPath(path);
         if (!startItem)
             return 0;
-        startItem = resolveLink(nullptr, startItem);
+        startItem = resolveLink(startItem);
 
         CComPtr<ItemWindow> initialWindow;
         if (tray) {
