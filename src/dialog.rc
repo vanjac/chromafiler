@@ -103,10 +103,11 @@ FONT 8, "MS Shell Dlg", 400, 0, 0
   CONTROL "ChromaFiler", 12, "Static", SS_NOTIFY|WS_GROUP, 35, 7, 49, 8
   CONTROL "Version:", -1, "Static", WS_GROUP, 35, 15, 28, 8
   CONTROL "", IDC_VERSION, "Static", WS_GROUP, 70, 15, 28, 8
-  CONTROL "&Check for update", IDC_UPDATES_LINK, "Button", WS_TABSTOP, 7, 28, 63, 14
-  CONTROL "&Help", IDC_HELP_LINK, "Button", WS_TABSTOP, 84, 28, 63, 14
-  CONTROL "&Website", IDC_SOURCE_LINK, "Button", WS_TABSTOP, 161, 28, 63, 14
-  CONTROL "A&utomatically check for updates weekly", IDC_AUTO_UPDATE, "Button", BS_AUTOCHECKBOX|WS_TABSTOP, 7, 49, 217, 14
+  CONTROL "&Help", IDC_HELP_LINK, "Button", WS_TABSTOP, 7, 28, 63, 14
+  CONTROL "&Website", IDC_WEBSITE_LINK, "Button", WS_TABSTOP, 84, 28, 63, 14
+  CONTROL "&Donate", IDC_DONATE_LINK, "Button", WS_TABSTOP, 161, 28, 63, 14
+  CONTROL "&Check for update", IDC_UPDATES_LINK, "Button", WS_TABSTOP, 7, 49, 63, 14
+  CONTROL "A&utomatically check for updates weekly", IDC_AUTO_UPDATE, "Button", BS_AUTOCHECKBOX|WS_TABSTOP, 77, 49, 147, 14
   CONTROL "", IDC_LEGAL_INFO, "Edit", ES_MULTILINE|ES_READONLY|WS_VSCROLL|WS_BORDER|WS_TABSTOP, 7, 70, 217, 138
 }
 

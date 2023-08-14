@@ -47,7 +47,8 @@
 #define IDD_SETTINGS_ABOUT          106
 #define IDC_UPDATES_LINK            1401
 #define IDC_HELP_LINK               1402
-#define IDC_SOURCE_LINK             1403
+#define IDC_WEBSITE_LINK            1403
 #define IDC_AUTO_UPDATE             1404
 #define IDC_LEGAL_INFO              1405
 #define IDC_VERSION                 1406
+#define IDC_DONATE_LINK             1407

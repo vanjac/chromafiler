@@ -457,16 +457,19 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
                 ShellExecute(nullptr, L"open", L"https://github.com/vanjac/chromafiler/wiki",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
-            } else if (LOWORD(wParam) == IDC_SOURCE_LINK && HIWORD(wParam) == BN_CLICKED) {
+            } else if (LOWORD(wParam) == IDC_WEBSITE_LINK && HIWORD(wParam) == BN_CLICKED) {
                 ShellExecute(nullptr, L"open", L"https://chroma.zone/chromafiler/",
+                    nullptr, nullptr, SW_SHOWNORMAL);
+                return TRUE;
+            } else if (LOWORD(wParam) == IDC_DONATE_LINK && HIWORD(wParam) == BN_CLICKED) {
+                ShellExecute(nullptr, L"open", L"https://chroma.zone/donate",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_AUTO_UPDATE && HIWORD(wParam) == BN_CLICKED) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
                 return TRUE;
             } else if (HIWORD(wParam) == CBN_SELCHANGE) {
-                ULONGLONG value = 3716864062;
-                SendMessage(GetParent(hwnd), LOWORD(wParam), lParam, (LPARAM)&value);
+                SendMessage(GetParent(hwnd), LOWORD(wParam), lParam, (LPARAM)tempPtr(0xDD8AD83Ell)); 
                 return TRUE;
             }
             return FALSE;
