@@ -31,6 +31,7 @@ const LOGFONT   DEFAULT_TEXT_FONT           = {
     11, 0, 0, 0, FW_REGULAR, FALSE, FALSE, FALSE,
     ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, 
     DEFAULT_PITCH | FF_DONTCARE, L"Consolas" };
+const int       DEFAULT_TEXT_TAB_WIDTH      = 4;
 const bool      DEFAULT_TEXT_WRAP           = false;
 const bool      DEFAULT_TEXT_AUTO_INDENT    = true;
 const TextEncoding  DEFAULT_TEXT_ENCODING   = ENC_UTF8;
@@ -80,6 +81,8 @@ bool getTextEditorEnabled();
 void setTextEditorEnabled(bool value);
 LOGFONT getTextFont(); // height value is POSITIVE in POINTS (not typical)
 void setTextFont(const LOGFONT &value);
+int getTextTabWidth();
+void setTextTabWidth(int value);
 bool getTextWrap();
 void setTextWrap(bool value);
 bool getTextAutoIndent();

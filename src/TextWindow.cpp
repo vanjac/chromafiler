@@ -92,6 +92,13 @@ void TextWindow::onCreate() {
         updateStatus();
 }
 
+void applyEditFont(HWND edit, HFONT font) {
+    if (edit && font) {
+        SendMessage(edit, WM_SETFONT, (WPARAM)font, FALSE);
+        Edit_SetTabStops(edit, 1, tempPtr(4 * settings::getTextTabWidth()));
+    }
+}
+
 HWND TextWindow::createRichEdit(bool wordWrap) {
     DWORD style = WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL
         | ES_NOHIDESEL | ES_SAVESEL | ES_SELECTIONBAR;
@@ -101,8 +108,7 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
         0, 0, 0, 0,
         hwnd, nullptr, GetWindowInstance(hwnd), nullptr));
     SetWindowSubclass(control, richEditProc, 0, (DWORD_PTR)this);
-    if (font)
-        SendMessage(control, WM_SETFONT, (WPARAM)font, FALSE);
+    applyEditFont(control, font);
     SendMessage(control, EM_SETTEXTMODE, TM_PLAINTEXT, 0);
     SendMessage(control, EM_SETEVENTMASK, 0, ENM_SELCHANGE | ENM_CHANGE);
     SendMessage(control, EM_EXLIMITTEXT, 0, MAX_FILE_SIZE);
@@ -124,8 +130,7 @@ void TextWindow::updateFont() {
     LOGFONT scaledLogFont = logFont;
     scaledLogFont.lfHeight = -pointsToPixels(logFont.lfHeight);
     font = CreateFontIndirect(&scaledLogFont);
-    if (edit)
-        SendMessage(edit, WM_SETFONT, (WPARAM)font, FALSE);
+    applyEditFont(edit, font);
 }
 
 bool TextWindow::onCloseRequest() {
