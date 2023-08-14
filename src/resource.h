@@ -107,6 +107,7 @@
 #define IDC_SOURCE_LINK             1403
 #define IDC_AUTO_UPDATE             1404
 #define IDC_LEGAL_INFO              1405
+#define IDC_VERSION                 1406
 
 #define IDS_SETTINGS_CAPTION    200
 #define IDS_MENU_COMMAND        201
