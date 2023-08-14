@@ -44,6 +44,7 @@ private:
     const wchar_t * helpURL() const override;
 
     HWND createRichEdit(bool wordWrap);
+    bool isEditable();
     CComPtr<ITextDocument> getTOMDocument();
     void updateFont();
     void updateStatus();
@@ -73,7 +74,6 @@ private:
     HFONT font = nullptr; // scaled for DPI
     TextEncoding detectEncoding = ENC_UNK;
     TextNewlines detectNewlines = NL_UNK;
-    bool isValid = false;
     bool isUnsavedScratchFile;
     int vScrollAccum = 0, hScrollAccum = 0; // for high resolution scrolling
 

@@ -76,20 +76,18 @@ void TextWindow::onCreate() {
     logFont = settings::getTextFont();
     updateFont();
     edit = createRichEdit(settings::getTextWrap());
+    SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
 
     HRESULT hr;
-    isValid = checkHR(hr = loadText());
-    if (!isValid) {
-        SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
-        if (hasStatusText()) {
-            LocalHeapPtr<wchar_t> status;
-            formatErrorMessage(status, hr);
-            setStatusText(status);
-        }
-    }
-    Edit_SetModify(edit, FALSE);
-    if (hasStatusText())
+    if (checkHR(hr = loadText())) {
+        SendMessage(edit, EM_SETOPTIONS, ECOOP_AND, ~ECO_READONLY);
+        Edit_SetModify(edit, FALSE);
         updateStatus();
+    } else if (hasStatusText()) {
+        LocalHeapPtr<wchar_t> status;
+        formatErrorMessage(status, hr);
+        setStatusText(status);
+    }
 }
 
 void applyEditFont(HWND edit, HFONT font) {
@@ -116,6 +114,10 @@ HWND TextWindow::createRichEdit(bool wordWrap) {
     return control;
 }
 
+bool TextWindow::isEditable() {
+    return !(SendMessage(edit, EM_GETOPTIONS, 0, 0) & ECO_READONLY);
+}
+
 CComPtr<ITextDocument> TextWindow::getTOMDocument() {
     CComPtr<IUnknown> ole;
     if (!SendMessage(edit, EM_GETOLEINTERFACE, 0, (LPARAM)&ole))
@@ -134,7 +136,7 @@ void TextWindow::updateFont() {
 }
 
 bool TextWindow::onCloseRequest() {
-    if (isValid && Edit_GetModify(edit)) {
+    if (isEditable() && Edit_GetModify(edit)) {
         SFGAOF attr;
         if (confirmSave(isUnsavedScratchFile
                 || FAILED(item->GetAttributes(SFGAO_VALIDATE, &attr)))) // doesn't exist
@@ -214,7 +216,7 @@ const wchar_t * undoNameToString(UNDONAMEID id) {
 LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_QUERYENDSESSION:
-            if (Edit_GetModify(edit)) {
+            if (isEditable() && Edit_GetModify(edit)) {
                 userSave();
             } else if (isUnsavedScratchFile) { // empty
                 deleteProxy();
@@ -276,7 +278,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
 }
 
 bool TextWindow::onCommand(WORD command) {
-    if (!isValid)
+    if (!isEditable())
         return ItemWindow::onCommand(command);
     switch (command) {
         case IDM_SAVE:
@@ -359,7 +361,7 @@ bool TextWindow::onControlCommand(HWND controlHwnd, WORD notif) {
 }
 
 LRESULT TextWindow::onNotify(NMHDR *nmHdr) {
-    if (nmHdr->hwndFrom == edit && nmHdr->code == EN_SELCHANGE && hasStatusText()) {
+    if (nmHdr->hwndFrom == edit && nmHdr->code == EN_SELCHANGE) {
         updateStatus();
         return 0;
     }
@@ -367,7 +369,7 @@ LRESULT TextWindow::onNotify(NMHDR *nmHdr) {
 }
 
 void TextWindow::updateStatus() {
-    if (!isValid)
+    if (!hasStatusText() || !isEditable())
         return;
     CComPtr<ITextDocument> doc = getTOMDocument();
     CComPtr<ITextSelection> sel;
@@ -439,7 +441,7 @@ bool TextWindow::isWordWrap() {
 }
 
 void TextWindow::setWordWrap(bool wordWrap) {
-    if (!isValid)
+    if (!isEditable())
         return;
     // can't use WM_GETTEXTLENGTH because it counts CRLFs instead of LFs
     GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, CP_UTF16LE};
