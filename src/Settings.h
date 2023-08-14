@@ -92,7 +92,7 @@ void setTextDefaultEncoding(TextEncoding value);
 bool getTextAutoEncoding();
 void setTextAutoEncoding(bool value);
 UINT getTextAnsiCodepage();
-void setTextAnsiCodepage(UINT value);
+void setTextAnsiCodepage(UINT value); // TODO: add to Settings
 TextNewlines getTextDefaultNewlines();
 void setTextDefaultNewlines(TextNewlines value);
 bool getTextAutoNewlines();

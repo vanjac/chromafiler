@@ -37,6 +37,8 @@
 #define IDC_TEXT_AUTO_NEWLINES      1210
 #define IDC_TEXT_ENCODING           1211
 #define IDC_TEXT_AUTO_ENCODING      1212
+#define IDC_TEXT_TAB_SIZE           1213
+#define IDC_TEXT_TAB_SIZE_UD        1214
 
 #define IDD_SETTINGS_BROWSER        110
 #define IDC_SET_DEFAULT_BROWSER     1301

@@ -264,6 +264,8 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             debugPrintf(L"Font changed\n");
             logFont = newLogFont;
             updateFont();
+        } else {
+            applyEditFont(edit, font); // for tab size
         }
         return 0;
     } else if (findReplaceMessage && message == findReplaceMessage) {

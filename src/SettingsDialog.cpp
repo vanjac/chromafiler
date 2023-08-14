@@ -149,6 +149,8 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             updateFontNameText(hwnd, logFont);
             CheckDlgButton(hwnd, IDC_TEXT_WRAP,
                 settings::getTextWrap() ? BST_CHECKED : BST_UNCHECKED);
+            SetDlgItemInt(hwnd, IDC_TEXT_TAB_SIZE, settings::getTextTabWidth(), FALSE);
+            SendDlgItemMessage(hwnd, IDC_TEXT_TAB_SIZE_UD, UDM_SETRANGE32, 0, 16);
             CheckDlgButton(hwnd, IDC_TEXT_AUTO_INDENT,
                 settings::getTextAutoIndent() ? BST_CHECKED : BST_UNCHECKED);
             for (int i = 0; i < IDS_NEWLINES_COUNT; i++) {
@@ -183,6 +185,10 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 settings::setTextEditorEnabled(!!IsDlgButtonChecked(hwnd, IDC_TEXT_EDITOR_ENABLED));
                 settings::setTextFont(logFont);
                 settings::setTextWrap(!!IsDlgButtonChecked(hwnd, IDC_TEXT_WRAP));
+                BOOL success;
+                int tabWidth = GetDlgItemInt(hwnd, IDC_TEXT_TAB_SIZE, &success, FALSE);
+                if (success)
+                    settings::setTextTabWidth(tabWidth);
                 settings::setTextAutoIndent(!!IsDlgButtonChecked(hwnd, IDC_TEXT_AUTO_INDENT));
                 settings::setTextDefaultNewlines((TextNewlines)(NL_CRLF +
                     SendDlgItemMessage(hwnd, IDC_TEXT_NEWLINES, CB_GETCURSEL, 0, 0)));
@@ -240,6 +246,7 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     || LOWORD(wParam) == IDC_TEXT_ENCODING && HIWORD(wParam) == CBN_SELCHANGE
                     || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && HIWORD(wParam) == CBN_EDITCHANGE
                     || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && HIWORD(wParam) == CBN_SELCHANGE
+                    || LOWORD(wParam) == IDC_TEXT_TAB_SIZE && HIWORD(wParam) == EN_CHANGE
                     || LOWORD(wParam) == IDC_SCRATCH_FILE_NAME && HIWORD(wParam) == EN_CHANGE) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
                 return TRUE;
