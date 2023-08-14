@@ -186,6 +186,4 @@ The ChromaFiler installer uses the following open source libraries:\r\n\
 "
 }
 
-// Dialog boxes are designed using RisohEditor.
-// Prefer multiples of 7 in all coordinates for consistency.
 #include "dialog.rc"

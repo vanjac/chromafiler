@@ -1,5 +1,7 @@
 #pragma once
 
+#define IDR_APP_ICON    101
+
 #define IDD_SETTINGS_GENERAL        104
 #define IDC_START_FOLDER_PATH       1001
 #define IDC_START_FOLDER_BROWSE     1002

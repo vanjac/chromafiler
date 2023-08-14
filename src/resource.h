@@ -6,8 +6,6 @@
 
 #define IDR_RT_MANIFEST1 1 // must be 1 for an exe
 
-#define IDR_APP_ICON    101
-
 #define IDR_ITEM_ACCEL      102
 #define IDR_ITEM_MENU       111
 #define IDM_NEXT_WINDOW     1001
