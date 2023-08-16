@@ -88,18 +88,24 @@ Function un.onInit
 	!insertmacro MULTIUSER_UNINIT
 FunctionEnd
 
-Function LockedListShow
+Var tray_window
+!macro CUSTOM_LOCKEDLIST_PAGE
+	FindWindow $tray_window "ChromaFile Tray"
+	${If} $tray_window != 0
+		System::Call "user32.dll::PostMessage(i $tray_window, i 16, i 0, i 0)"
+	${EndIf}
 	!insertmacro MUI_HEADER_TEXT $(LOCKED_LIST_TITLE) $(LOCKED_LIST_SUBTITLE)
 	LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
 	LockedList::Dialog /autonext
 	Pop $R0
+!macroend
+
+Function LockedListShow
+	!insertmacro CUSTOM_LOCKEDLIST_PAGE
 FunctionEnd
 
 Function un.LockedListShow
-	!insertmacro MUI_HEADER_TEXT $(LOCKED_LIST_TITLE) $(LOCKED_LIST_SUBTITLE)
-	LockedList::AddModule "$INSTDIR\ChromaFiler.exe"
-	LockedList::Dialog /autonext
-	Pop $R0
+	!insertmacro CUSTOM_LOCKEDLIST_PAGE
 FunctionEnd
 
 Function SilentSearchCallback
