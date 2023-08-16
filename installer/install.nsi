@@ -66,6 +66,7 @@ LangString LOCKED_LIST_SUBTITLE ${LANG_ENGLISH} "Make sure all $(^Name) windows 
 
 
 Function .onInit
+	InitPluginsDir
 !ifdef CHROMAFILER64
 	${IfNot} ${RunningX64}
 		MessageBox MB_ICONSTOP "This is the 64-bit version of ChromaFiler, but you're using 32-bit Windows. Please download the 32-bit installer."
@@ -85,6 +86,7 @@ continue32bit:
 FunctionEnd
 
 Function un.onInit
+	InitPluginsDir
 !ifdef CHROMAFILER64
 	SetRegView 64
 	File /oname=$PLUGINSDIR\LockedList64.dll `plugins\LockedList64.dll`
@@ -153,6 +155,9 @@ Section "ChromaFiler" SecBase
 
 	File ..\build\ChromaFiler.exe
 	File /oname=LICENSE.txt ..\LICENSE
+	; previous installers didn't initialize PLUGINSDIR correctly
+	Delete $INSTDIR\LockedList64.dll
+	Delete $INSTDIR\LockedList.dll
 SectionEnd
 
 Section "Start Menu shortcut" SecStart
