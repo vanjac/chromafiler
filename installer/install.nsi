@@ -152,6 +152,7 @@ Section "ChromaFiler" SecBase
 	WriteRegDWORD SHCTX "${REG_UNINST_KEY}" "NoRepair" 1
 
 	File ..\build\ChromaFiler.exe
+	File /oname=LICENSE.txt ..\LICENSE
 SectionEnd
 
 Section "Start Menu shortcut" SecStart
@@ -212,6 +213,7 @@ FunctionEnd
 
 Section "un.Uninstall"
 	Delete $INSTDIR\*.exe
+	Delete $INSTDIR\LICENSE.txt
 	RMDir $INSTDIR
 	DeleteRegKey SHCTX "${REG_UNINST_KEY}"
 	DeleteRegKey SHCTX Software\ChromaFiler
