@@ -31,6 +31,12 @@ SetCompressor LZMA
 !define MUI_ICON "..\src\res\folder.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
+!define MUI_LICENSEPAGE_TEXT_TOP ""
+!define MUI_LICENSEPAGE_TEXT_BOTTOM "Click Next to continue."
+!define MUI_LICENSEPAGE_BUTTON "Next >"
+!define MUI_TEXT_LICENSE_TITLE "Welcome to ChromaFiler Setup"
+!define MUI_TEXT_LICENSE_SUBTITLE "Setup will guide you through the installation of ChromaFiler."
+
 !define MUI_FINISHPAGE_RUN_TEXT "(Re)open the tray"
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION OpenTray
@@ -43,6 +49,7 @@ SetCompressor LZMA
 	BrandingText "$(^Name) v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3} (32-bit)"
 !endif
 
+!insertmacro MUI_PAGE_LICENSE licensetext.txt
 !insertmacro MULTIUSER_PAGE_INSTALLMODE
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY

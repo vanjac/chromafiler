@@ -1,0 +1,16 @@
+LICENSE INFORMATION
+
+ChromaFiler is available under the GNU General Public License v3.0.
+A copy of the license will be installed along with the program.
+The source code is available at https://github.com/vanjac/chromafiler
+
+The ChromaFiler installer uses the following open source libraries:
+- nsis-shortcut-properties
+	Copyright Safing ICS Technologies GmbH
+	Licensed under the Apache License 2.0
+		(https://www.apache.org/licenses/LICENSE-2.0)
+	https://github.com/safing/nsis-shortcut-properties
+- LockedList plug-in
+	Copyright (c) 2013 Afrow Soft Ltd
+	Licensed under the zlib License
+	https://nsis.sourceforge.io/LockedList_plug-in

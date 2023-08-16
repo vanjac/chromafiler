@@ -171,18 +171,11 @@ STRINGTABLE {
 Copyright (c) 2023 J. van't Hoog\r\n\
 \r\n\
 ChromaFiler is available under the GNU General Public License v3.0.\r\n\
-The source code and a copy of the license can be found at https://github.com/vanjac/chromafiler\r\n\
+A copy of the license can be found in the installation folder.\r\n\
+The source code is available at https://github.com/vanjac/chromafiler\r\n\
 \r\n\
-The ChromaFiler installer uses the following open source libraries:\r\n\
-- nsis-shortcut-properties\r\n\
-\tCopyright Safing ICS Technologies GmbH\r\n\
-\tLicensed under the Apache License 2.0\r\n\
-\t\t(https://www.apache.org/licenses/LICENSE-2.0)\r\n\
-\thttps://github.com/safing/nsis-shortcut-properties\r\n\
-- LockedList plug-in\r\n\
-\tCopyright (c) 2013 Afrow Soft Ltd\r\n\
-\tLicensed under the zlib License\r\n\
-\thttps://nsis.sourceforge.io/LockedList_plug-in\r\n\
+If you enjoy ChromaFiler, please consider donating to support its development. Click the Donate button above.\r\n\
+\r\n\
 "
 }
 
