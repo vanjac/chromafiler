@@ -31,6 +31,11 @@ SetCompressor LZMA
 !define MUI_ICON "..\src\res\folder.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
 
+!define MUI_FINISHPAGE_RUN_TEXT "(Re)open the tray"
+!define MUI_FINISHPAGE_RUN
+!define MUI_FINISHPAGE_RUN_FUNCTION OpenTray
+!define MUI_FINISHPAGE_RUN_NOTCHECKED
+
 !getdllversion /productversion ..\build\ChromaFiler.exe PRODUCT_VERSION_
 !ifdef CHROMAFILER64
 	BrandingText "$(^Name) v${PRODUCT_VERSION_1}.${PRODUCT_VERSION_2}.${PRODUCT_VERSION_3} (64-bit)"
@@ -43,6 +48,7 @@ SetCompressor LZMA
 !insertmacro MUI_PAGE_DIRECTORY
 Page Custom LockedListShow
 !insertmacro MUI_PAGE_INSTFILES
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW FinishPageShow
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -191,6 +197,18 @@ Section "Add to folder context menu" SecContext
 	WriteRegStr SHCTX Software\Classes\CompressedFolder\shell\chromafiler\command "" '$context_menu_command'
 	WriteRegStr SHCTX Software\Classes\Drive\shell\chromafiler\command "" '$context_menu_command'
 SectionEnd
+
+Function FinishPageShow
+	${If} $tray_window != 0
+		SendMessage $mui.FinishPage.Run ${BM_SETCHECK} ${BST_CHECKED} 0
+	${EndIf}
+FunctionEnd
+
+Function OpenTray
+	; https://mdb-blog.blogspot.com/2013/01/nsis-lunch-program-as-user-from-uac.html
+	CreateShortCut "$TEMP\ChromaFilerTray.lnk" "$INSTDIR\ChromaFiler.exe" "/tray"
+	Exec '"$WINDIR\explorer.exe" "$TEMP\ChromaFilerTray.lnk"'
+FunctionEnd
 
 Section "un.Uninstall"
 	Delete $INSTDIR\*.exe
