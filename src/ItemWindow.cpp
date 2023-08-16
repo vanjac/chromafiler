@@ -541,6 +541,9 @@ bool ItemWindow::handleTopLevelMessage(MSG *msg) {
 }
 
 void getItemIcons(CComPtr<IShellItem> item, HICON *iconLarge, HICON *iconSmall) {
+    // TODO: move to thread?
+    // TODO: SHGetFileInfo?
+    // https://www.zabkat.com/2xExplorer/shellFAQ/bas_infos.html
     CComPtr<IExtractIcon> extractIcon;
     if (checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
         wchar_t iconFile[MAX_PATH];
