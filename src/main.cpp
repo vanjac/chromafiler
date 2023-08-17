@@ -64,6 +64,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
 #ifdef CHROMAFILER_MEMLEAKS
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_WNDW);
     debugPrintf(L"Compiled with memory leak detection\n");
 #endif
 
@@ -81,6 +82,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     PreviewWindow::init();
     TextWindow::init();
     TrayWindow::init();
+
+    new int;
 
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));
