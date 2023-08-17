@@ -1,6 +1,7 @@
 #pragma once
 #include <common.h>
 
+#include <memory>
 #include <atlbase.h>
 
 namespace chromafiler {
@@ -8,7 +9,7 @@ namespace chromafiler {
 struct UpdateInfo {
     DWORD version;
     bool isNewer;
-    CComHeapPtr<char> url;
+    std::unique_ptr<char[]> url;
 };
 
 constexpr DWORD makeVersion(BYTE v1, BYTE v2, BYTE v3, BYTE v4) {

@@ -83,7 +83,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     TextWindow::init();
     TrayWindow::init();
 
-    new int;
 
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));

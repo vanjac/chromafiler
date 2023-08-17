@@ -1,5 +1,6 @@
 #include "Update.h"
 #include "resource.h"
+#include <vector>
 #include <wininet.h>
 #include <shellapi.h>
 
@@ -9,7 +10,7 @@ const wchar_t UPDATE_URL[] = L"https://chroma.zone/dist/chromafiler-update-relea
 const int MAX_DOWNLOAD_SIZE = 1024;
 
 DWORD checkUpdate(UpdateInfo *info) {
-    CComHeapPtr<char> data;
+    std::vector<char> data;
     DWORD dataSize = 0;
     DWORD error = (DWORD)E_FAIL;
 
@@ -31,20 +32,19 @@ DWORD checkUpdate(UpdateInfo *info) {
             }
             if (dataSize + bufferSize > MAX_DOWNLOAD_SIZE)
                 bufferSize = MAX_DOWNLOAD_SIZE - dataSize;
-            CComHeapPtr<char> buffer;
-            buffer.AllocateBytes(bufferSize);
-            if (!checkLE(InternetReadFile(connection, buffer, bufferSize, &downloadedSize))) {
+            data.resize(dataSize + bufferSize);
+            if (!checkLE(InternetReadFile(connection, data.data() + dataSize, bufferSize,
+                    &downloadedSize))) {
                 error = GetLastError();
                 break;
             }
             if (downloadedSize == 0)
                 break;
 
-            data.ReallocateBytes(dataSize + downloadedSize + 1);
-            CopyMemory(data + dataSize, buffer, downloadedSize);
             dataSize += downloadedSize;
             error = 0;
         }
+        data.resize(dataSize + 1);
         data[dataSize] = 0; // null terminator
         InternetCloseHandle(connection);
     }
@@ -52,8 +52,8 @@ DWORD checkUpdate(UpdateInfo *info) {
 
     if (error)
         return error;
-    debugPrintf(L"Downloaded content: %S\n", &*data);
-    if (memcmp(data, "CFUP", 4)) {
+    debugPrintf(L"Downloaded content: %S\n", data.data());
+    if (memcmp(data.data(), "CFUP", 4)) {
         debugPrintf(L"Update data is missing prefix!\n");
         return (DWORD)E_FAIL;
     }
@@ -62,7 +62,7 @@ DWORD checkUpdate(UpdateInfo *info) {
         return (DWORD)E_FAIL;
     }
     char hexString[11] = "0x";
-    CopyMemory(hexString + 2, data + 5, 8);
+    CopyMemory(hexString + 2, data.data() + 5, 8);
     hexString[10] = 0;
     if (!StrToIntExA(hexString, STIF_SUPPORT_HEX, (int *)&info->version)) {
         debugPrintf(L"Can't parse update version!\n");
@@ -70,16 +70,16 @@ DWORD checkUpdate(UpdateInfo *info) {
     }
     info->isNewer = info->version > makeVersion(CHROMAFILER_VERSION);
 
-    char *url = data + 14, *urlEnd = StrChrA(url, '\n');
+    char *url = data.data() + 14, *urlEnd = StrChrA(url, '\n');
     size_t urlLen = urlEnd ? (urlEnd - url) : lstrlenA(url);
-    info->url.Allocate(urlLen + 1);
-    CopyMemory(info->url, url, urlLen);
+    info->url = std::unique_ptr<char[]>(new char[urlLen + 1]);
+    CopyMemory(info->url.get(), url, urlLen);
     info->url[urlLen] = 0;
     return S_OK;
 }
 
 void openUpdate(const UpdateInfo &info) {
-    ShellExecuteA(nullptr, "open", &*info.url, nullptr, nullptr, SW_SHOWNORMAL);
+    ShellExecuteA(nullptr, "open", info.url.get(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 
 } // namespace
