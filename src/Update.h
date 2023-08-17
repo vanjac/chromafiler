@@ -2,7 +2,7 @@
 #include <common.h>
 
 #include <memory>
-#include <atlbase.h>
+#include <Windows.h>
 
 namespace chromafiler {
 

@@ -565,13 +565,12 @@ void FolderWindow::trackContextMenu(POINT pos) {
             checkHR(item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &path));
             info.lpDirectoryW = path;
             // convert to ANSI
-            CComHeapPtr<char> pathA;
             int pathASize = WideCharToMultiByte(CP_ACP, 0, path, -1, nullptr, 0, nullptr, nullptr);
             if (checkLE(pathASize)) {
-                pathA.Allocate(pathASize);
+                std::unique_ptr<char[]> pathA(new char[pathASize]);
                 checkLE(WideCharToMultiByte(CP_ACP, 0, path, -1,
-                    pathA, pathASize, nullptr, nullptr));
-                info.lpDirectory = pathA;
+                    pathA.get(), pathASize, nullptr, nullptr));
+                info.lpDirectory = pathA.get();
             }
             CComPtr<IFolderView2> folderView;
             if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))

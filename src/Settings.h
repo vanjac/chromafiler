@@ -1,8 +1,7 @@
 #pragma once
 #include <common.h>
 
-#include <windows.h>
-#include <atlbase.h>
+#include <WinUtils.h>
 
 namespace chromafiler {
 
@@ -54,11 +53,11 @@ void setLastUpdateCheck(LONGLONG value);
 LONGLONG getUpdateCheckRate();
 void setUpdateCheckRate(LONGLONG value); // TODO: add to Settings
 
-void getStartingFolder(CComHeapPtr<wchar_t> &value);
+wstr_ptr getStartingFolder();
 void setStartingFolder(wchar_t *value);
-void getScratchFolder(CComHeapPtr<wchar_t> &value);
+wstr_ptr getScratchFolder();
 void setScratchFolder(wchar_t *value);
-void getScratchFileName(CComHeapPtr<wchar_t> &value);
+wstr_ptr getScratchFileName();
 void setScratchFileName(wchar_t *value);
 
 SIZE getItemWindowSize(); // assuming 96 dpi
@@ -100,7 +99,7 @@ void setTextAutoNewlines(bool value);
 
 bool getTrayOpenOnStartup();
 void setTrayOpenOnStartup(bool value);
-void getTrayFolder(CComHeapPtr<wchar_t> &value);
+wstr_ptr getTrayFolder();
 void setTrayFolder(wchar_t *value);
 int getTrayDPI();
 void setTrayDPI(int value);

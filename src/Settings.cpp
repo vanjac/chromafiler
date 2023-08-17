@@ -26,16 +26,17 @@ LSTATUS setSettingsValue(const wchar_t *name, DWORD type, const void *data, DWOR
     return RegSetKeyValue(HKEY_CURRENT_USER, KEY_SETTINGS, name, type, data, size);
 }
 
-void getSettingsString(const wchar_t *name, DWORD type, const wchar_t *defaultValue,
-        CComHeapPtr<wchar_t> &valueOut) {
+wstr_ptr getSettingsString(const wchar_t *name, DWORD type, const wchar_t *defaultValue) {
     DWORD size;
     if (!RegGetValue(HKEY_CURRENT_USER, KEY_SETTINGS, name, type, nullptr, nullptr, &size)) {
-        valueOut.AllocateBytes(size);
-        RegGetValue(HKEY_CURRENT_USER, KEY_SETTINGS, name, type, nullptr, valueOut, &size);
+        wstr_ptr buffer(new wchar_t[size / sizeof(wchar_t)]);
+        RegGetValue(HKEY_CURRENT_USER, KEY_SETTINGS, name, type, nullptr, buffer.get(), &size);
+        return buffer;
     } else {
         DWORD count = lstrlen(defaultValue) + 1;
-        valueOut.Allocate(count);
-        CopyMemory(valueOut, defaultValue, count * sizeof(wchar_t));
+        wstr_ptr buffer(new wchar_t[count]);
+        CopyMemory(buffer.get(), defaultValue, count * sizeof(wchar_t));
+        return buffer;
     }
 }
 
@@ -93,8 +94,8 @@ void setSettingsString(const wchar_t *name, DWORD type, const wchar_t *value) {
     }
 
 #define SETTINGS_STRING_VALUE(funcName, regType, valueName, defaultValue) \
-    void get##funcName(CComHeapPtr<wchar_t> &value) {                                              \
-        return getSettingsString((valueName), RRF_RT_REG_SZ, (defaultValue), value);               \
+    wstr_ptr get##funcName() {                                                                     \
+        return getSettingsString((valueName), RRF_RT_REG_SZ, (defaultValue));                      \
     }                                                                                              \
     void set##funcName(wchar_t *value) {                                                           \
         setSettingsString((valueName), (regType), value);                                          \

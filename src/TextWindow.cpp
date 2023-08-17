@@ -446,12 +446,11 @@ void TextWindow::setWordWrap(bool wordWrap) {
     // can't use WM_GETTEXTLENGTH because it counts CRLFs instead of LFs
     GETTEXTLENGTHEX getLength = {GTL_NUMCHARS | GTL_PRECISE, CP_UTF16LE};
     LONG textLength = (LONG)SendMessage(edit, EM_GETTEXTLENGTHEX, (WPARAM)&getLength, 0);
-    CComHeapPtr<wchar_t> buffer;
-    buffer.Allocate(textLength + 1);
+    wstr_ptr buffer(new wchar_t[textLength + 1]);
     GETTEXTEX getText = {};
     getText.cb = (textLength + 1) * sizeof(wchar_t);
     getText.codepage = CP_UTF16LE;
-    SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)&*buffer);
+    SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)buffer.get());
 
     // other state
     BOOL modify = Edit_GetModify(edit);
@@ -463,7 +462,7 @@ void TextWindow::setWordWrap(bool wordWrap) {
     onSize(clientSize(hwnd));
 
     SETTEXTEX setText = {ST_UNICODE, CP_UTF16LE};
-    SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)&*buffer);
+    SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)buffer.get());
     Edit_SetModify(edit, modify);
     SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
 
@@ -654,7 +653,7 @@ TextNewlines detectNewlineType(T *start, T*end) {
 
 HRESULT TextWindow::loadText() {
     HRESULT hr;
-    CComHeapPtr<uint8_t> buffer; // null terminated!
+    std::unique_ptr<uint8_t[]> buffer; // null terminated!
     ULONG size;
     {
         CComPtr<IBindCtx> context;
@@ -671,18 +670,18 @@ HRESULT TextWindow::loadText() {
         if (largeSize.QuadPart > (ULONGLONG)MAX_FILE_SIZE)
             return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
         size = (ULONG)largeSize.QuadPart;
-        buffer.AllocateBytes(size + 2); // 2 null bytes
-        if (!checkHR(hr = IStream_Read(stream, buffer, (ULONG)size)))
+        buffer = std::unique_ptr<uint8_t[]>(new uint8_t[size + 2]); // 2 null bytes
+        if (!checkHR(hr = IStream_Read(stream, buffer.get(), (ULONG)size)))
             return hr;
         buffer[size] = buffer[size + 1] = 0;
     }
 
     // https://docs.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks
-    if (CHECK_BOM(buffer, size, BOM_UTF16BE)) {
+    if (CHECK_BOM(buffer.get(), size, BOM_UTF16BE)) {
         detectEncoding = ENC_UTF16BE;
-    } else if (CHECK_BOM(buffer, size, BOM_UTF16LE)) {
+    } else if (CHECK_BOM(buffer.get(), size, BOM_UTF16LE)) {
         detectEncoding = ENC_UTF16LE;
-    } else if (CHECK_BOM(buffer, size, BOM_UTF8BOM)) {
+    } else if (CHECK_BOM(buffer.get(), size, BOM_UTF8BOM)) {
         detectEncoding = ENC_UTF8BOM;
     } else if (size > 0) {
         detectEncoding = ENC_UTF8; // could be ANSI!
@@ -693,8 +692,8 @@ HRESULT TextWindow::loadText() {
     uint8_t *textStart;
     SETTEXTEX setText = {};
     if (detectEncoding == ENC_UTF16BE || detectEncoding == ENC_UTF16LE) {
-        wchar_t *wcString = ((wchar_t *)(void *)buffer) + 1; // skip BOM
-        wchar_t *wcEnd = (wchar_t *)(void *)(buffer + size);
+        wchar_t *wcString = ((wchar_t *)(void *)buffer.get()) + 1; // skip BOM
+        wchar_t *wcEnd = (wchar_t *)(void *)(buffer.get() + size);
         for (wchar_t *c = wcString; c < wcEnd; c++) {
             if (*c == 0)
                 *c = L' ';
@@ -705,11 +704,11 @@ HRESULT TextWindow::loadText() {
         textStart = (uint8_t *)wcString;
         setText = {ST_UNICODE, CP_UTF16LE};
     } else { // UTF-8 or ANSI
-        textStart = (detectEncoding == ENC_UTF8BOM) ? (buffer + sizeof(BOM_UTF8BOM)) : buffer;
+        textStart = buffer.get() + ((detectEncoding == ENC_UTF8BOM) ? sizeof(BOM_UTF8BOM) : 0);
         // replace null bytes with spaces and validate UTF-8 encoding
         // https://en.wikipedia.org/wiki/UTF-8#Encoding
         // TODO: check for overlong encodings and invalid code points
-        uint8_t *textEnd = buffer + size;
+        uint8_t *textEnd = buffer.get() + size;
         char continuation = 0; // num continuation bytes remaining in code point
         for (uint8_t *c = textStart; c < textEnd; c++) {
             if (*c == 0)
@@ -775,29 +774,28 @@ HRESULT TextWindow::saveText() {
         return (HRESULT)numChars;
 
     ULONG bufSize = isUtf16 ? ((numChars + 1) * sizeof(wchar_t)) : (numChars + 1); // room for null
-    CComHeapPtr<uint8_t> buffer;
-    buffer.AllocateBytes(bufSize);
+    std::unique_ptr<uint8_t[]> buffer(new uint8_t[bufSize]);
 
     GETTEXTEX getText = {};
     getText.cb = bufSize;
     getText.flags = (saveNewlines == NL_CRLF) ? GT_USECRLF : 0;
     getText.codepage = getLength.codepage;
-    numChars = (ULONG)SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)&*buffer);
+    numChars = (ULONG)SendMessage(edit, EM_GETTEXTEX, (WPARAM)&getText, (LPARAM)buffer.get());
     ULONG writeLen = isUtf16 ? (numChars * sizeof(wchar_t)) : numChars;
 
     if (saveEncoding == ENC_UTF16BE) {
-        for (wchar_t *c = (wchar_t *)&*buffer, *end = c + numChars; c < end; c++) {
+        for (wchar_t *c = (wchar_t *)buffer.get(), *end = c + numChars; c < end; c++) {
             if (saveNewlines == NL_LF && *c == L'\r')
                 *c = 0x0A00;
             else
                 *c = _byteswap_ushort(*c);
         }
     } else if (saveEncoding == ENC_UTF16LE && saveNewlines == NL_LF) {
-        for (wchar_t *c = (wchar_t *)&*buffer, *end = c + numChars; c < end; c++) {
+        for (wchar_t *c = (wchar_t *)buffer.get(), *end = c + numChars; c < end; c++) {
             if (*c == L'\r') *c = L'\n';
         }
     } else if (saveNewlines == NL_LF) {
-        for (uint8_t *c = buffer; c < buffer + numChars; c++) {
+        for (uint8_t *c = buffer.get(); c < buffer.get() + numChars; c++) {
             if (*c == '\r') *c = '\n';
         }
     }
@@ -822,7 +820,7 @@ HRESULT TextWindow::saveText() {
     if (!checkHR(hr))
         return hr;
 
-    if (!checkHR(hr = IStream_Write(stream, buffer, writeLen)))
+    if (!checkHR(hr = IStream_Write(stream, buffer.get(), writeLen)))
         return hr;
 
     detectEncoding = saveEncoding;

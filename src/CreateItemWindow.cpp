@@ -151,9 +151,8 @@ CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder) {
     checkHR(operation->Advise(&eventSink, &eventSinkCookie));
     checkHR(operation->SetOperationFlags(
         (IsWindows8OrGreater() ? FOFX_ADDUNDORECORD : FOF_ALLOWUNDO) | FOF_RENAMEONCOLLISION));
-    CComHeapPtr<wchar_t> fileName;
-    settings::getScratchFileName(fileName);
-    checkHR(operation->NewItem(folder, FILE_ATTRIBUTE_NORMAL, fileName, nullptr, nullptr));
+    wstr_ptr fileName = settings::getScratchFileName();
+    checkHR(operation->NewItem(folder, FILE_ATTRIBUTE_NORMAL, fileName.get(), nullptr, nullptr));
     checkHR(operation->PerformOperations());
     checkHR(operation->Unadvise(eventSinkCookie));
     return eventSink.newItem;

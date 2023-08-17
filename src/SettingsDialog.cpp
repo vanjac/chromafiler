@@ -50,9 +50,7 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                 SendDlgItemMessage(hwnd, IDC_START_FOLDER_PATH, CB_ADDSTRING, 0,
                     (LPARAM)SPECIAL_PATHS[i]);
             }
-            CComHeapPtr<wchar_t> startingFolder;
-            settings::getStartingFolder(startingFolder);
-            SetDlgItemText(hwnd, IDC_START_FOLDER_PATH, startingFolder);
+            SetDlgItemText(hwnd, IDC_START_FOLDER_PATH, settings::getStartingFolder().get());
             SIZE folderWindowSize = settings::getFolderWindowSize();
             SetDlgItemInt(hwnd, IDC_FOLDER_WINDOW_WIDTH, folderWindowSize.cx, TRUE);
             SetDlgItemInt(hwnd, IDC_FOLDER_WINDOW_HEIGHT, folderWindowSize.cy, TRUE);
@@ -169,11 +167,8 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             CheckDlgButton(hwnd, IDC_TEXT_AUTO_ENCODING, settings::getTextAutoEncoding());
             SendDlgItemMessage(hwnd, IDC_SCRATCH_FOLDER_PATH, CB_ADDSTRING, 0,
                 (LPARAM)settings::DEFAULT_SCRATCH_FOLDER);
-            CComHeapPtr<wchar_t> scratchFolder, scratchFileName;
-            settings::getScratchFolder(scratchFolder);
-            SetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH, scratchFolder);
-            settings::getScratchFileName(scratchFileName);
-            SetDlgItemText(hwnd, IDC_SCRATCH_FILE_NAME, scratchFileName);
+            SetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH, settings::getScratchFolder().get());
+            SetDlgItemText(hwnd, IDC_SCRATCH_FILE_NAME, settings::getScratchFileName().get());
             return TRUE;
         }
         case WM_NOTIFY: {
@@ -277,9 +272,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 SendDlgItemMessage(hwnd, IDC_TRAY_FOLDER_PATH, CB_ADDSTRING, 0,
                     (LPARAM)SPECIAL_PATHS[i]);
             }
-            CComHeapPtr<wchar_t> trayFolder;
-            settings::getTrayFolder(trayFolder);
-            SetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, trayFolder);
+            SetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, settings::getTrayFolder().get());
             switch (settings::getTrayDirection()) {
                 case TRAY_UP:
                     CheckDlgButton(hwnd, IDC_TRAY_DIR_ABOVE, BST_CHECKED);

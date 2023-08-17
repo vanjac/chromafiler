@@ -3,6 +3,7 @@
 #include <vector>
 #include <wininet.h>
 #include <shellapi.h>
+#include <Shlwapi.h>
 
 namespace chromafiler {
 

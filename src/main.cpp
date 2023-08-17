@@ -10,6 +10,7 @@
 #include "Update.h"
 #include "DPI.h"
 #include "UIStrings.h"
+#include "WinUtils.h"
 #include <shellapi.h>
 #include <shlobj.h>
 #include <propkey.h>
@@ -91,16 +92,16 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         int argc;
         wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
 
-        CComHeapPtr<wchar_t> pathAlloc;
+        wstr_ptr pathAlloc;
         wchar_t *path;
         bool tray = false, scratch = false;
         if (argc > 1 && lstrcmpi(argv[1], L"/tray") == 0) {
-            settings::getTrayFolder(pathAlloc);
-            path = pathAlloc;
+            pathAlloc = settings::getTrayFolder();
+            path = pathAlloc.get();
             tray = true;
         } else if (argc > 1 && lstrcmpi(argv[1], L"/scratch") == 0) {
-            settings::getScratchFolder(pathAlloc);
-            path = pathAlloc;
+            pathAlloc = settings::getScratchFolder();
+            path = pathAlloc.get();
             scratch = true;
         } else if (argc > 1) {
             wchar_t *relPath = argv[1];
@@ -112,14 +113,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
                     && _memicmp(relPath, SHELL_PREFIX, _countof(SHELL_PREFIX)) == 0)) {
                 path = relPath; // assume desktop absolute parsing name
             } else { // assume relative file system path
-                pathAlloc.Allocate(MAX_PATH);
-                path = pathAlloc;
+                pathAlloc = wstr_ptr(new wchar_t[MAX_PATH]);
+                path = pathAlloc.get();
                 if (!GetFullPathName(relPath, MAX_PATH, path, nullptr))
                     path = relPath;
             }
         } else {
-            settings::getStartingFolder(pathAlloc);
-            path = pathAlloc;
+            pathAlloc = settings::getStartingFolder();
+            path = pathAlloc.get();
         }
 
         CComPtr<IShellItem> startItem = itemFromPath(path);

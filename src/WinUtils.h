@@ -1,6 +1,7 @@
 #pragma once
 #include <common.h>
 
+#include <memory>
 #include <windows.h>
 
 namespace chromafiler {
@@ -8,6 +9,8 @@ namespace chromafiler {
 // https://stackoverflow.com/a/47459319
 template <typename T>
 const T* tempPtr(const T&& x) { return &x; }
+
+using wstr_ptr = std::unique_ptr<wchar_t[]>;
 
 /* win32 wrappers that return values directly instead of error codes */
 RECT windowRect(HWND hwnd);
