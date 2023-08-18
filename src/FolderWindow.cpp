@@ -156,7 +156,7 @@ void FolderWindow::onCreate() {
         checkHR(browser->Destroy());
         browser = nullptr;
         if (hasStatusText())
-            setStatusText(formatErrorMessage(hr).get());
+            setStatusText(getErrorMessage(hr).get());
         return;
     }
     checkHR(browser->SetOptions(BROWSER_OPTIONS | EBO_NAVIGATEONCE)); // no further navigation

@@ -433,7 +433,7 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
                 UpdateInfo info;
                 if (DWORD error = checkUpdate(&info)) {
                     TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_UPDATE_ERROR),
-                        nullptr, formatErrorMessage(error).get(), 0, nullptr, nullptr);
+                        nullptr, getErrorMessage(error).get(), 0, nullptr, nullptr);
                     return TRUE;
                 }
                 if (info.isNewer) {

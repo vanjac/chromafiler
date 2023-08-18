@@ -84,7 +84,7 @@ void TextWindow::onCreate() {
         Edit_SetModify(edit, FALSE);
         updateStatus();
     } else if (hasStatusText()) {
-        setStatusText(formatErrorMessage(hr).get());
+        setStatusText(getErrorMessage(hr).get());
     }
 }
 
@@ -393,7 +393,7 @@ void TextWindow::userSave() {
     } else {
         enableChain(false);
         checkHR(TaskDialog(hwnd, GetModuleHandle(nullptr), title, MAKEINTRESOURCE(IDS_SAVE_ERROR),
-            formatErrorMessage(hr).get(), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr));
+            getErrorMessage(hr).get(), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr));
         enableChain(true);
     }
     isUnsavedScratchFile = false;

@@ -36,14 +36,14 @@ int main(int, char**) {
 bool logHRESULT(long hr, const char *file, int line, const char *expr) {
     if (SUCCEEDED(hr))
         return true;
-    local_wstr_ptr message = formatErrorMessage(hr);
+    local_wstr_ptr message = getErrorMessage(hr);
     debugPrintf(L"Error 0x%X: %s\n    in %S (%S:%d)\n", hr, message.get(), expr, file, line);
     return false;
 }
 
 void logLastError(const char *file, int line, const char *expr) {
     DWORD error = GetLastError();
-    local_wstr_ptr message = formatErrorMessage(error);
+    local_wstr_ptr message = getErrorMessage(error);
     debugPrintf(L"Error %d: %s\n    in %S (%S:%d)\n", error, message.get(), expr, file, line);
 }
 #endif
