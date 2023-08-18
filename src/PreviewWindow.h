@@ -36,7 +36,9 @@ public:
 
 protected:
     enum UserMessage {
+        // WPARAM: 0, LPARAM: IPreviewHandler (marshalled, calls Release!)
         MSG_INIT_PREVIEW_COMPLETE = ItemWindow::MSG_LAST,
+        // WPARAM: 0, LPARAM: 0
         MSG_REFRESH_PREVIEW,
         MSG_LAST
     };

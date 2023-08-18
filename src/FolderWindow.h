@@ -41,6 +41,7 @@ public:
 
 protected:
     enum UserMessage {
+        // WPARAM: 0, LPARAM: 0
         MSG_SELECTION_CHANGED = ItemWindow::MSG_LAST,
         MSG_LAST
     };

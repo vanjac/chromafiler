@@ -14,6 +14,7 @@ public:
 
 protected:
     enum UserMessage {
+        // WPARAM: 0, LPARAM: HBITMAP (calls DeleteObject!)
         MSG_SET_THUMBNAIL_BITMAP = ItemWindow::MSG_LAST,
         MSG_LAST
     };

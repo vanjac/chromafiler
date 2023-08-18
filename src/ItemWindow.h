@@ -49,6 +49,7 @@ public:
 
 protected:
     enum UserMessage {
+        // WPARAM: 0, LPARAM: text (calls CoTaskMemFree!)
         MSG_SET_STATUS_TEXT = WM_USER,
         MSG_LAST
     };

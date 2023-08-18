@@ -27,7 +27,9 @@ const wchar_t PREVIEW_WINDOW_CLASS[] = L"ChromaFile Preview";
 const wchar_t PREVIEW_CONTAINER_CLASS[] = L"ChromaFile Preview Container";
 
 enum WorkerUserMessage {
+    // WPARAM: 0, LPARAM: InitPreviewRequest (calls free!)
     MSG_INIT_PREVIEW_REQUEST = WM_USER,
+    // WPARAM: 0, LPARAM: IPreviewHandler (marshalled, calls Release!)
     MSG_RELEASE_PREVIEW
 };
 
