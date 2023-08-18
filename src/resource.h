@@ -110,6 +110,7 @@
 #define IDS_FONT_NAME           245
 #define IDS_UNKNOWN_ERROR       246
 #define IDS_LEGAL_INFO          247
+#define IDS_FOLDER_ERROR        248
 
 // corresponds to UNDONAMEID
 #define IDS_TEXT_UNDO_UNKNOWN   300

@@ -127,6 +127,7 @@ STRINGTABLE {
 
     IDS_FOLDER_STATUS,      "%1!d! items"
     IDS_FOLDER_STATUS_SEL,  "%1!d! items, %2!d! selected"
+    IDS_FOLDER_ERROR,       "Couldn't open folder"
 
     IDS_TEXT_STATUS,        "Ln %1!d!, Col %2!d!"
     IDS_TEXT_STATUS_SEL,    "Ln %1!d!, Col %2!d! (%3!d! selected)"

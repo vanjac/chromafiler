@@ -153,7 +153,6 @@ void FolderWindow::onCreate() {
     // will call IExplorerBrowserEvents callbacks
     HRESULT hr;
     if (!checkHR(hr = browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
-        // eg. browsing a subdirectory in the recycle bin, or access denied
         checkHR(browser->Destroy());
         browser = nullptr;
         if (hasStatusText())
@@ -779,6 +778,7 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
 }
 
 STDMETHODIMP FolderWindow::OnNavigationFailed(PCIDLIST_ABSOLUTE) {
+    setStatusText(getString(IDS_FOLDER_ERROR));
     return S_OK;
 }
 
