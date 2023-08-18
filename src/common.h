@@ -36,4 +36,12 @@ T checkLETemplate(T result, const char *file, int line, const char *expr) {
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
+namespace chromafiler {
+    extern long MEMLEAK_COUNT;
+}
+#define CHROMAFILER_MEMLEAK_ALLOC InterlockedIncrement(&MEMLEAK_COUNT)
+#define CHROMAFILER_MEMLEAK_FREE InterlockedDecrement(&MEMLEAK_COUNT)
+#else
+#define CHROMAFILER_MEMLEAK_ALLOC
+#define CHROMAFILER_MEMLEAK_FREE
 #endif

@@ -528,6 +528,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case MSG_SET_STATUS_TEXT: {
             CComHeapPtr<wchar_t> text;
             text.Attach((wchar_t *)lParam);
+            CHROMAFILER_MEMLEAK_FREE;
             setStatusText(text);
             return 0;
         }
@@ -1862,8 +1863,10 @@ void ItemWindow::StatusTextThread::run() {
     }
 
     EnterCriticalSection(&stopSection);
-    if (!isStopped())
+    if (!isStopped()) {
         PostMessage(callbackWindow, MSG_SET_STATUS_TEXT, 0, (LPARAM)text.Detach());
+        CHROMAFILER_MEMLEAK_ALLOC;
+    }
     LeaveCriticalSection(&stopSection);
 }
 

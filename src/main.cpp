@@ -190,6 +190,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     PreviewWindow::uninit();
     OleUninitialize();
 
+#ifdef CHROMAFILER_MEMLEAKS
+    if (MEMLEAK_COUNT) {
+        auto message = format(L"Detected memory leak (count: %1!d!)", MEMLEAK_COUNT);
+        MessageBox(nullptr, message.get(), L"Memory leak!", MB_ICONERROR);
+    }
+#endif
+
     return (int)msg.wParam;
 }
 
@@ -373,6 +380,9 @@ DWORD WINAPI recoveryCallback(void *) {
 namespace chromafiler {    
     // main.h
     CComPtr<ItemWindow> activeWindow;
+#ifdef CHROMAFILER_MEMLEAKS
+    long MEMLEAK_COUNT;
+#endif
 
     static long numOpenWindows = 0;
 

@@ -18,8 +18,10 @@ ThumbnailWindow::ThumbnailWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem>
     : ItemWindow(parent, item) {}
 
 ThumbnailWindow::~ThumbnailWindow() {
-    if (thumbnailBitmap)
+    if (thumbnailBitmap) {
         DeleteBitmap(thumbnailBitmap);
+        CHROMAFILER_MEMLEAK_FREE;
+    }
 }
 
 const wchar_t * ThumbnailWindow::className() {
@@ -60,8 +62,10 @@ void ThumbnailWindow::refresh() {
 
 LRESULT ThumbnailWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     if (message == MSG_SET_THUMBNAIL_BITMAP) {
-        if (thumbnailBitmap)
+        if (thumbnailBitmap) {
             DeleteBitmap(thumbnailBitmap);
+            CHROMAFILER_MEMLEAK_FREE;
+        }
         thumbnailBitmap = (HBITMAP)lParam;
         InvalidateRect(hwnd, nullptr, FALSE);
     }
@@ -162,6 +166,7 @@ void ThumbnailWindow::ThumbnailThread::run() {
                 DeleteBitmap(hBitmap);
             } else {
                 PostMessage(callbackWindow, MSG_SET_THUMBNAIL_BITMAP, 0, (LPARAM)hBitmap);
+                CHROMAFILER_MEMLEAK_ALLOC;
             }
             LeaveCriticalSection(&stopSection);
         } else if (event == WAIT_OBJECT_0 + 1) {

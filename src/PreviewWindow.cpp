@@ -116,6 +116,7 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
         preview = nullptr;
         if (!checkHR(CoGetInterfaceAndReleaseStream((IStream*)lParam, IID_PPV_ARGS(&preview))))
             return 0;
+        CHROMAFILER_MEMLEAK_FREE;
         checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this));
         checkHR(preview->DoPreview());
         // required for some preview handlers to render correctly initially (eg. SumatraPDF)
@@ -144,6 +145,7 @@ void PreviewWindow::destroyPreview() {
         IStream *previewHandlerStream; // no CComPtr
         checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
             &previewHandlerStream));
+        CHROMAFILER_MEMLEAK_ALLOC;
         checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
             MSG_RELEASE_PREVIEW, 0, (LPARAM)previewHandlerStream));
 
@@ -225,7 +227,7 @@ DWORD WINAPI PreviewWindow::initPreviewThreadProc(void *) {
         } else if (msg.hwnd == nullptr && msg.message == MSG_RELEASE_PREVIEW) {
             CComPtr<IPreviewHandler> preview;
             checkHR(CoGetInterfaceAndReleaseStream((IStream*)msg.lParam, IID_PPV_ARGS(&preview)));
-            // and immediately goes out of scope
+            CHROMAFILER_MEMLEAK_FREE; // and immediately goes out of scope
         } else {
             // regular message loop is required by some preview handlers (eg. Windows Mime handler)
             TranslateMessage(&msg);
@@ -283,6 +285,7 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
     IStream *previewHandlerStream; // no CComPtr
     checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
         &previewHandlerStream));
+    CHROMAFILER_MEMLEAK_ALLOC;
     PostMessage(request->callbackWindow,
         MSG_INIT_PREVIEW_COMPLETE, 0, (LPARAM)previewHandlerStream);
 
