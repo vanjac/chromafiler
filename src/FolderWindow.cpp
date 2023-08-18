@@ -156,11 +156,8 @@ void FolderWindow::onCreate() {
         // eg. browsing a subdirectory in the recycle bin, or access denied
         checkHR(browser->Destroy());
         browser = nullptr;
-        if (hasStatusText()) {
-            LocalHeapPtr<wchar_t> message;
-            formatErrorMessage(message, hr);
-            setStatusText(message);
-        }
+        if (hasStatusText())
+            setStatusText(formatErrorMessage(hr).get());
         return;
     }
     checkHR(browser->SetOptions(BROWSER_OPTIONS | EBO_NAVIGATEONCE)); // no further navigation
@@ -463,13 +460,13 @@ void FolderWindow::updateStatus() {
     int numItems = 0, numSelected = 0;
     checkHR(folderView->ItemCount(SVGIO_ALLVIEW, &numItems));
     checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected));
-    LocalHeapPtr<wchar_t> status;
+    local_wstr_ptr status;
     if (numSelected == 0) {
-        formatString(status, IDS_FOLDER_STATUS, numItems);
+        status = formatString(IDS_FOLDER_STATUS, numItems);
     } else {
-        formatString(status, IDS_FOLDER_STATUS_SEL, numItems, numSelected);
+        status = formatString(IDS_FOLDER_STATUS_SEL, numItems, numSelected);
     }
-    setStatusText(status);
+    setStatusText(status.get());
 }
 
 void FolderWindow::clearSelection() {

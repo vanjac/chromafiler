@@ -131,9 +131,8 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 }
 
 void updateFontNameText(HWND hwnd, const LOGFONT &logFont) {
-    LocalHeapPtr<wchar_t> fontName;
-    formatString(fontName, IDS_FONT_NAME, logFont.lfFaceName, logFont.lfHeight);
-    SetDlgItemText(hwnd, IDC_TEXT_FONT_NAME, fontName);
+    local_wstr_ptr fontName = formatString(IDS_FONT_NAME, logFont.lfFaceName, logFont.lfHeight);
+    SetDlgItemText(hwnd, IDC_TEXT_FONT_NAME, fontName.get());
 }
 
 INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -433,10 +432,8 @@ INT_PTR CALLBACK aboutProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam
                 HINSTANCE instance = GetModuleHandle(nullptr);
                 UpdateInfo info;
                 if (DWORD error = checkUpdate(&info)) {
-                    LocalHeapPtr<wchar_t> content;
-                    formatErrorMessage(content, error);
                     TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_UPDATE_ERROR),
-                        nullptr, content, 0, nullptr, nullptr);
+                        nullptr, formatErrorMessage(error).get(), 0, nullptr, nullptr);
                     return TRUE;
                 }
                 if (info.isNewer) {

@@ -84,9 +84,7 @@ void TextWindow::onCreate() {
         Edit_SetModify(edit, FALSE);
         updateStatus();
     } else if (hasStatusText()) {
-        LocalHeapPtr<wchar_t> status;
-        formatErrorMessage(status, hr);
-        setStatusText(status);
+        setStatusText(formatErrorMessage(hr).get());
     }
 }
 
@@ -229,17 +227,15 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 EnableMenuItem(menu, IDM_UNDO, MF_GRAYED);
             } else {
                 UNDONAMEID undoId = (UNDONAMEID)SendMessage(edit, EM_GETUNDONAME, 0, 0);
-                LocalHeapPtr<wchar_t> undoMessage;
-                formatString(undoMessage, IDS_TEXT_UNDO, undoNameToString(undoId));
-                ModifyMenu(menu, IDM_UNDO, MF_STRING, IDM_UNDO, undoMessage);
+                local_wstr_ptr undoMessage = formatString(IDS_TEXT_UNDO, undoNameToString(undoId));
+                ModifyMenu(menu, IDM_UNDO, MF_STRING, IDM_UNDO, undoMessage.get());
             }
             if (!SendMessage(edit, EM_CANREDO, 0, 0)) {
                 EnableMenuItem(menu, IDM_REDO, MF_GRAYED);
             } else {
                 UNDONAMEID redoId = (UNDONAMEID)SendMessage(edit, EM_GETREDONAME, 0, 0);
-                LocalHeapPtr<wchar_t> redoMessage;
-                formatString(redoMessage, IDS_TEXT_REDO, undoNameToString(redoId));
-                ModifyMenu(menu, IDM_REDO, MF_STRING, IDM_REDO, redoMessage);
+                local_wstr_ptr redoMessage = formatString(IDS_TEXT_REDO, undoNameToString(redoId));
+                ModifyMenu(menu, IDM_REDO, MF_STRING, IDM_REDO, redoMessage.get());
             }
             if (SendMessage(edit, EM_SELECTIONTYPE, 0, 0) == SEL_EMPTY) {
                 EnableMenuItem(menu, IDM_CUT, MF_GRAYED);
@@ -380,13 +376,13 @@ void TextWindow::updateStatus() {
     checkHR(range->GetEnd(&end));
     checkHR(range->GetIndex(tomParagraph, &line));
     checkHR(range->StartOf(tomParagraph, tomMove, &toStart));
-    LocalHeapPtr<wchar_t> status;
+    local_wstr_ptr status;
     if (start == end) {
-        formatString(status, IDS_TEXT_STATUS, line, 1 - toStart);
+        status = formatString(IDS_TEXT_STATUS, line, 1 - toStart);
     } else {
-        formatString(status, IDS_TEXT_STATUS_SEL, line, 1 - toStart, end - start);
+        status = formatString(IDS_TEXT_STATUS_SEL, line, 1 - toStart, end - start);
     }
-    setStatusText(status);
+    setStatusText(status.get());
 }
 
 void TextWindow::userSave() {
@@ -395,11 +391,9 @@ void TextWindow::userSave() {
         Edit_SetModify(edit, FALSE);
         setToolbarButtonState(IDM_SAVE, 0);
     } else {
-        LocalHeapPtr<wchar_t> message;
-        formatErrorMessage(message, hr);
         enableChain(false);
-        checkHR(TaskDialog(hwnd, GetModuleHandle(nullptr), title,
-            MAKEINTRESOURCE(IDS_SAVE_ERROR), message, TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr));
+        checkHR(TaskDialog(hwnd, GetModuleHandle(nullptr), title, MAKEINTRESOURCE(IDS_SAVE_ERROR),
+            formatErrorMessage(hr).get(), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr));
         enableChain(true);
     }
     isUnsavedScratchFile = false;
@@ -409,8 +403,7 @@ bool TextWindow::confirmSave(bool willDelete) {
     // alternative to MB_TASKMODAL http://www.verycomputer.com/5_86324e67adeedf52_1.htm
     enableChain(false);
 
-    LocalHeapPtr<wchar_t> text;
-    formatString(text, willDelete ? IDS_DELETE_PROMPT : IDS_SAVE_PROMPT, &*title);
+    local_wstr_ptr text = formatString(willDelete ? IDS_DELETE_PROMPT : IDS_SAVE_PROMPT, &*title);
     TASKDIALOGCONFIG config = {sizeof(config)};
     config.hInstance = GetModuleHandle(nullptr);
     config.hwndParent = hwnd;
@@ -418,7 +411,7 @@ bool TextWindow::confirmSave(bool willDelete) {
     config.pszWindowTitle = title;
     config.hMainIcon = (HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0);
     config.pszMainInstruction = MAKEINTRESOURCE(IDS_UNSAVED_CAPTION);
-    config.pszContent = text;
+    config.pszContent = text.get();
     TASKDIALOG_BUTTON buttons[] = {{IDYES, MAKEINTRESOURCE(IDS_SAVE_BUTTON)},
         {IDNO, MAKEINTRESOURCE(willDelete ? IDS_DELETE_BUTTON : IDS_DONT_SAVE_BUTTON)}};
     config.cButtons = _countof(buttons);
@@ -626,9 +619,7 @@ int TextWindow::replaceAll(FINDREPLACE *input) {
         if (numOccurrences == 0) {
             setStatusText(getString(IDS_TEXT_CANT_FIND));
         } else {
-            LocalHeapPtr<wchar_t> status;
-            formatString(status, IDS_TEXT_STATUS_REPLACE, numOccurrences);
-            setStatusText(status);
+            setStatusText(formatString(IDS_TEXT_STATUS_REPLACE, numOccurrences).get());
         }
     }
     if (numOccurrences == 0)

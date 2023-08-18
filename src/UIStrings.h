@@ -2,33 +2,24 @@
 #include <common.h>
 
 #include "resource.h"
+#include <memory>
 #include <windows.h>
-#include <atlmem.h>
 
 namespace chromafiler {
 
-class LocalAllocator {
-public:
-    static void* Allocate(_In_ size_t nBytes) throw() {
-        return LocalAlloc( LMEM_FIXED, nBytes );
-    }
-    static void* Reallocate(
-        _In_opt_ void* p,
-        _In_ size_t nBytes) throw() {
-        return LocalReAlloc(p, nBytes, 0);
-    }
-    static void Free(_In_opt_ void* p) throw() {
+struct LocalDeleter {
+    template <typename T>
+    void operator()(T* p) {
         LocalFree(p);
     }
 };
 
-template<typename T>
-using LocalHeapPtr = CHeapPtr<T, LocalAllocator>;
+using local_wstr_ptr = std::unique_ptr<wchar_t[], LocalDeleter>;
 
 const wchar_t * getString(UINT id);
-bool formatString(LocalHeapPtr<wchar_t> &message, UINT id, ...);
+local_wstr_ptr formatString(UINT id, ...);
 
-void formatErrorMessage(LocalHeapPtr<wchar_t> &message, DWORD error);
+local_wstr_ptr formatErrorMessage(DWORD error);
 
 void showDebugMessage(HWND owner, wchar_t *title, wchar_t *format, ...);
 

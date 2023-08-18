@@ -10,43 +10,46 @@ const wchar_t * getString(UINT id) {
     return str;
 }
 
-bool formatString(LocalHeapPtr<wchar_t> &message, UINT id, ...) {
+local_wstr_ptr formatString(UINT id, ...) {
     // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessage#examples
+    wchar_t *buffer = nullptr;
     va_list args = nullptr;
     va_start(args, id);
-    DWORD result = FormatMessage(FORMAT_MESSAGE_FROM_STRING | FORMAT_MESSAGE_ALLOCATE_BUFFER,
-        getString(id), 0, 0, (wchar_t *)(wchar_t **)&message, 0, &args);
+    FormatMessage(FORMAT_MESSAGE_FROM_STRING | FORMAT_MESSAGE_ALLOCATE_BUFFER,
+        getString(id), 0, 0, (wchar_t *)&buffer, 0, &args);
     va_end(args);
-    return !!checkLE(result);
+    return local_wstr_ptr(buffer);
 }
 
-void formatErrorMessage(LocalHeapPtr<wchar_t> &message, DWORD error) {
+local_wstr_ptr formatErrorMessage(DWORD error) {
     // based on _com_error::ErrorMessage()  (comdef.h)
     HMODULE mod = nullptr;
     if (error >= 12000 && error <= 12190)
         mod = GetModuleHandle(L"wininet.dll");
-    FormatMessage((mod ? FORMAT_MESSAGE_FROM_HMODULE : FORMAT_MESSAGE_FROM_SYSTEM)
+    wchar_t *buffer = nullptr;
+    DWORD result = FormatMessage((mod ? FORMAT_MESSAGE_FROM_HMODULE : FORMAT_MESSAGE_FROM_SYSTEM)
         | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-        mod, error, 0, (wchar_t *)(wchar_t **)&message, 0, nullptr);
-    if (message) {
-        int len = lstrlen(message);
-        if (len > 1 && message[len - 1] == '\n') {
-            message[len - 1] = 0;
-            if (message[len - 2] == '\r')
-                message[len - 2] = 0;
+        mod, error, 0, (wchar_t *)&buffer, 0, nullptr);
+    if (result && buffer) {
+        int len = lstrlen(buffer);
+        if (len > 1 && buffer[len - 1] == '\n') {
+            buffer[len - 1] = 0;
+            if (buffer[len - 2] == '\r')
+                buffer[len - 2] = 0;
         }
+        return local_wstr_ptr(buffer);
     } else {
-        formatString(message, IDS_UNKNOWN_ERROR);
+        return formatString(IDS_UNKNOWN_ERROR);
     }
 }
 
 
 void showDebugMessage(HWND owner, wchar_t *title, wchar_t *format, ...) {
+    wchar_t *buffer = nullptr;
     va_list args = nullptr;
     va_start(args, format);
-    LocalHeapPtr<wchar_t> message;
     FormatMessage(FORMAT_MESSAGE_FROM_STRING | FORMAT_MESSAGE_ALLOCATE_BUFFER,
-        format, 0, 0, (wchar_t *)(wchar_t **)&message, 0, &args);
+        format, 0, 0, (wchar_t *)&buffer, 0, &args);
     va_end(args);
 
     HWND edit = checkLE(CreateWindow(L"EDIT", title,
@@ -54,8 +57,9 @@ void showDebugMessage(HWND owner, wchar_t *title, wchar_t *format, ...) {
         | ES_AUTOHSCROLL | ES_LEFT | ES_MULTILINE | ES_READONLY,
         CW_USEDEFAULT, CW_USEDEFAULT, scaleDPI(400), scaleDPI(200),
         owner, nullptr, GetModuleHandle(nullptr), nullptr));
-    SendMessage(edit, WM_SETTEXT, 0, (LPARAM)&*message);
+    SendMessage(edit, WM_SETTEXT, 0, (LPARAM)buffer);
     ShowWindow(edit, SW_SHOWNORMAL);
+    LocalFree(buffer);
 }
 
 } // namespace
