@@ -755,6 +755,8 @@ STDMETHODIMP FolderWindow::Notify(IShellView *, DWORD) {
 
 /* IExplorerBrowserEvents */
 
+// order: OnNavigationPending, OnViewCreated, OnNavigationComplete
+// OR: OnNavigationPending, OnNavigationFailed
 STDMETHODIMP FolderWindow::OnNavigationPending(PCIDLIST_ABSOLUTE) {
     return S_OK;
 }
@@ -786,9 +788,13 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
     CComPtr<IShellWindows> shellWindows;
     if (persistIDList && checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows))) {
         CComVariant empty, pidlVar(persistIDList);
-        checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
-            SWC_BROWSER, &shellWindowCookie));
-        checkHR(shellWindows->Register(this, (long)(size_t)hwnd, SWC_BROWSER, &shellWindowCookie));
+        if (!shellWindowCookie) {
+            checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
+                SWC_BROWSER, &shellWindowCookie));
+            checkHR(shellWindows->Register(this, (long)(size_t)hwnd, SWC_BROWSER, &shellWindowCookie));
+        } else { // onItemChanged
+            checkHR(shellWindows->OnNavigate(shellWindowCookie, &pidlVar));
+        }
     }
     return S_OK;
 }
