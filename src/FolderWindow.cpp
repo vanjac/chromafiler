@@ -153,11 +153,8 @@ void FolderWindow::onCreate() {
     // will call IExplorerBrowserEvents callbacks
     HRESULT hr;
     if (!checkHR(hr = browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
-        checkHR(browser->Destroy());
-        browser = nullptr;
         if (hasStatusText())
             setStatusText(getErrorMessage(hr).get());
-        return;
     }
     checkHR(browser->SetOptions(BROWSER_OPTIONS | EBO_NAVIGATEONCE)); // no further navigation
 }
