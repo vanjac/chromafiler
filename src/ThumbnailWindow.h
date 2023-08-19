@@ -44,7 +44,7 @@ private:
         CComHeapPtr<ITEMIDLIST> itemIDList;
         const HWND callbackWindow;
         HANDLE requestThumbnailEvent;
-        CRITICAL_SECTION requestThumbnailSection;
+        SRWLOCK requestThumbnailLock = SRWLOCK_INIT;
         SIZE requestedSize;
     };
 

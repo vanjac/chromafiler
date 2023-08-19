@@ -30,7 +30,7 @@ protected:
 
     bool isStopped();
     HANDLE stopEvent;
-    CRITICAL_SECTION stopSection; // thread will not be stopped while held
+    SRWLOCK stopLock = SRWLOCK_INIT; // thread will not be stopped while held
 
 private:
     HANDLE thread = nullptr;

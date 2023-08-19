@@ -1862,12 +1862,12 @@ void ItemWindow::StatusTextThread::run() {
             *c = '\t';
     }
 
-    EnterCriticalSection(&stopSection);
+    AcquireSRWLockExclusive(&stopLock);
     if (!isStopped()) {
         PostMessage(callbackWindow, MSG_SET_STATUS_TEXT, 0, (LPARAM)text.Detach());
         CHROMAFILER_MEMLEAK_ALLOC;
     }
-    LeaveCriticalSection(&stopSection);
+    ReleaseSRWLockExclusive(&stopLock);
 }
 
 } // namespace

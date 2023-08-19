@@ -115,19 +115,17 @@ ThumbnailWindow::ThumbnailThread::ThumbnailThread(CComPtr<IShellItem> item, HWND
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
     requestThumbnailEvent = checkLE(CreateEvent(nullptr, TRUE, FALSE, nullptr));
-    InitializeCriticalSectionAndSpinCount(&requestThumbnailSection, 4000);
 }
 
 ThumbnailWindow::ThumbnailThread::~ThumbnailThread() {
     checkLE(CloseHandle(requestThumbnailEvent));
-    DeleteCriticalSection(&requestThumbnailSection);
 }
 
 void ThumbnailWindow::ThumbnailThread::requestThumbnail(SIZE size) {
-    EnterCriticalSection(&requestThumbnailSection);
+    AcquireSRWLockExclusive(&requestThumbnailLock);
     requestedSize = size;
     checkLE(SetEvent(requestThumbnailEvent));
-    LeaveCriticalSection(&requestThumbnailSection);
+    ReleaseSRWLockExclusive(&requestThumbnailLock);
 }
 
 void ThumbnailWindow::ThumbnailThread::run() {
@@ -142,10 +140,10 @@ void ThumbnailWindow::ThumbnailThread::run() {
             _countof(waitObjects), waitObjects, FALSE, INFINITE)) != WAIT_FAILED) {
         if (event == WAIT_OBJECT_0) {
             SIZE size;
-            EnterCriticalSection(&requestThumbnailSection);
+            AcquireSRWLockExclusive(&requestThumbnailLock);
             size = requestedSize;
             checkLE(ResetEvent(requestThumbnailEvent));
-            LeaveCriticalSection(&requestThumbnailSection);
+            ReleaseSRWLockExclusive(&requestThumbnailLock);
 
             HBITMAP hBitmap;
             if (FAILED(imageFactory->GetImage(size,
@@ -161,14 +159,14 @@ void ThumbnailWindow::ThumbnailThread::run() {
             compositeBackground(bitmap); // TODO change color for high contrast themes
 
             // ensure the window is not closed before the message is posted
-            EnterCriticalSection(&stopSection);
+            AcquireSRWLockExclusive(&stopLock);
             if (isStopped()) {
                 DeleteBitmap(hBitmap);
             } else {
                 PostMessage(callbackWindow, MSG_SET_THUMBNAIL_BITMAP, 0, (LPARAM)hBitmap);
                 CHROMAFILER_MEMLEAK_ALLOC;
             }
-            LeaveCriticalSection(&stopSection);
+            ReleaseSRWLockExclusive(&stopLock);
         } else if (event == WAIT_OBJECT_0 + 1) {
             return; // stop
         }

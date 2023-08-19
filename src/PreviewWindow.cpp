@@ -205,18 +205,16 @@ PreviewWindow::InitPreviewRequest::InitPreviewRequest(CComPtr<IShellItem> item, 
           container(container) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
     cancelEvent = checkLE(CreateEvent(nullptr, TRUE, FALSE, nullptr));
-    InitializeCriticalSectionAndSpinCount(&cancelSection, 4000);
 }
 
 PreviewWindow::InitPreviewRequest::~InitPreviewRequest() {
     checkLE(CloseHandle(cancelEvent));
-    DeleteCriticalSection(&cancelSection);
 }
 
 void PreviewWindow::InitPreviewRequest::cancel() {
-    EnterCriticalSection(&cancelSection);
+    AcquireSRWLockExclusive(&cancelLock);
     checkLE(SetEvent(cancelEvent));
-    LeaveCriticalSection(&cancelSection);
+    ReleaseSRWLockExclusive(&cancelLock);
 }
 
 DWORD WINAPI PreviewWindow::initPreviewThreadProc(void *) {
@@ -275,9 +273,9 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
     }
 
     // ensure the window is not closed before the message is posted
-    EnterCriticalSection(&request->cancelSection);
+    AcquireSRWLockExclusive(&request->cancelLock);
     if (WaitForSingleObject(request->cancelEvent, 0) == WAIT_OBJECT_0) {
-        LeaveCriticalSection(&request->cancelSection);
+        ReleaseSRWLockExclusive(&request->cancelLock);
         checkHR(preview->Unload());
         return; // early exit
     }
@@ -291,7 +289,7 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
     PostMessage(request->callbackWindow,
         MSG_INIT_PREVIEW_COMPLETE, 0, (LPARAM)previewHandlerStream);
 
-    LeaveCriticalSection(&request->cancelSection);
+    ReleaseSRWLockExclusive(&request->cancelLock);
 }
 
 bool PreviewWindow::initPreviewWithItem(CComPtr<IPreviewHandler> preview,

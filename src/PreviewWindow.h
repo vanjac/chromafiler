@@ -17,7 +17,7 @@ class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
         const CLSID previewID;
         const HWND callbackWindow, container;
         HANDLE cancelEvent;
-        CRITICAL_SECTION cancelSection;
+        SRWLOCK cancelLock = SRWLOCK_INIT;
     };
 
 public:
