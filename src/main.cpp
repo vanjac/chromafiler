@@ -169,12 +169,23 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
+#ifdef CHROMAFILER_DEBUG
+        ULONGLONG tick = GetTickCount64();
+#endif
         if (handleSettingsDialogMessage(&msg))
             continue;
         if (activeWindow && activeWindow->handleTopLevelMessage(&msg))
             continue;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
+#ifdef CHROMAFILER_DEBUG
+        ULONGLONG time = GetTickCount64() - tick;
+        if (time > 100 && msg.message != WM_NCLBUTTONDOWN) {
+            wchar_t className[64] = L"Unknown Class";
+            GetClassName(msg.hwnd, className, _countof(className));
+            debugPrintf(L"%s took %lld ms to handle 0x%04X!\n", className, time, msg.message);
+        }
+#endif
     }
 
     WaitForSingleObject(jumpListThread, INFINITE);
