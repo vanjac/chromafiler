@@ -555,8 +555,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         }
         case MSG_UPDATE_DEFAULT_STATUS_TEXT:
             AcquireSRWLockExclusive(&defaultStatusTextLock);
-            setStatusText(defaultStatusText);
-            defaultStatusText.Free();
+            if (defaultStatusText)
+                setStatusText(defaultStatusText);
             ReleaseSRWLockExclusive(&defaultStatusTextLock);
             return 0;
     }

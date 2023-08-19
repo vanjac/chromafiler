@@ -119,6 +119,8 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
         CComPtr<IStream> newPreviewStream = previewStream;
         previewStream = nullptr;
         ReleaseSRWLockExclusive(&previewStreamLock);
+        if (!newPreviewStream)
+            return;
 
         destroyPreview();
         if (!checkHR(CoUnmarshalInterface(newPreviewStream, IID_PPV_ARGS(&preview))))
