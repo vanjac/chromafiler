@@ -120,7 +120,7 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
         previewStream = nullptr;
         ReleaseSRWLockExclusive(&previewStreamLock);
         if (!newPreviewStream)
-            return;
+            return 0;
 
         destroyPreview();
         if (!checkHR(CoUnmarshalInterface(newPreviewStream, IID_PPV_ARGS(&preview))))

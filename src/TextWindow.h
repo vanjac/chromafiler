@@ -20,6 +20,13 @@ public:
     bool handleTopLevelMessage(MSG *msg) override;
 
 protected:
+    enum UserMessage {
+        // WPARAM: 0, LPARAM: 0
+        MSG_LOAD_COMPLETE = ItemWindow::MSG_LAST,
+        // WPARAM: HRESULT, LPARAM: 0
+        MSG_LOAD_FAIL,
+        MSG_LAST
+    };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     void onCreate() override;
@@ -63,7 +70,15 @@ private:
     void replace(FINDREPLACE *input);
     int replaceAll(FINDREPLACE *input);
 
-    HRESULT loadText();
+    struct LoadResult {
+        std::unique_ptr<uint8_t[]> buffer; // null terminated!
+        uint8_t *textStart;
+        SETTEXTEX setText;
+        TextEncoding encoding;
+        TextNewlines newlines;
+    };
+
+    static HRESULT loadText(CComPtr<IShellItem> item, LoadResult *result);
     HRESULT saveText();
 
     static LRESULT CALLBACK richEditProc(HWND hwnd, UINT message,
@@ -80,6 +95,20 @@ private:
     HWND findReplaceDialog = nullptr;
     FINDREPLACE findReplace;
     wchar_t findBuffer[128], replaceBuffer[128];
+
+    SRWLOCK asyncLoadResultLock = SRWLOCK_INIT;
+    LoadResult asyncLoadResult;
+
+    class LoadThread : public StoppableThread {
+    public:
+        LoadThread(CComPtr<IShellItem> item, TextWindow *callbackWindow);
+    protected:
+        void run() override;
+    private:
+        CComHeapPtr<ITEMIDLIST> itemIDList;
+        TextWindow *callbackWindow;
+    };
+    CComPtr<LoadThread> loadThread;
 };
 
 } // namespace

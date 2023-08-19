@@ -77,15 +77,10 @@ void TextWindow::onCreate() {
     updateFont();
     edit = createRichEdit(settings::getTextWrap());
     SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
+    setStatusText(getString(IDS_TEXT_LOADING));
 
-    HRESULT hr;
-    if (checkHR(hr = loadText())) {
-        SendMessage(edit, EM_SETOPTIONS, ECOOP_AND, ~ECO_READONLY);
-        Edit_SetModify(edit, FALSE);
-        updateStatus();
-    } else if (hasStatusText()) {
-        setStatusText(getErrorMessage(hr).get());
-    }
+    loadThread.Attach(new LoadThread(item, this));
+    loadThread->start();
 }
 
 void applyEditFont(HWND edit, HFONT font) {
@@ -146,9 +141,11 @@ bool TextWindow::onCloseRequest() {
 void TextWindow::onDestroy() {
     if (isUnsavedScratchFile)
         deleteProxy(false);
+    ItemWindow::onDestroy();
     if (font)
         DeleteFont(font);
-    ItemWindow::onDestroy();
+    if (loadThread)
+        loadThread->stop();
 }
 
 void TextWindow::addToolbarButtons(HWND tb) {
@@ -213,6 +210,29 @@ const wchar_t * undoNameToString(UNDONAMEID id) {
 
 LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
+        case MSG_LOAD_COMPLETE: {
+            AcquireSRWLockExclusive(&asyncLoadResultLock);
+            LoadResult result = std::move(asyncLoadResult);
+            asyncLoadResult = {};
+            ReleaseSRWLockExclusive(&asyncLoadResultLock);
+            if (result.textStart) {
+                SendMessage(edit, EM_SETTEXTEX, (WPARAM)&result.setText, (LPARAM)result.textStart);
+                SendMessage(edit, EM_SETOPTIONS, ECOOP_AND, ~ECO_READONLY);
+                Edit_SetModify(edit, FALSE);
+                CHARRANGE sel = {0, 0};
+                SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
+                detectEncoding = result.encoding;
+                detectNewlines = result.newlines;
+                debugPrintf(L"Detected encoding %d\n", detectEncoding);
+                debugPrintf(L"Detected newlines %d\n", detectNewlines);
+                updateStatus();
+            }
+            return 0;
+        }
+        case MSG_LOAD_FAIL:
+            if (hasStatusText())
+                setStatusText(getErrorMessage((HRESULT)wParam).get());
+            return 0;
         case WM_QUERYENDSESSION:
             if (isEditable() && Edit_GetModify(edit)) {
                 userSave();
@@ -642,9 +662,8 @@ TextNewlines detectNewlineType(T *start, T*end) {
     return NL_UNK;
 }
 
-HRESULT TextWindow::loadText() {
+HRESULT TextWindow::loadText(CComPtr<IShellItem> item, LoadResult *result) {
     HRESULT hr;
-    std::unique_ptr<uint8_t[]> buffer; // null terminated!
     ULONG size;
     {
         CComPtr<IBindCtx> context;
@@ -661,54 +680,53 @@ HRESULT TextWindow::loadText() {
         if (largeSize.QuadPart > (ULONGLONG)MAX_FILE_SIZE)
             return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
         size = (ULONG)largeSize.QuadPart;
-        buffer = std::unique_ptr<uint8_t[]>(new uint8_t[size + 2]); // 2 null bytes
-        if (!checkHR(hr = IStream_Read(stream, buffer.get(), (ULONG)size)))
+        result->buffer = std::unique_ptr<uint8_t[]>(new uint8_t[size + 2]); // 2 null bytes
+        if (!checkHR(hr = IStream_Read(stream, result->buffer.get(), (ULONG)size)))
             return hr;
-        buffer[size] = buffer[size + 1] = 0;
+        result->buffer[size] = result->buffer[size + 1] = 0;
     }
 
     // https://docs.microsoft.com/en-us/windows/win32/intl/using-byte-order-marks
-    if (CHECK_BOM(buffer.get(), size, BOM_UTF16BE)) {
-        detectEncoding = ENC_UTF16BE;
-    } else if (CHECK_BOM(buffer.get(), size, BOM_UTF16LE)) {
-        detectEncoding = ENC_UTF16LE;
-    } else if (CHECK_BOM(buffer.get(), size, BOM_UTF8BOM)) {
-        detectEncoding = ENC_UTF8BOM;
+    if (CHECK_BOM(result->buffer.get(), size, BOM_UTF16BE)) {
+        result->encoding = ENC_UTF16BE;
+    } else if (CHECK_BOM(result->buffer.get(), size, BOM_UTF16LE)) {
+        result->encoding = ENC_UTF16LE;
+    } else if (CHECK_BOM(result->buffer.get(), size, BOM_UTF8BOM)) {
+        result->encoding = ENC_UTF8BOM;
     } else if (size > 0) {
-        detectEncoding = ENC_UTF8; // could be ANSI!
+        result->encoding = ENC_UTF8; // could be ANSI!
     } else {
-        detectEncoding = ENC_UNK;
+        result->encoding = ENC_UNK;
     }
 
-    uint8_t *textStart;
-    SETTEXTEX setText = {};
-    if (detectEncoding == ENC_UTF16BE || detectEncoding == ENC_UTF16LE) {
-        wchar_t *wcString = ((wchar_t *)(void *)buffer.get()) + 1; // skip BOM
-        wchar_t *wcEnd = (wchar_t *)(void *)(buffer.get() + size);
+    if (result->encoding == ENC_UTF16BE || result->encoding == ENC_UTF16LE) {
+        wchar_t *wcString = ((wchar_t *)(void *)result->buffer.get()) + 1; // skip BOM
+        wchar_t *wcEnd = (wchar_t *)(void *)(result->buffer.get() + size);
         for (wchar_t *c = wcString; c < wcEnd; c++) {
             if (*c == 0)
                 *c = L' ';
-            else if (detectEncoding == ENC_UTF16BE)
+            else if (result->encoding == ENC_UTF16BE)
                 *c = _byteswap_ushort(*c);
         }
-        detectNewlines = detectNewlineType(wcString, wcEnd);
-        textStart = (uint8_t *)wcString;
-        setText = {ST_UNICODE, CP_UTF16LE};
+        result->newlines = detectNewlineType(wcString, wcEnd);
+        result->textStart = (uint8_t *)wcString;
+        result->setText = {ST_UNICODE, CP_UTF16LE};
     } else { // UTF-8 or ANSI
-        textStart = buffer.get() + ((detectEncoding == ENC_UTF8BOM) ? sizeof(BOM_UTF8BOM) : 0);
+        result->textStart = result->buffer.get() +
+            ((result->encoding == ENC_UTF8BOM) ? sizeof(BOM_UTF8BOM) : 0);
         // replace null bytes with spaces and validate UTF-8 encoding
         // https://en.wikipedia.org/wiki/UTF-8#Encoding
         // TODO: check for overlong encodings and invalid code points
-        uint8_t *textEnd = buffer.get() + size;
+        uint8_t *textEnd = result->buffer.get() + size;
         char continuation = 0; // num continuation bytes remaining in code point
-        for (uint8_t *c = textStart; c < textEnd; c++) {
+        for (uint8_t *c = result->textStart; c < textEnd; c++) {
             if (*c == 0)
                 *c = ' ';
-            if (detectEncoding == ENC_UTF8) {
+            if (result->encoding == ENC_UTF8) {
                 if (*c & 0x80) {
                     if (*c & 0x40) { // leading byte
                         if (continuation) // incomplete code point
-                            detectEncoding = ENC_ANSI;
+                            result->encoding = ENC_ANSI;
                         else if (!(*c & 0x20))
                             continuation = 1;
                         else if (!(*c & 0x10))
@@ -716,26 +734,24 @@ HRESULT TextWindow::loadText() {
                         else if (!(*c & 0x0F))
                             continuation = 3;
                         else // invalid byte
-                            detectEncoding = ENC_ANSI;
+                            result->encoding = ENC_ANSI;
                     } else if (continuation) {
                         continuation--;
                     } else {
-                        detectEncoding = ENC_ANSI; // unexpected continuation
+                        result->encoding = ENC_ANSI; // unexpected continuation
                     }
                 } else if (continuation) { // incomplete code point
-                    detectEncoding = ENC_ANSI;
+                    result->encoding = ENC_ANSI;
                 }
             }
         }
         if (continuation) // incomplete code point
-            detectEncoding = ENC_ANSI;
+            result->encoding = ENC_ANSI;
 
-        detectNewlines = detectNewlineType(textStart, textEnd);
-        setText.codepage = (detectEncoding == ENC_ANSI) ? settings::getTextAnsiCodepage() : CP_UTF8;
+        result->newlines = detectNewlineType(result->textStart, textEnd);
+        result->setText.codepage = (result->encoding == ENC_ANSI) ?
+            settings::getTextAnsiCodepage() : CP_UTF8;
     }
-    debugPrintf(L"Detected encoding %d\n", detectEncoding);
-    debugPrintf(L"Detected newlines %d\n", detectNewlines);
-    SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)textStart);
     return S_OK;
 }
 
@@ -817,6 +833,34 @@ HRESULT TextWindow::saveText() {
     detectEncoding = saveEncoding;
     detectNewlines = saveNewlines;
     return S_OK;
+}
+
+TextWindow::LoadThread::LoadThread(CComPtr<IShellItem> item, TextWindow *callbackWindow)
+        : callbackWindow(callbackWindow) {
+    checkHR(SHGetIDListFromObject(item, &itemIDList));
+}
+
+void TextWindow::LoadThread::run() {
+    CComPtr<IShellItem> localItem;
+    if (!itemIDList || !checkHR(SHCreateItemFromIDList(itemIDList, IID_PPV_ARGS(&localItem))))
+        return;
+    itemIDList.Free();
+
+    LoadResult result;
+    HRESULT hr = loadText(localItem, &result);
+
+    AcquireSRWLockExclusive(&stopLock);
+    if (!isStopped()) {
+        if (checkHR(hr)) {
+            AcquireSRWLockExclusive(&callbackWindow->asyncLoadResultLock);
+            callbackWindow->asyncLoadResult = std::move(result);
+            ReleaseSRWLockExclusive(&callbackWindow->asyncLoadResultLock);
+            PostMessage(callbackWindow->hwnd, MSG_LOAD_COMPLETE, 0, 0);
+        } else {
+            PostMessage(callbackWindow->hwnd, MSG_LOAD_FAIL, hr, 0);
+        }
+    }
+    ReleaseSRWLockExclusive(&stopLock);
 }
 
 int scrollAccumLines(int *scrollAccum) {
