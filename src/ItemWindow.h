@@ -49,8 +49,8 @@ public:
 
 protected:
     enum UserMessage {
-        // WPARAM: 0, LPARAM: text (calls CoTaskMemFree!)
-        MSG_SET_STATUS_TEXT = WM_USER,
+        // WPARAM: 0, LPARAM: 0
+        MSG_UPDATE_DEFAULT_STATUS_TEXT = WM_USER,
         MSG_LAST
     };
     static WNDCLASS createWindowClass(const wchar_t *name);
@@ -175,14 +175,17 @@ private:
     bool firstActivate = false, closing = false;
     bool draggingObject;
 
+    SRWLOCK defaultStatusTextLock = SRWLOCK_INIT;
+    CComHeapPtr<wchar_t> defaultStatusText;
+
     class StatusTextThread : public StoppableThread {
     public:
-        StatusTextThread(CComPtr<IShellItem> item, HWND callbackWindow);
+        StatusTextThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow);
     protected:
         void run() override;
     private:
         CComHeapPtr<ITEMIDLIST> itemIDList;
-        const HWND callbackWindow;
+        ItemWindow *callbackWindow;
     };
     CComPtr<StatusTextThread> statusTextThread;
 };

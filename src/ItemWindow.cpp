@@ -525,11 +525,11 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     return 0;
             }
             break;
-        case MSG_SET_STATUS_TEXT: {
-            CComHeapPtr<wchar_t> text;
-            text.Attach((wchar_t *)lParam);
-            CHROMAFILER_MEMLEAK_FREE;
-            setStatusText(text);
+        case MSG_UPDATE_DEFAULT_STATUS_TEXT: {
+            AcquireSRWLockExclusive(&defaultStatusTextLock);
+            setStatusText(defaultStatusText);
+            defaultStatusText.Free();
+            ReleaseSRWLockExclusive(&defaultStatusTextLock);
             return 0;
         }
     }
@@ -665,7 +665,7 @@ void ItemWindow::onCreate() {
         if (statusFont)
             SendMessage(statusText, WM_SETFONT, (WPARAM)statusFont, FALSE);
         if (useDefaultStatusText()) {
-            statusTextThread.Attach(new StatusTextThread(item, hwnd));
+            statusTextThread.Attach(new StatusTextThread(item, this));
             statusTextThread->start();
         }
 
@@ -1416,7 +1416,7 @@ void ItemWindow::refresh() {
     if (hasStatusText() && useDefaultStatusText()) {
         if (statusTextThread)
             statusTextThread->stop();
-        statusTextThread.Attach(new StatusTextThread(item, hwnd));
+        statusTextThread.Attach(new StatusTextThread(item, this));
         statusTextThread->start();
     }
 }
@@ -1839,7 +1839,7 @@ LRESULT CALLBACK ItemWindow::renameBoxProc(HWND hwnd, UINT message,
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 
-ItemWindow::StatusTextThread::StatusTextThread(CComPtr<IShellItem> item, HWND callbackWindow)
+ItemWindow::StatusTextThread::StatusTextThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow)
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
 }
@@ -1864,8 +1864,10 @@ void ItemWindow::StatusTextThread::run() {
 
     AcquireSRWLockExclusive(&stopLock);
     if (!isStopped()) {
-        PostMessage(callbackWindow, MSG_SET_STATUS_TEXT, 0, (LPARAM)text.Detach());
-        CHROMAFILER_MEMLEAK_ALLOC;
+        AcquireSRWLockExclusive(&callbackWindow->defaultStatusTextLock);
+        callbackWindow->defaultStatusText = text; // transfer ownership
+        ReleaseSRWLockExclusive(&callbackWindow->defaultStatusTextLock);
+        PostMessage(callbackWindow->hwnd, MSG_UPDATE_DEFAULT_STATUS_TEXT, 0, 0);
     }
     ReleaseSRWLockExclusive(&stopLock);
 }
