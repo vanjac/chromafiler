@@ -18,6 +18,7 @@ ThumbnailWindow::ThumbnailWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem>
     : ItemWindow(parent, item) {}
 
 ThumbnailWindow::~ThumbnailWindow() {
+    // don't need to acquire lock
     if (thumbnailBitmap) {
         DeleteBitmap(thumbnailBitmap);
         CHROMAFILER_MEMLEAK_FREE;
@@ -30,7 +31,7 @@ const wchar_t * ThumbnailWindow::className() {
 
 void ThumbnailWindow::onCreate() {
     ItemWindow::onCreate();
-    thumbnailThread.Attach(new ThumbnailThread(item, hwnd));
+    thumbnailThread.Attach(new ThumbnailThread(item, this));
     thumbnailThread->start();
 }
 
@@ -49,7 +50,7 @@ void ThumbnailWindow::onSize(SIZE size) {
 void ThumbnailWindow::onItemChanged() {
     ItemWindow::onItemChanged();
     thumbnailThread->stop();
-    thumbnailThread.Attach(new ThumbnailThread(item, hwnd));
+    thumbnailThread.Attach(new ThumbnailThread(item, this));
     thumbnailThread->start();
 }
 
@@ -61,13 +62,9 @@ void ThumbnailWindow::refresh() {
 }
 
 LRESULT ThumbnailWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
-    if (message == MSG_SET_THUMBNAIL_BITMAP) {
-        if (thumbnailBitmap) {
-            DeleteBitmap(thumbnailBitmap);
-            CHROMAFILER_MEMLEAK_FREE;
-        }
-        thumbnailBitmap = (HBITMAP)lParam;
+    if (message == MSG_UPDATE_THUMBNAIL_BITMAP) {
         InvalidateRect(hwnd, nullptr, FALSE);
+        return 0;
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
 }
@@ -75,8 +72,11 @@ LRESULT ThumbnailWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lPara
 void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
     ItemWindow::onPaint(paint);
 
-    if (!thumbnailBitmap)
+    AcquireSRWLockExclusive(&thumbnailBitmapLock);
+    if (!thumbnailBitmap) {
+        ReleaseSRWLockExclusive(&thumbnailBitmapLock);
         return;
+    }
     RECT body = windowBody();
     SIZE bodySize = rectSize(body);
 
@@ -109,9 +109,11 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
         hdcMem, 0, 0, bitmap.bmWidth, bitmap.bmHeight, SRCCOPY);
     SelectBitmap(hdcMem, oldBitmap);
     DeleteDC(hdcMem);
+    ReleaseSRWLockExclusive(&thumbnailBitmapLock);
 }
 
-ThumbnailWindow::ThumbnailThread::ThumbnailThread(CComPtr<IShellItem> item, HWND callbackWindow)
+ThumbnailWindow::ThumbnailThread::ThumbnailThread(
+        CComPtr<IShellItem> item, ThumbnailWindow *callbackWindow)
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
     requestThumbnailEvent = checkLE(CreateEvent(nullptr, TRUE, FALSE, nullptr));
@@ -163,8 +165,15 @@ void ThumbnailWindow::ThumbnailThread::run() {
             if (isStopped()) {
                 DeleteBitmap(hBitmap);
             } else {
-                PostMessage(callbackWindow, MSG_SET_THUMBNAIL_BITMAP, 0, (LPARAM)hBitmap);
+                AcquireSRWLockExclusive(&callbackWindow->thumbnailBitmapLock);
+                if (callbackWindow->thumbnailBitmap) {
+                    DeleteBitmap(callbackWindow->thumbnailBitmap);
+                    CHROMAFILER_MEMLEAK_FREE;
+                }
+                callbackWindow->thumbnailBitmap = hBitmap;
+                PostMessage(callbackWindow->hwnd, MSG_UPDATE_THUMBNAIL_BITMAP, 0, 0);
                 CHROMAFILER_MEMLEAK_ALLOC;
+                ReleaseSRWLockExclusive(&callbackWindow->thumbnailBitmapLock);
             }
             ReleaseSRWLockExclusive(&stopLock);
         } else if (event == WAIT_OBJECT_0 + 1) {

@@ -14,8 +14,8 @@ public:
 
 protected:
     enum UserMessage {
-        // WPARAM: 0, LPARAM: HBITMAP (calls DeleteObject!)
-        MSG_SET_THUMBNAIL_BITMAP = ItemWindow::MSG_LAST,
+        // WPARAM: 0, LPARAM: 0
+        MSG_UPDATE_THUMBNAIL_BITMAP = ItemWindow::MSG_LAST,
         MSG_LAST
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
@@ -31,18 +31,19 @@ protected:
 private:
     const wchar_t * className() override;
 
+    SRWLOCK thumbnailBitmapLock = SRWLOCK_INIT;
     HBITMAP thumbnailBitmap = nullptr;
 
     class ThumbnailThread : public StoppableThread {
     public:
-        ThumbnailThread(CComPtr<IShellItem> item, HWND callbackWindow);
+        ThumbnailThread(CComPtr<IShellItem> item, ThumbnailWindow *callbackWindow);
         ~ThumbnailThread();
         void requestThumbnail(SIZE size);
     protected:
         void run() override;
     private:
         CComHeapPtr<ITEMIDLIST> itemIDList;
-        const HWND callbackWindow;
+        ThumbnailWindow *callbackWindow;
         HANDLE requestThumbnailEvent;
         SRWLOCK requestThumbnailLock = SRWLOCK_INIT;
         SIZE requestedSize;
