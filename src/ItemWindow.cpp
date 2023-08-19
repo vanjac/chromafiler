@@ -341,8 +341,15 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_NCDESTROY:
             if (imageList)
                 checkLE(ImageList_Destroy(imageList));
-            checkLE(DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_BIG, 0)));
-            checkLE(DestroyIcon((HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0)));
+            // don't need icon lock since icon thread is stopped
+            if (iconLarge) {
+                checkLE(DestroyIcon(iconLarge));
+                CHROMAFILER_MEMLEAK_FREE;
+            }
+            if (iconSmall) {
+                checkLE(DestroyIcon(iconSmall));
+                CHROMAFILER_MEMLEAK_FREE;
+            }
             hwnd = nullptr;
             windowClosed();
             Release(); // allow window to be deleted
@@ -525,13 +532,33 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     return 0;
             }
             break;
-        case MSG_UPDATE_DEFAULT_STATUS_TEXT: {
+        case MSG_UPDATE_ICONS: {
+            AcquireSRWLockExclusive(&iconLock);
+            SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
+            SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+            if (!paletteWindow() && (!parent || parent->paletteWindow())) {
+                HWND owner = checkLE(GetWindowOwner(hwnd));
+                SendMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
+                SendMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+            }
+
+            int iconSize = GetSystemMetrics(SM_CXSMICON);
+            if (imageList)
+                checkLE(ImageList_Destroy(imageList));
+            imageList = ImageList_Create(iconSize, iconSize, ILC_MASK | ILC_COLOR32, 1, 0);
+            ImageList_AddIcon(imageList, iconSmall);
+            ReleaseSRWLockExclusive(&iconLock);
+
+            SendMessage(proxyToolbar, TB_SETIMAGELIST, 0, (LPARAM)imageList);
+            autoSizeProxy(clientSize(hwnd).cx);
+            return 0;
+        }
+        case MSG_UPDATE_DEFAULT_STATUS_TEXT:
             AcquireSRWLockExclusive(&defaultStatusTextLock);
             setStatusText(defaultStatusText);
             defaultStatusText.Free();
             ReleaseSRWLockExclusive(&defaultStatusTextLock);
             return 0;
-        }
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
@@ -541,31 +568,9 @@ bool ItemWindow::handleTopLevelMessage(MSG *msg) {
     return !!TranslateAccelerator(hwnd, accelTable, msg);
 }
 
-void getItemIcons(CComPtr<IShellItem> item, HICON *iconLarge, HICON *iconSmall) {
-    // TODO: move to thread?
-    // TODO: SHGetFileInfo?
-    // https://www.zabkat.com/2xExplorer/shellFAQ/bas_infos.html
-    CComPtr<IExtractIcon> extractIcon;
-    if (checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&extractIcon)))) {
-        wchar_t iconFile[MAX_PATH];
-        int index;
-        UINT flags;
-        if (extractIcon->GetIconLocation(0, iconFile, _countof(iconFile), &index, &flags) == S_OK) {
-            UINT iconSizes = (GetSystemMetrics(SM_CXSMICON) << 16) + GetSystemMetrics(SM_CXICON);
-            if (extractIcon->Extract(iconFile, index, iconLarge, iconSmall, iconSizes) != S_OK) {
-                debugPrintf(L"IExtractIcon failed\n");
-                // https://devblogs.microsoft.com/oldnewthing/20140501-00/?p=1103
-                checkHR(SHDefExtractIcon(iconFile, index, flags, iconLarge, iconSmall, iconSizes));
-            }
-        }
-    }
-}
-
 void ItemWindow::onCreate() {
-    HICON iconLarge = nullptr, iconSmall = nullptr;
-    getItemIcons(item, &iconLarge, &iconSmall);
-    SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
-    SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+    iconThread.Attach(new IconThread(item, this));
+    iconThread->start();
 
     CComHeapPtr<ITEMIDLIST> idList;
     if (checkHR(SHGetIDListFromObject(item, &idList))) {
@@ -592,10 +597,6 @@ void ItemWindow::onCreate() {
         if (compositionEnabled)
             checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
 
-        int iconSize = GetSystemMetrics(SM_CXSMICON);
-        imageList = ImageList_Create(iconSize, iconSize, ILC_MASK | ILC_COLOR32, 1, 0);
-        ImageList_AddIcon(imageList, iconSmall);
-
         bool layered = IsWindows8OrGreater();
         proxyToolbar = CreateWindowEx(layered ? WS_EX_LAYERED : 0, TOOLBARCLASSNAME, nullptr,
             TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_REGISTERDROP
@@ -607,7 +608,6 @@ void ItemWindow::onCreate() {
         SendMessage(proxyToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
         if (captionFont)
             SendMessage(proxyToolbar, WM_SETFONT, (WPARAM)captionFont, FALSE);
-        SendMessage(proxyToolbar, TB_SETIMAGELIST, 0, (LPARAM)imageList);
         SendMessage(proxyToolbar, TB_SETPADDING, 0, MAKELPARAM(PROXY_PADDING.cx, PROXY_PADDING.cy));
         TBBUTTON proxyButton = {0, IDM_PROXY_BUTTON, TBSTATE_ENABLED,
             PROXY_BUTTON_STYLE | BTNS_AUTOSIZE, {}, 0, (INT_PTR)(wchar_t *)title};
@@ -810,6 +810,8 @@ void ItemWindow::onDestroy() {
             DestroyWindow(owner); // last window in group
     }
 
+    if (iconThread)
+        iconThread->stop();
     if (statusTextThread)
         statusTextThread->stop();
 }
@@ -1028,7 +1030,25 @@ void ItemWindow::onActivate(WORD state, HWND) {
 
 void ItemWindow::onSize(SIZE size) {
     windowRectChanged();
+    autoSizeProxy(size.cx);
 
+    int toolbarLeft = size.cx;
+    if (cmdToolbar) {
+        toolbarLeft = size.cx - clientSize(cmdToolbar).cx;
+        SetWindowPos(cmdToolbar, nullptr, toolbarLeft, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, 0,
+            SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+    if (statusText) {
+        RECT statusRect = windowRect(statusText);
+        MapWindowRect(nullptr, hwnd, &statusRect);
+        SetWindowPos(statusText, nullptr,
+            0, 0, toolbarLeft - STATUS_TEXT_MARGIN - statusRect.left, TOOLBAR_HEIGHT,
+            SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+        InvalidateRect(statusText, nullptr, FALSE);
+    }
+}
+
+void ItemWindow::autoSizeProxy(LONG width) {
     if (proxyToolbar) {
         TITLEBARINFOEX titleBar = {sizeof(titleBar)};
         SendMessage(hwnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&titleBar);
@@ -1043,12 +1063,12 @@ void ItemWindow::onSize(SIZE size) {
         SendMessage(proxyToolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
         int actualLeft;
         if (centeredProxy()) {
-            int idealLeft = (size.cx - ideal.cx) / 2;
+            int idealLeft = (width - ideal.cx) / 2;
             actualLeft = max(PARENT_BUTTON_WIDTH, idealLeft);
         } else {
             actualLeft = 0; // cover actual window title/icon
         }
-        int maxWidth = size.cx - actualLeft - closeButtonWidth;
+        int maxWidth = width - actualLeft - closeButtonWidth;
         int actualWidth = min(ideal.cx, maxWidth);
 
         // turn off autosize to set exact width
@@ -1064,21 +1084,6 @@ void ItemWindow::onSize(SIZE size) {
 
         // show/hide tooltip if text truncated
         SendMessage(proxyTooltip, TTM_ACTIVATE, ideal.cx > maxWidth, 0);
-    }
-
-    int toolbarLeft = size.cx;
-    if (cmdToolbar) {
-        toolbarLeft = size.cx - clientSize(cmdToolbar).cx;
-        SetWindowPos(cmdToolbar, nullptr, toolbarLeft, useCustomFrame() ? CAPTION_HEIGHT : 0, 0, 0,
-            SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
-    }
-    if (statusText) {
-        RECT statusRect = windowRect(statusText);
-        MapWindowRect(nullptr, hwnd, &statusRect);
-        SetWindowPos(statusText, nullptr,
-            0, 0, toolbarLeft - STATUS_TEXT_MARGIN - statusRect.left, TOOLBAR_HEIGHT,
-            SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
-        InvalidateRect(statusText, nullptr, FALSE);
     }
 }
 
@@ -1328,8 +1333,10 @@ void ItemWindow::addChainPreview() {
     }
     // update alt-tab
     SetWindowText(owner, title);
-    SendMessage(owner, WM_SETICON, ICON_BIG, SendMessage(hwnd, WM_GETICON, ICON_BIG, 0));
-    SendMessage(owner, WM_SETICON, ICON_SMALL, SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0));
+    AcquireSRWLockExclusive(&iconLock);
+    SendMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
+    SendMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+    ReleaseSRWLockExclusive(&iconLock);
 }
 
 void ItemWindow::removeChainPreview() {
@@ -1404,7 +1411,7 @@ void ItemWindow::onItemChanged() {
             toolInfo.lpszText = title;
             SendMessage(proxyTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
         }
-        onSize(clientSize(hwnd));
+        autoSizeProxy(clientSize(hwnd).cx);
     }
     if (proxyToolbar) {
         itemDropTarget = nullptr;
@@ -1413,6 +1420,10 @@ void ItemWindow::onItemChanged() {
 }
 
 void ItemWindow::refresh() {
+    if (iconThread)
+        iconThread->stop();
+    iconThread.Attach(new IconThread(item, this));
+    iconThread->start();
     if (hasStatusText() && useDefaultStatusText()) {
         if (statusTextThread)
             statusTextThread->stop();
@@ -1436,14 +1447,19 @@ void ItemWindow::openParentMenu() {
         if (!checkHR(curItem->GetDisplayName(SIGDN_NORMALDISPLAY, &name)))
             continue;
         AppendMenu(menu, MF_STRING, id, name);
-        HICON itemIcon = nullptr;
-        getItemIcons(curItem, nullptr, &itemIcon);
-        if (itemIcon) {
+        SHFILEINFO fileInfo = {};
+        CComHeapPtr<ITEMIDLIST> idList;
+        if (checkHR(SHGetIDListFromObject(curItem, &idList))) {
+            SHGetFileInfo((wchar_t *)(ITEMIDLIST *)idList, 0, &fileInfo, sizeof(fileInfo),
+                SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_SMALLICON);
+        }
+        if (fileInfo.hIcon) {
             // http://shellrevealed.com:80/blogs/shellblog/archive/2007/02/06/Vista-Style-Menus_2C00_-Part-1-_2D00_-Adding-icons-to-standard-menus.aspx
-            // icon must have alpha channel; GetIconInfo doesn't do this
+            // icon must have alpha channel; SHGetFileInfo doesn't do this
             MENUITEMINFO itemInfo = {sizeof(itemInfo)};
             itemInfo.fMask = MIIM_BITMAP;
-            itemInfo.hbmpItem = iconToPARGB32Bitmap(itemIcon, iconSize, iconSize);
+            itemInfo.hbmpItem = iconToPARGB32Bitmap(fileInfo.hIcon, iconSize, iconSize);
+            DestroyIcon(fileInfo.hIcon);
             SetMenuItemInfo(menu, id, FALSE, &itemInfo);
         }
     }
@@ -1609,14 +1625,10 @@ void ItemWindow::proxyDrag(POINT offset) {
     CComPtr<IDataObject> dataObject;
     if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&dataObject))))
         return;
-
-    HICON icon = (HICON)SendMessage(hwnd, WM_GETICON, ICON_SMALL, 0);
-    if (icon) {
-        CComPtr<IDragSourceHelper> dragHelper;
-        // TODO could this reuse the existing helper?
-        if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper))) {
-            dragHelper->InitializeFromWindow(proxyToolbar, &offset, dataObject);
-        }
+    CComPtr<IDragSourceHelper> dragHelper;
+    // TODO could this reuse the existing helper?
+    if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper))) {
+        dragHelper->InitializeFromWindow(proxyToolbar, &offset, dataObject);
     }
 
     DWORD okEffects = DROPEFFECT_COPY | DROPEFFECT_LINK | DROPEFFECT_MOVE;
@@ -1837,6 +1849,42 @@ LRESULT CALLBACK ItemWindow::renameBoxProc(HWND hwnd, UINT message,
         return 0;
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
+ItemWindow::IconThread::IconThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow)
+        : callbackWindow(callbackWindow) {
+    checkHR(SHGetIDListFromObject(item, &itemIDList));
+}
+
+void ItemWindow::IconThread::run() {
+    SHFILEINFO fileInfo = {};
+    SHGetFileInfo((wchar_t *)(ITEMIDLIST *)itemIDList, 0, &fileInfo, sizeof(fileInfo),
+        SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_SMALLICON);
+    HICON hIconSmall = fileInfo.hIcon;
+    SHGetFileInfo((wchar_t *)(ITEMIDLIST *)itemIDList, 0, &fileInfo, sizeof(fileInfo),
+        SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_LARGEICON);
+
+    AcquireSRWLockExclusive(&stopLock);
+    if (!isStopped()) {
+        AcquireSRWLockExclusive(&callbackWindow->iconLock);
+        if (callbackWindow->iconLarge) {
+            checkLE(DestroyIcon(callbackWindow->iconLarge));
+            CHROMAFILER_MEMLEAK_FREE;
+        }
+        callbackWindow->iconLarge = fileInfo.hIcon;
+        CHROMAFILER_MEMLEAK_ALLOC;
+    
+        if (callbackWindow->iconSmall) {
+            checkLE(DestroyIcon(callbackWindow->iconSmall));
+            CHROMAFILER_MEMLEAK_FREE;
+        }
+        callbackWindow->iconSmall = hIconSmall;
+        CHROMAFILER_MEMLEAK_ALLOC;
+        ReleaseSRWLockExclusive(&callbackWindow->iconLock);
+
+        PostMessage(callbackWindow->hwnd, MSG_UPDATE_ICONS, 0, 0);
+    }
+    ReleaseSRWLockExclusive(&stopLock);
 }
 
 ItemWindow::StatusTextThread::StatusTextThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow)

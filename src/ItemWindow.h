@@ -50,7 +50,9 @@ public:
 protected:
     enum UserMessage {
         // WPARAM: 0, LPARAM: 0
-        MSG_UPDATE_DEFAULT_STATUS_TEXT = WM_USER,
+        MSG_UPDATE_ICONS = WM_USER,
+        // WPARAM: 0, LPARAM: 0
+        MSG_UPDATE_DEFAULT_STATUS_TEXT,
         MSG_LAST
     };
     static WNDCLASS createWindowClass(const wchar_t *name);
@@ -130,6 +132,7 @@ private:
     HWND createChainOwner(int showCommand);
 
     void windowRectChanged();
+    void autoSizeProxy(LONG width);
     LRESULT hitTestNCA(POINT cursor);
 
     RECT titleRect();
@@ -175,8 +178,22 @@ private:
     bool firstActivate = false, closing = false;
     bool draggingObject;
 
+    SRWLOCK iconLock = SRWLOCK_INIT;
+    HICON iconLarge = nullptr, iconSmall = nullptr;
+
     SRWLOCK defaultStatusTextLock = SRWLOCK_INIT;
     CComHeapPtr<wchar_t> defaultStatusText;
+
+    class IconThread : public StoppableThread {
+    public:
+        IconThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow);
+    protected:
+        void run() override;
+    private:
+        CComHeapPtr<ITEMIDLIST> itemIDList;
+        ItemWindow *callbackWindow;
+    };
+    CComPtr<IconThread> iconThread;
 
     class StatusTextThread : public StoppableThread {
     public:

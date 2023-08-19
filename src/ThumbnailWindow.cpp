@@ -18,7 +18,7 @@ ThumbnailWindow::ThumbnailWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem>
     : ItemWindow(parent, item) {}
 
 ThumbnailWindow::~ThumbnailWindow() {
-    // don't need to acquire lock
+    // don't need to acquire lock since thread is stopped
     if (thumbnailBitmap) {
         DeleteBitmap(thumbnailBitmap);
         CHROMAFILER_MEMLEAK_FREE;

@@ -591,8 +591,7 @@ HMENU findNewItemMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
         }
         MENUITEMINFO subItemInfo = {sizeof(subItemInfo)};
         subItemInfo.fMask = MIIM_ID;
-        if (!checkLE(GetMenuItemInfo(itemInfo.hSubMenu, 0, TRUE, &subItemInfo))
-                || (int)subItemInfo.wID <= 0)
+        if (!GetMenuItemInfo(itemInfo.hSubMenu, 0, TRUE, &subItemInfo) || (int)subItemInfo.wID <= 0)
             continue;
         wchar_t verb[64];
         verb[0] = 0;
