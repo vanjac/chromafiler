@@ -79,7 +79,7 @@ void PreviewWindow::onCreate() {
         hwnd, nullptr, GetWindowInstance(hwnd), nullptr));
 
     // don't use Attach() for an additional AddRef() -- keep request alive until received by thread
-    initRequest = new InitPreviewRequest(item, previewID, hwnd, container);
+    initRequest = new InitPreviewRequest(item, previewID, this, container);
     if (initPreviewThread) {
         checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
             MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
@@ -115,10 +115,13 @@ void PreviewWindow::onSize(SIZE size) {
 
 LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     if (message == MSG_INIT_PREVIEW_COMPLETE) {
+        AcquireSRWLockExclusive(&previewStreamLock);
+        CComPtr<IStream> newPreviewStream = previewStream;
+        previewStream = nullptr;
+        ReleaseSRWLockExclusive(&previewStreamLock);
         preview = nullptr;
-        if (!checkHR(CoGetInterfaceAndReleaseStream((IStream*)lParam, IID_PPV_ARGS(&preview))))
+        if (!checkHR(CoUnmarshalInterface(newPreviewStream, IID_PPV_ARGS(&preview))))
             return 0;
-        CHROMAFILER_MEMLEAK_FREE;
         checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this));
         checkHR(preview->DoPreview());
         // required for some preview handlers to render correctly initially (eg. SumatraPDF)
@@ -127,7 +130,7 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
     } else if (message == MSG_REFRESH_PREVIEW) {
         destroyPreview();
         initRequest->cancel();
-        initRequest = new InitPreviewRequest(item, previewID, hwnd, container);
+        initRequest = new InitPreviewRequest(item, previewID, this, container);
         if (initPreviewThread) {
             checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
                 MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
@@ -144,12 +147,12 @@ void PreviewWindow::destroyPreview() {
         // Windows Media Player doesn't like if you delete another IPreviewHandler between
         // initializing and calling SetWindow. So ensure that preview handlers are deleted
         // synchronously with the worker thread!
-        IStream *previewHandlerStream; // no CComPtr
+        CComPtr<IStream> previewHandlerStream; // no CComPtr
         checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
             &previewHandlerStream));
-        CHROMAFILER_MEMLEAK_ALLOC;
         checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
-            MSG_RELEASE_PREVIEW, 0, (LPARAM)previewHandlerStream));
+            MSG_RELEASE_PREVIEW, 0, (LPARAM)previewHandlerStream.Detach()));
+        CHROMAFILER_MEMLEAK_ALLOC;
 
         preview = nullptr;
     }
@@ -199,7 +202,7 @@ STDMETHODIMP PreviewWindow::TranslateAccelerator(MSG *msg) {
 
 
 PreviewWindow::InitPreviewRequest::InitPreviewRequest(CComPtr<IShellItem> item, CLSID previewID,
-        HWND callbackWindow, HWND container)
+        PreviewWindow *callbackWindow, HWND container)
         : previewID(previewID),
           callbackWindow(callbackWindow),
           container(container) {
@@ -239,7 +242,6 @@ DWORD WINAPI PreviewWindow::initPreviewThreadProc(void *) {
 
 void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
     CComPtr<IShellItem> item;
-    // don't call CoGetInterfaceAndReleaseStream since itemStream is a CComPtr
     if (!checkHR(SHCreateItemFromIDList(request->itemIDList, IID_PPV_ARGS(&item))))
         return;
     request->itemIDList.Free();
@@ -272,6 +274,10 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
         visuals->SetTextColor(GetSysColor(COLOR_WINDOWTEXT)); // may not be implemented
     }
 
+    CComPtr<IStream> previewHandlerStream;
+    checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
+        &previewHandlerStream));
+
     // ensure the window is not closed before the message is posted
     AcquireSRWLockExclusive(&request->cancelLock);
     if (WaitForSingleObject(request->cancelEvent, 0) == WAIT_OBJECT_0) {
@@ -282,12 +288,10 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
 
     checkHR(preview->SetWindow(request->container, tempPtr(clientRect(request->container))));
 
-    IStream *previewHandlerStream; // no CComPtr
-    checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
-        &previewHandlerStream));
-    CHROMAFILER_MEMLEAK_ALLOC;
-    PostMessage(request->callbackWindow,
-        MSG_INIT_PREVIEW_COMPLETE, 0, (LPARAM)previewHandlerStream);
+    AcquireSRWLockExclusive(&request->callbackWindow->previewStreamLock);
+    request->callbackWindow->previewStream = previewHandlerStream;
+    ReleaseSRWLockExclusive(&request->callbackWindow->previewStreamLock);
+    PostMessage(request->callbackWindow->hwnd, MSG_INIT_PREVIEW_COMPLETE, 0, 0);
 
     ReleaseSRWLockExclusive(&request->cancelLock);
 }

@@ -9,13 +9,14 @@ class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
 
     struct InitPreviewRequest : public IUnknownImpl {
         InitPreviewRequest(CComPtr<IShellItem> item, CLSID previewID,
-            HWND callbackWindow, HWND container);
+            PreviewWindow *callbackWindow, HWND container);
         ~InitPreviewRequest();
         void cancel(); // ok to call this multiple times
 
         CComHeapPtr<ITEMIDLIST> itemIDList;
         const CLSID previewID;
-        const HWND callbackWindow, container;
+        PreviewWindow *callbackWindow;
+        const HWND container;
         HANDLE cancelEvent;
         SRWLOCK cancelLock = SRWLOCK_INIT;
     };
@@ -36,7 +37,7 @@ public:
 
 protected:
     enum UserMessage {
-        // WPARAM: 0, LPARAM: IPreviewHandler (marshalled, calls Release!)
+        // WPARAM: 0, LPARAM: 0
         MSG_INIT_PREVIEW_COMPLETE = ItemWindow::MSG_LAST,
         // WPARAM: 0, LPARAM: 0
         MSG_REFRESH_PREVIEW,
@@ -60,6 +61,9 @@ private:
     CComPtr<InitPreviewRequest> initRequest;
     CComPtr<IPreviewHandler> preview; // will be null if preview can't be loaded!
     HWND container;
+
+    SRWLOCK previewStreamLock = SRWLOCK_INIT;
+    CComPtr<IStream> previewStream;
 
     // worker thread
     static HANDLE initPreviewThread;
