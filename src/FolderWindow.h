@@ -2,11 +2,12 @@
 #include <common.h>
 
 #include "ItemWindow.h"
+#include <ExDisp.h>
 
 namespace chromafiler {
 
 class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlgBrowser2,
-        public IExplorerBrowserEvents {
+        public IExplorerBrowserEvents, public IWebBrowserApp {
 public:
     static void init();
 
@@ -38,6 +39,59 @@ public:
     STDMETHODIMP OnNavigationComplete(PCIDLIST_ABSOLUTE folder) override;
     STDMETHODIMP OnNavigationFailed(PCIDLIST_ABSOLUTE folder) override;
     STDMETHODIMP OnViewCreated(IShellView *shellView) override;
+    // IDispatch
+    STDMETHODIMP GetTypeInfoCount(UINT *) override;
+    STDMETHODIMP GetTypeInfo(UINT, LCID, ITypeInfo **) override;
+    STDMETHODIMP GetIDsOfNames(REFIID, LPOLESTR *, UINT, LCID, DISPID *) override;
+    STDMETHODIMP Invoke(DISPID, REFIID, LCID, WORD, DISPPARAMS *, VARIANT *, EXCEPINFO *, UINT *)
+        override;
+    // IWebBrowser
+    STDMETHODIMP GoBack() override;
+    STDMETHODIMP GoForward() override;
+    STDMETHODIMP GoHome() override;
+    STDMETHODIMP GoSearch() override;
+    STDMETHODIMP Navigate(BSTR, VARIANT *, VARIANT *, VARIANT *, VARIANT *) override;
+    STDMETHODIMP Refresh() override;
+    STDMETHODIMP Refresh2(VARIANT *) override;
+    STDMETHODIMP Stop() override;
+    STDMETHODIMP get_Application(IDispatch **) override;
+    STDMETHODIMP get_Parent(IDispatch **) override;
+    STDMETHODIMP get_Container(IDispatch **) override;
+    STDMETHODIMP get_Document(IDispatch **) override;
+    STDMETHODIMP get_TopLevelContainer(VARIANT_BOOL *) override;
+    STDMETHODIMP get_Type(BSTR *) override;
+    STDMETHODIMP get_Left(long *) override;
+    STDMETHODIMP put_Left(long) override;
+    STDMETHODIMP get_Top(long *) override;
+    STDMETHODIMP put_Top(long) override;
+    STDMETHODIMP get_Width(long *) override;
+    STDMETHODIMP put_Width(long) override;
+    STDMETHODIMP get_Height(long *) override;
+    STDMETHODIMP put_Height(long) override;
+    STDMETHODIMP get_LocationName(BSTR *) override;
+    STDMETHODIMP get_LocationURL(BSTR *) override;
+    STDMETHODIMP get_Busy(VARIANT_BOOL *) override;
+    // IWebBrowserApp
+    STDMETHODIMP Quit() override;
+    STDMETHODIMP ClientToWindow(int *, int *) override;
+    STDMETHODIMP PutProperty(BSTR, VARIANT) override;
+    STDMETHODIMP GetProperty(BSTR, VARIANT *) override;
+    STDMETHODIMP get_Name(BSTR *) override;
+    STDMETHODIMP get_HWND(SHANDLE_PTR *) override;
+    STDMETHODIMP get_FullName(BSTR *) override;
+    STDMETHODIMP get_Path(BSTR *) override;
+    STDMETHODIMP get_Visible(VARIANT_BOOL *) override;
+    STDMETHODIMP put_Visible(VARIANT_BOOL) override;
+    STDMETHODIMP get_StatusBar(VARIANT_BOOL *) override;
+    STDMETHODIMP put_StatusBar(VARIANT_BOOL) override;
+    STDMETHODIMP get_StatusText(BSTR *) override;
+    STDMETHODIMP put_StatusText(BSTR) override;
+    STDMETHODIMP get_ToolBar(int *) override;
+    STDMETHODIMP put_ToolBar(int) override;
+    STDMETHODIMP get_MenuBar(VARIANT_BOOL *) override;
+    STDMETHODIMP put_MenuBar(VARIANT_BOOL) override;
+    STDMETHODIMP get_FullScreen(VARIANT_BOOL *) override;
+    STDMETHODIMP put_FullScreen(VARIANT_BOOL) override;
 
 protected:
     enum UserMessage {
@@ -98,6 +152,7 @@ private:
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
     CComPtr<IPropertyBag> propBag;
     DWORD eventsCookie = 0;
+    long shellWindowCookie = 0;
 
     CComPtr<IShellItem> selected;
 

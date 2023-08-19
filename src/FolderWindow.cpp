@@ -314,6 +314,11 @@ void FolderWindow::onDestroy() {
         checkHR(browser->SetPropertyBag(L""));
     }
     ItemWindow::onDestroy();
+    if (shellWindowCookie) {
+        CComPtr<IShellWindows> shellWindows;
+        if (checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows)))
+            checkHR(shellWindows->Revoke(shellWindowCookie));
+    }
     if (browser) {
         checkHR(browser->Unadvise(eventsCookie));
         checkHR(IUnknown_SetSite(browser, nullptr));
@@ -667,6 +672,9 @@ STDMETHODIMP FolderWindow::QueryInterface(REFIID id, void **obj) {
         QITABENT(FolderWindow, ICommDlgBrowser),
         QITABENT(FolderWindow, ICommDlgBrowser2),
         QITABENT(FolderWindow, IExplorerBrowserEvents),
+        QITABENT(FolderWindow, IDispatch),
+        QITABENT(FolderWindow, IWebBrowser),
+        QITABENT(FolderWindow, IWebBrowserApp),
         {},
     };
     HRESULT hr = QISearch(this, interfaces, id, obj);
@@ -686,13 +694,14 @@ STDMETHODIMP_(ULONG) FolderWindow::Release() {
 /* IServiceProvider */
 
 STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void **ppv) {
-    HRESULT result = E_NOINTERFACE;
     *ppv = nullptr;
-
     if (guidService == SID_SExplorerBrowserFrame) {
-        result = QueryInterface(riid, ppv); // ICommDlgBrowser
+        return QueryInterface(riid, ppv); // ICommDlgBrowser
+    } else if (guidService == SID_SFolderView) {
+        if (shellView)
+            return shellView->QueryInterface(riid, ppv);
     }
-    return result;
+    return E_NOINTERFACE;
 }
 
 /* ICommDlgBrowser */
@@ -770,6 +779,17 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
     // item count will often be incorrect at this point; see listViewOwnerProc
     if (hasStatusText())
         updateStatus();
+
+    // https://www.vbforums.com/showthread.php?894889-VB6-Using-IShellWindows-to-register-for-SHOpenFolderAndSelectItems
+    // https://github.com/derceg/explorerplusplus/blob/55208360ccbad78f561f22bdb3572ed7b0780fa0/Explorer%2B%2B/Explorer%2B%2B/ShellBrowser/BrowsingHandler.cpp#L238
+    CComQIPtr<IPersistIDList> persistIDList(item);
+    CComPtr<IShellWindows> shellWindows;
+    if (persistIDList && checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows))) {
+        CComVariant empty, pidlVar(persistIDList);
+        checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
+            SWC_BROWSER, &shellWindowCookie));
+        checkHR(shellWindows->Register(this, (long)(size_t)hwnd, SWC_BROWSER, &shellWindowCookie));
+    }
     return S_OK;
 }
 
@@ -796,5 +816,74 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
 
     return S_OK;
 }
+
+/* IDispatch */
+
+STDMETHODIMP FolderWindow::GetTypeInfoCount(UINT *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::GetTypeInfo(UINT, LCID, ITypeInfo **) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::GetIDsOfNames(
+    REFIID, LPOLESTR *, UINT, LCID, DISPID *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::Invoke(
+    DISPID, REFIID, LCID, WORD, DISPPARAMS *, VARIANT *, EXCEPINFO *, UINT *) { return E_NOTIMPL; }
+
+/* IWebBrowser */
+
+STDMETHODIMP FolderWindow::get_Document(IDispatch **dispatch) {
+    return QueryInterface(__uuidof(IDispatch), (void **)dispatch);
+}
+
+STDMETHODIMP FolderWindow::GoBack() { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::GoForward() { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::GoHome() { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::GoSearch() { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::Navigate(
+    BSTR, VARIANT *, VARIANT *, VARIANT *, VARIANT *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::Refresh() { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::Refresh2(VARIANT *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::Stop() { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Application(IDispatch **) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Parent(IDispatch **) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Container(IDispatch **) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_TopLevelContainer(VARIANT_BOOL *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Type(BSTR *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Left(long *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_Left(long) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Top(long *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_Top(long) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Width(long *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_Width(long) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Height(long *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_Height(long) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_LocationName(BSTR *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_LocationURL(BSTR *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Busy(VARIANT_BOOL *) { return E_NOTIMPL; }
+
+/* IWebBrowserApp */
+
+STDMETHODIMP FolderWindow::get_HWND(SHANDLE_PTR *pHWND) {
+    // this window is brought to the foreground when a Shell Window is activated
+    *pHWND = (SHANDLE_PTR)hwnd;
+    return S_OK;
+}
+
+STDMETHODIMP FolderWindow::Quit() { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::ClientToWindow(int *, int *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::PutProperty(BSTR, VARIANT) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::GetProperty(BSTR, VARIANT *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Name(BSTR *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_FullName(BSTR *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Path(BSTR *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_Visible(VARIANT_BOOL *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_Visible(VARIANT_BOOL) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_StatusBar(VARIANT_BOOL *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_StatusBar(VARIANT_BOOL) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_StatusText(BSTR *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_StatusText(BSTR) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_ToolBar(int *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_ToolBar(int) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_MenuBar(VARIANT_BOOL *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_MenuBar(VARIANT_BOOL) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::get_FullScreen(VARIANT_BOOL *) { return E_NOTIMPL; }
+STDMETHODIMP FolderWindow::put_FullScreen(VARIANT_BOOL) { return E_NOTIMPL; }
 
 } // namespace
