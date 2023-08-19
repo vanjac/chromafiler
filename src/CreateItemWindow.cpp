@@ -88,10 +88,21 @@ CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem) {
 }
 
 CComPtr<IShellItem> itemFromPath(wchar_t *path) {
+    // https://learn.microsoft.com/en-us/windows/win32/shell/str-constants
+    CComPtr<IBindCtx> context;
+    if (checkHR(CreateBindCtx(0, &context))) {
+        CComPtr<IUnknownImpl> dummy;
+        dummy.Attach(new IUnknownImpl);
+        // so it won't try to replace direct paths to a folder with special Shell objects
+        // (eg. Desktop, user folder)
+        // this makes the shell more likely to find the window with IShellWindows
+        checkHR(context->RegisterObjectParam(STR_PARSE_PREFER_FOLDER_BROWSING, dummy));
+        // TODO: STR_PARSE_AND_CREATE_ITEM
+    }
     while (1) {
         CComPtr<IShellItem> item;
         // parse name vs display name https://stackoverflow.com/q/42966489
-        if (checkHR(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&item))))
+        if (checkHR(SHCreateItemFromParsingName(path, context, IID_PPV_ARGS(&item))))
             return item;
         int result = MessageBox(nullptr, formatString(IDS_CANT_FIND_ITEM, path).get(),
             getString(IDS_ERROR_CAPTION), MB_CANCELTRYCONTINUE | MB_ICONERROR);
