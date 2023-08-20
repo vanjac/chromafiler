@@ -1,3 +1,4 @@
 /build/*
 !/build/empty
 /.vscode/settings.json
+/.vs

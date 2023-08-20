@@ -203,6 +203,8 @@ Section "Add to folder context menu" SecContext
 	WriteRegStr SHCTX Software\Classes\CompressedFolder\shell\chromafiler "Icon" "$INSTDIR\ChromaFiler.exe"
 	WriteRegStr SHCTX Software\Classes\Drive\shell\chromafiler "Icon" "$INSTDIR\ChromaFiler.exe"
 
+	; https://superuser.com/questions/136838/which-special-variables-are-available-when-writing-a-shell-command-for-a-context
+	; explorer uses: %SystemRoot%\Explorer.exe /idlist,%I,%L
 	Var /GLOBAL context_menu_command
 	StrCpy $context_menu_command '"$INSTDIR\ChromaFiler.exe" "%v"'
 	WriteRegStr SHCTX Software\Classes\Directory\shell\chromafiler\command "" '$context_menu_command'
