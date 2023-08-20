@@ -218,9 +218,10 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             if (result.textStart) {
                 SendMessage(edit, EM_SETTEXTEX, (WPARAM)&result.setText, (LPARAM)result.textStart);
                 SendMessage(edit, EM_SETOPTIONS, ECOOP_AND, ~ECO_READONLY);
-                Edit_SetModify(edit, FALSE);
                 CHARRANGE sel = {0, 0};
                 SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
+                Edit_SetModify(edit, FALSE);
+                setToolbarButtonState(IDM_SAVE, 0);
                 detectEncoding = result.encoding;
                 detectNewlines = result.newlines;
                 debugPrintf(L"Detected encoding %d\n", detectEncoding);
