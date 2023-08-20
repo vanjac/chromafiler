@@ -89,7 +89,7 @@ CAPTION "Default Browser"
 FONT 8, "MS Shell Dlg", 400, 0, 0
 {
   CONTROL 32516, -1, "Static", SS_ICON, 14, 7, 0, 0
-  CONTROL "Replace File Explorer as the default program for opening folders. Use at your own risk!", -1, "Static", WS_GROUP, 42, 8, 175, 16
+  CONTROL "Replace File Explorer as the default program for opening all folders.", -1, "Static", WS_GROUP, 42, 8, 175, 16
   CONTROL "&Set as default browser", IDC_SET_DEFAULT_BROWSER, "Button", WS_TABSTOP, 7, 35, 84, 14
   CONTROL "&Reset default browser", IDC_RESET_DEFAULT_BROWSER, "Button", WS_TABSTOP, 7, 56, 84, 14
 }

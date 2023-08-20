@@ -156,10 +156,10 @@ STRINGTABLE {
     IDS_SUCCESS_CAPTION,    "Success"
     IDS_CONFIRM_CAPTION,    "Are you sure?"
     IDS_BROWSER_SET_FAILED, "Failed to set default browser"
-    IDS_BROWSER_SET,        "ChromaFiler has been set as your default browser."
+    IDS_BROWSER_SET,        "ChromaFiler has been set as your default browser. You can revert this change in ChromaFiler settings."
     IDS_BROWSER_RESET,      "File Explorer has been restored as your default browser."
     IDS_REQUIRE_CONTEXT,    "ChromaFiler must be installed with the Folder Context Menu enabled to be able to change the default browser."
-    IDS_BROWSER_SET_CONFIRM,"This will replace File Explorer as the default program for opening folders. Use at your own risk!"
+    IDS_BROWSER_SET_CONFIRM,"This will replace Windows File Explorer as the default program for opening all folders."
 
     IDS_WELCOME_CAPTION,    "ChromaFiler"
     IDS_WELCOME_HEADER,     "Welcome"

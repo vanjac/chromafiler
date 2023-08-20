@@ -278,9 +278,12 @@ HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM,
             int result = 0;
             TaskDialog(hwnd, instance, MAKEINTRESOURCE(IDS_CONFIRM_CAPTION),
                 nullptr, MAKEINTRESOURCE(IDS_BROWSER_SET_CONFIRM),
-                TDCBF_YES_BUTTON | TDCBF_CANCEL_BUTTON, nullptr, &result);
-            if (result == IDYES)
+                TDCBF_YES_BUTTON | TDCBF_CANCEL_BUTTON, TD_WARNING_ICON, &result);
+            if (result == IDYES) {
                 settings::setDefaultBrowser(true);
+                TaskDialog(GetParent(hwnd), instance, MAKEINTRESOURCE(IDS_SUCCESS_CAPTION),
+                    nullptr, MAKEINTRESOURCE(IDS_BROWSER_SET), 0, nullptr, nullptr);
+            }
         }
         return S_FALSE;
     }
