@@ -279,6 +279,7 @@ HWND ItemWindow::createChainOwner(int showCommand) {
 }
 
 void ItemWindow::close() {
+    // TODO: remove this method and use Post/Send directly
     PostMessage(hwnd, WM_CLOSE, 0, 0);
 }
 

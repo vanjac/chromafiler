@@ -33,6 +33,7 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
     bool textEditorEnabled = settings::getTextEditorEnabled();
     CComHeapPtr<wchar_t> parentRelAddr;
     // SIGDN_PARENTRELATIVEFORADDRESSBAR will always have the extension
+    // TODO: use IShellItem2::GetString instead?
     if ((previewsEnabled || textEditorEnabled)
             && checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEFORADDRESSBAR, &parentRelAddr))) {
         if (wchar_t *ext = PathFindExtension(parentRelAddr)) {

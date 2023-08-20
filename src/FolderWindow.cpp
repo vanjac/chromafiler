@@ -726,6 +726,8 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
         if (shellView)
             return shellView->QueryInterface(riid, ppv);
     }
+    // SID_STopLevelBrowser is also requested...
+    // TODO: forward to IExplorerBrowser?
     return E_NOINTERFACE;
 }
 
