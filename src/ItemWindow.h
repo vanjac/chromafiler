@@ -176,7 +176,7 @@ private:
     SIZE lastSize;
     bool isChainPreview = false;
     bool firstActivate = false, closing = false;
-    bool draggingObject;
+    bool draggingObject = false;
 
     SRWLOCK iconLock = SRWLOCK_INIT;
     HICON iconLarge = nullptr, iconSmall = nullptr;
