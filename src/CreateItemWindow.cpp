@@ -10,6 +10,7 @@
 #include <shellapi.h>
 #include <strsafe.h>
 #include <VersionHelpers.h>
+#include <propkey.h>
 
 namespace chromafiler {
 
@@ -35,12 +36,18 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
     if ((previewsEnabled || textEditorEnabled)
             && checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEFORADDRESSBAR, &parentRelAddr))) {
         if (wchar_t *ext = PathFindExtension(parentRelAddr)) {
-            if (textEditorEnabled && ext[0] == 0) {
-                window.Attach(new TextWindow(parent, item));
-                return window;
-            }
             CLSID previewID;
-            if (previewHandlerCLSID(ext, &previewID)) {
+            if (ext[0] == 0) {
+                if (textEditorEnabled) {
+                    CComQIPtr<IShellItem2> item2(item);
+                    CComHeapPtr<wchar_t> str;
+                    if (item2 && SUCCEEDED(item2->GetString(PKEY_ItemType, &str))
+                            && lstrcmp(str, L".") == 0) {
+                        window.Attach(new TextWindow(parent, item));
+                        return window;
+                    }
+                }
+            } else if (previewHandlerCLSID(ext, &previewID)) {
                 if (textEditorEnabled && previewID == TXT_PREVIEWER_CLSID) {
                     window.Attach(new TextWindow(parent, item));
                     return window;
@@ -97,7 +104,6 @@ CComPtr<IShellItem> itemFromPath(wchar_t *path) {
         // (eg. Desktop, user folder)
         // this makes the shell more likely to find the window with IShellWindows
         checkHR(context->RegisterObjectParam(STR_PARSE_PREFER_FOLDER_BROWSING, dummy));
-        // TODO: STR_PARSE_AND_CREATE_ITEM
     }
     while (1) {
         CComPtr<IShellItem> item;
