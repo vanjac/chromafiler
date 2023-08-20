@@ -314,11 +314,7 @@ void FolderWindow::onDestroy() {
         checkHR(browser->SetPropertyBag(L""));
     }
     ItemWindow::onDestroy();
-    if (shellWindowCookie) {
-        CComPtr<IShellWindows> shellWindows;
-        if (checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows)))
-            checkHR(shellWindows->Revoke(shellWindowCookie));
-    }
+    unregisterShellWindow();
     if (browser) {
         checkHR(browser->Unadvise(eventsCookie));
         checkHR(IUnknown_SetSite(browser, nullptr));
@@ -435,16 +431,19 @@ void FolderWindow::updateSelection() {
                 if (selected)
                     checkHR(newSelected->Compare(selected, SICHINT_CANONICAL, &compare));
                 selected = newSelected;
-                // openChild() could cause a "Problem with Shortcut" error dialog to appear,
+                // openChild() could cause a permission dialog to appear,
                 // so don't call it more than necessary!
-                if (compare)
+                if (compare) {
                     openChild(selected);
+                    unregisterShellWindow();
+                }
             }
         }
     } else {
         // 0 or more than 1 item selected
         selected = nullptr;
         closeChild();
+        registerShellWindow();
     }
 
     // note: sometimes the first selection change event occurs before navigation is complete and
@@ -484,10 +483,12 @@ void FolderWindow::onChildDetached() {
 void FolderWindow::onItemChanged() {
     ItemWindow::onItemChanged();
     propBag = getItemPropertyBag(item, propertyBag());
-    shellView = nullptr;
-    checkHR(browser->SetOptions(BROWSER_OPTIONS)); // temporarily enable navigation
-    checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE));
-    checkHR(browser->SetOptions(BROWSER_OPTIONS | EBO_NAVIGATEONCE));
+    if (browser) {
+        shellView = nullptr;
+        checkHR(browser->SetOptions(BROWSER_OPTIONS)); // temporarily enable navigation
+        checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE));
+        checkHR(browser->SetOptions(BROWSER_OPTIONS | EBO_NAVIGATEONCE));
+    }
 }
 
 void FolderWindow::refresh() {
@@ -664,6 +665,30 @@ void FolderWindow::openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMEN
     }
 }
 
+void FolderWindow::registerShellWindow() {
+    // https://www.vbforums.com/showthread.php?894889-VB6-Using-IShellWindows-to-register-for-SHOpenFolderAndSelectItems
+    // https://github.com/derceg/explorerplusplus/blob/55208360ccbad78f561f22bdb3572ed7b0780fa0/Explorer%2B%2B/Explorer%2B%2B/ShellBrowser/BrowsingHandler.cpp#L238
+    if (shellWindowCookie)
+        return;
+    CComQIPtr<IPersistIDList> persistIDList(item);
+    CComPtr<IShellWindows> shellWindows;
+    if (persistIDList && checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows))) {
+        CComVariant empty, pidlVar(persistIDList);
+        checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
+            SWC_BROWSER, &shellWindowCookie));
+        checkHR(shellWindows->Register(this, (long)(size_t)hwnd, SWC_BROWSER, &shellWindowCookie));
+    }
+}
+
+void FolderWindow::unregisterShellWindow() {
+    if (shellWindowCookie) {
+        CComPtr<IShellWindows> shellWindows;
+        if (checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows)))
+            checkHR(shellWindows->Revoke(shellWindowCookie));
+        shellWindowCookie = 0;
+    }
+}
+
 /* IUnknown */
 
 STDMETHODIMP FolderWindow::QueryInterface(REFIID id, void **obj) {
@@ -782,19 +807,16 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
     if (hasStatusText())
         updateStatus();
 
-    // https://www.vbforums.com/showthread.php?894889-VB6-Using-IShellWindows-to-register-for-SHOpenFolderAndSelectItems
-    // https://github.com/derceg/explorerplusplus/blob/55208360ccbad78f561f22bdb3572ed7b0780fa0/Explorer%2B%2B/Explorer%2B%2B/ShellBrowser/BrowsingHandler.cpp#L238
-    CComQIPtr<IPersistIDList> persistIDList(item);
-    CComPtr<IShellWindows> shellWindows;
-    if (persistIDList && checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows))) {
-        CComVariant empty, pidlVar(persistIDList);
-        if (!shellWindowCookie) {
-            checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
-                SWC_BROWSER, &shellWindowCookie));
-            checkHR(shellWindows->Register(this, (long)(size_t)hwnd, SWC_BROWSER, &shellWindowCookie));
-        } else { // onItemChanged
+    if (shellWindowCookie) {
+        // onItemChanged was called
+        CComQIPtr<IPersistIDList> persistIDList(item);
+        CComPtr<IShellWindows> shellWindows;
+        if (persistIDList && checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows))) {
+            CComVariant pidlVar(persistIDList);
             checkHR(shellWindows->OnNavigate(shellWindowCookie, &pidlVar));
         }
+    } else if (!child) {
+        registerShellWindow();
     }
     return S_OK;
 }

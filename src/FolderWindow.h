@@ -149,6 +149,9 @@ private:
     void openViewMenu(POINT point);
     void openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu, POINT point);
 
+    void registerShellWindow();
+    void unregisterShellWindow();
+
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
     CComPtr<IPropertyBag> propBag;
     DWORD eventsCookie = 0;
