@@ -33,7 +33,7 @@ SetCompressor LZMA
 
 !define MUI_LICENSEPAGE_TEXT_TOP ""
 !define MUI_LICENSEPAGE_TEXT_BOTTOM "Click Next to continue."
-!define MUI_LICENSEPAGE_BUTTON "Next >"
+!define MUI_LICENSEPAGE_BUTTON "&Next >"
 !define MUI_TEXT_LICENSE_TITLE "Welcome to ChromaFiler Setup"
 !define MUI_TEXT_LICENSE_SUBTITLE "Setup will guide you through the installation of ChromaFiler."
 
