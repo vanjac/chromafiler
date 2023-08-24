@@ -75,8 +75,7 @@ void TextWindow::onCreate() {
 
     logFont = settings::getTextFont();
     updateFont();
-    edit = createRichEdit(settings::getTextWrap());
-    SendMessage(edit, EM_SETOPTIONS, ECOOP_OR, ECO_READONLY);
+    edit = createRichEdit(true, settings::getTextWrap());
     setStatusText(getString(IDS_TEXT_LOADING));
 
     loadThread.Attach(new LoadThread(item, this));
@@ -90,9 +89,11 @@ void applyEditFont(HWND edit, HFONT font) {
     }
 }
 
-HWND TextWindow::createRichEdit(bool wordWrap) {
+HWND TextWindow::createRichEdit(bool readOnly, bool wordWrap) {
     DWORD style = WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_LEFT | ES_MULTILINE | ES_AUTOVSCROLL
         | ES_NOHIDESEL | ES_SAVESEL | ES_SELECTIONBAR;
+    if (readOnly)
+        style |= ES_READONLY;
     if (!wordWrap)
         style |= WS_HSCROLL | ES_AUTOHSCROLL;
     HWND control = checkLE(CreateWindow(MSFTEDIT_CLASS, nullptr, style,
@@ -472,7 +473,7 @@ void TextWindow::setWordWrap(bool wordWrap) {
     SendMessage(edit, EM_EXGETSEL, 0, (LPARAM)&sel);
 
     DestroyWindow(edit);
-    edit = createRichEdit(wordWrap);
+    edit = createRichEdit(false, wordWrap);
     onSize(clientSize(hwnd));
 
     SETTEXTEX setText = {ST_UNICODE, CP_UTF16LE};

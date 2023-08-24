@@ -50,7 +50,7 @@ private:
     SettingsPage settingsStartPage() const override;
     const wchar_t * helpURL() const override;
 
-    HWND createRichEdit(bool wordWrap);
+    HWND createRichEdit(bool readOnly, bool wordWrap);
     bool isEditable();
     CComPtr<ITextDocument> getTOMDocument();
     void updateFont();
