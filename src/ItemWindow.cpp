@@ -652,6 +652,8 @@ void ItemWindow::onCreate() {
             WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
             0, 0, 0, 0,
             hwnd, nullptr, instance, nullptr));
+        // support ctrl+backspace
+        checkHR(SHAutoComplete(renameBox, SHACF_AUTOAPPEND_FORCE_OFF|SHACF_AUTOSUGGEST_FORCE_OFF));
         SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
         if (captionFont)
             SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
