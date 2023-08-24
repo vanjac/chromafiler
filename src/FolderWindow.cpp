@@ -676,7 +676,7 @@ void FolderWindow::registerShellWindow() {
         CComVariant empty, pidlVar(persistIDList);
         checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
             SWC_BROWSER, &shellWindowCookie));
-        checkHR(shellWindows->Register(this, (long)(size_t)hwnd, SWC_BROWSER, &shellWindowCookie));
+        checkHR(shellWindows->Register(this, HandleToLong(hwnd), SWC_BROWSER, &shellWindowCookie));
     }
 }
 

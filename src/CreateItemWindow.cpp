@@ -101,10 +101,15 @@ CComPtr<IShellItem> itemFromPath(wchar_t *path) {
     if (checkHR(CreateBindCtx(0, &context))) {
         CComPtr<IUnknownImpl> dummy;
         dummy.Attach(new IUnknownImpl);
-        // so it won't try to replace direct paths to a folder with special Shell objects
-        // (eg. Desktop, user folder)
-        // this makes the shell more likely to find the window with IShellWindows
-        checkHR(context->RegisterObjectParam(STR_PARSE_PREFER_FOLDER_BROWSING, dummy));
+        // If SHCreateItemFromParsingName is called without a context, it assumes
+        // STR_PARSE_TRANSLATE_ALIASES. This means it will replace direct paths to a folder with
+        // Shell objects (eg. Desktop or user folder). Whatever PIDL we end up with needs to match
+        // whatever the shell is searching for in IShellWindows with SHOpenFolderAndSelectItems.
+        // On 32-bit windows the shell translates aliases when searching IShellWindows, and on
+        // 64-bit it doesn't. wtf??
+#ifndef _WIN64
+        checkHR(context->RegisterObjectParam(STR_PARSE_TRANSLATE_ALIASES, dummy));
+#endif
     }
     while (1) {
         CComPtr<IShellItem> item;
