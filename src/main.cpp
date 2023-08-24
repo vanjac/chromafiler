@@ -49,7 +49,7 @@ void logLastError(const char *file, int line, const char *expr) {
 }
 #endif
 
-bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand);
+bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand, bool *tray);
 DWORD WINAPI checkLastVersion(void *);
 void showWelcomeDialog();
 HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LONG_PTR data);
@@ -88,19 +88,26 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));
 
-    // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
-    CFExecuteFactory executeFactory;
-    DWORD regCookie;
-    HRESULT regHR = CoRegisterClassObject(CLSID_CFExecute, &executeFactory,
-        CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie);
-    checkHR(regHR);
-
     int argc;
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
-    bool success = createWindowFromCommandLine(argc, argv, showCommand);
+    bool tray;
+    bool success = createWindowFromCommandLine(argc, argv, showCommand, &tray);
     LocalFree(argv);
     if (!success)
         return 0;
+
+    HRESULT regHR = E_FAIL;
+    DWORD regCookie = 0;
+    if (tray) {
+        checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
+            RECOVERY_DEFAULT_PING_INTERVAL, 0));
+    } else {
+        // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
+        CFExecuteFactory executeFactory;
+        regHR = CoRegisterClassObject(CLSID_CFExecute, &executeFactory,
+            CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie);
+        checkHR(regHR);
+    }
 
     HANDLE jumpListThread = nullptr, versionThread = nullptr, updateCheckThread = nullptr;
     SHCreateThreadWithHandle(updateJumpList, nullptr, CTF_COINIT_STA, nullptr, &jumpListThread);
@@ -165,18 +172,19 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     return (int)msg.wParam;
 }
 
-bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand) {
+bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand, bool *tray) {
     wstr_ptr pathAlloc;
     wchar_t *path = nullptr;
-    bool tray = false, scratch = false;
+    bool scratch = false;
+    *tray = false;
     for (int i = 1; i < argc; i++) {
         wchar_t *arg = argv[i];
         if (lstrcmpi(arg, L"/tray") == 0) {
-            tray = true;
+            *tray = true;
             scratch = false;
         } else if (lstrcmpi(arg, L"/scratch") == 0) {
             scratch = true;
-            tray = false;
+            *tray = false;
         } else if (lstrcmpi(arg, L"/embedding") == 0 || lstrcmpi(arg, L"-embedding") == 0) {
             // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
             debugPrintf(L"Started as local COM server\n");
@@ -199,7 +207,7 @@ bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand) {
     }
 
     if (!path) {
-        if (tray) {
+        if (*tray) {
             pathAlloc = settings::getTrayFolder();
         } else if (scratch) {
             pathAlloc = settings::getScratchFolder();
@@ -215,10 +223,8 @@ bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand) {
     startItem = resolveLink(startItem);
 
     CComPtr<ItemWindow> initialWindow;
-    if (tray) {
+    if (*tray) {
         initialWindow.Attach(new TrayWindow(nullptr, startItem));
-        checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
-            RECOVERY_DEFAULT_PING_INTERVAL, 0));
     } else if (scratch) {
         CComPtr<IShellItem> scratchFile = createScratchFile(startItem);
         if (!scratchFile)
@@ -228,7 +234,7 @@ bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand) {
         initialWindow = createItemWindow(nullptr, startItem);
     }
     RECT rect;
-    if (tray) {
+    if (*tray) {
         rect = ((TrayWindow *)initialWindow.p)->requestedRect();
     } else {
         SIZE size = initialWindow->requestedSize();
