@@ -8,6 +8,7 @@
 #include "Settings.h"
 #include "SettingsDialog.h"
 #include "Update.h"
+#include "ExecuteCommand.h"
 #include "DPI.h"
 #include "UIStrings.h"
 #include "WinUtils.h"
@@ -86,10 +87,16 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));
 
+    // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
+    CFExecuteFactory executeFactory;
+    DWORD regCookie;
+    HRESULT regHR = CoRegisterClassObject(CLSID_CFExecute, &executeFactory,
+        CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie);
+    checkHR(regHR);
+
     {
         int argc;
         wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
-        debugPrintf(L"Launched with: %s\n", GetCommandLine());
 
         wstr_ptr pathAlloc;
         wchar_t *path = nullptr;
@@ -199,6 +206,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 #endif
     }
 
+    if (SUCCEEDED(regHR))
+        checkHR(CoRevokeClassObject(regCookie));
+
     WaitForSingleObject(jumpListThread, INFINITE);
     WaitForSingleObject(versionThread, INFINITE);
     if (updateCheckThread) {
@@ -218,7 +228,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         MessageBox(nullptr, message.get(), L"Memory leak!", MB_ICONERROR);
     }
 #endif
-
+    debugPrintf(L"Goodbye\n");
     return (int)msg.wParam;
 }
 
@@ -409,14 +419,14 @@ namespace chromafiler {
     long MEMLEAK_COUNT;
 #endif
 
-    static long numOpenWindows = 0;
+    static long lockCount = 0;
 
-    void windowOpened() {
-        InterlockedIncrement(&numOpenWindows);
+    void lockProcess() {
+        InterlockedIncrement(&lockCount);
     }
 
-    void windowClosed() {
-        if (InterlockedDecrement(&numOpenWindows) == 0)
+    void unlockProcess() {
+        if (InterlockedDecrement(&lockCount) == 0)
             PostQuitMessage(0);
     }
 }

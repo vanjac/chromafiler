@@ -517,7 +517,7 @@ void openSettingsDialog(SettingsPage page) {
     sheet.ppsp = pages;
     settingsDialog = (HWND)PropertySheet(&sheet);
     if (settingsDialog)
-        windowOpened();
+        lockProcess();
 }
 
 bool handleSettingsDialogMessage(MSG *msg) {
@@ -527,7 +527,7 @@ bool handleSettingsDialogMessage(MSG *msg) {
     if (!PropSheet_GetCurrentPageHwnd(settingsDialog)) {
         DestroyWindow(settingsDialog);
         settingsDialog = nullptr;
-        windowClosed();
+        unlockProcess();
     }
     return isDialogMessage;
 }

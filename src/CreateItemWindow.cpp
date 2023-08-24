@@ -96,25 +96,10 @@ CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem) {
 }
 
 CComPtr<IShellItem> itemFromPath(wchar_t *path) {
-    // https://learn.microsoft.com/en-us/windows/win32/shell/str-constants
-    CComPtr<IBindCtx> context;
-    if (checkHR(CreateBindCtx(0, &context))) {
-        CComPtr<IUnknownImpl> dummy;
-        dummy.Attach(new IUnknownImpl);
-        // If SHCreateItemFromParsingName is called without a context, it assumes
-        // STR_PARSE_TRANSLATE_ALIASES. This means it will replace direct paths to a folder with
-        // Shell objects (eg. Desktop or user folder). Whatever PIDL we end up with needs to match
-        // whatever the shell is searching for in IShellWindows with SHOpenFolderAndSelectItems.
-        // On 32-bit windows the shell translates aliases when searching IShellWindows, and on
-        // 64-bit it doesn't. wtf??
-#ifndef _WIN64
-        checkHR(context->RegisterObjectParam(STR_PARSE_TRANSLATE_ALIASES, dummy));
-#endif
-    }
     while (1) {
         CComPtr<IShellItem> item;
         // parse name vs display name https://stackoverflow.com/q/42966489
-        if (checkHR(SHCreateItemFromParsingName(path, context, IID_PPV_ARGS(&item))))
+        if (checkHR(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(&item))))
             return item;
         int result = MessageBox(nullptr, formatString(IDS_CANT_FIND_ITEM, path).get(),
             getString(IDS_ERROR_CAPTION), MB_CANCELTRYCONTINUE | MB_ICONERROR);

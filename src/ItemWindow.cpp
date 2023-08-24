@@ -261,7 +261,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     ShowWindow(createHwnd, showCommand);
 
     AddRef(); // keep window alive while open
-    windowOpened();
+    lockProcess();
     return true;
 }
 
@@ -352,7 +352,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 CHROMAFILER_MEMLEAK_FREE;
             }
             hwnd = nullptr;
-            windowClosed();
+            unlockProcess();
             Release(); // allow window to be deleted
             return 0;
         case WM_ACTIVATE:

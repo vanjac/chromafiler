@@ -8,7 +8,7 @@ namespace chromafiler {
 extern CComPtr<ItemWindow> activeWindow;
 
 // app exits when all windows are closed
-void windowOpened();
-void windowClosed();
+void lockProcess();
+void unlockProcess();
 
 } // namespace
