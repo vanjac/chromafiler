@@ -31,7 +31,7 @@ static int STATUS_TEXT_MARGIN = 4;
 static int STATUS_TOOLTIP_OFFSET = 2; // TODO not correct at higher DPIs
 static int DETACH_DISTANCE = 32;
 
-static int CAPTION_HEIGHT = 0; // calculated in init()
+int ItemWindow::CAPTION_HEIGHT = 0; // calculated in init()
 
 static LOGFONT SYMBOL_LOGFONT = {14, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
     ANSI_CHARSET, OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,

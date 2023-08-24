@@ -132,7 +132,7 @@ void FolderWindow::onCreate() {
     ItemWindow::onCreate();
 
     RECT browserRect = windowBody();
-    browserRect.bottom += browserRect.top; // initial rect is wrong
+    browserRect.bottom += CAPTION_HEIGHT; // initial rect is wrong
 
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;

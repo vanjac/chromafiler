@@ -71,7 +71,7 @@ void PreviewWindow::onCreate() {
     ItemWindow::onCreate();
 
     RECT previewRect = windowBody();
-    previewRect.bottom += previewRect.top; // initial rect is wrong
+    previewRect.bottom += CAPTION_HEIGHT; // initial rect is wrong
     // some preview handlers don't respect the given rect and always fill their window
     // so wrap the preview handler in a container window
     container = checkLE(CreateWindow(PREVIEW_CONTAINER_CLASS, nullptr, WS_VISIBLE | WS_CHILD,
@@ -104,10 +104,10 @@ void PreviewWindow::onActivate(WORD state, HWND prevWindow) {
 
 void PreviewWindow::onSize(SIZE size) {
     ItemWindow::onSize(size);
+    RECT previewRect = windowBody();
+    MoveWindow(container, previewRect.left, previewRect.top,
+        rectWidth(previewRect), rectHeight(previewRect), TRUE);
     if (preview) {
-        RECT previewRect = windowBody();
-        MoveWindow(container, previewRect.left, previewRect.top,
-            rectWidth(previewRect), rectHeight(previewRect), TRUE);
         RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
         checkHR(preview->SetRect(&containerClientRect));
     }
@@ -254,6 +254,7 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
                 IID_PPV_ARGS(&factory)))) {
             return;
         }
+        // https://stackoverflow.com/a/5002596/11525734
         previewFactoryCache[request->previewID] = factory;
     }
 

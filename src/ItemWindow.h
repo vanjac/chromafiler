@@ -12,6 +12,7 @@ namespace chromafiler {
 class ItemWindow : public IUnknownImpl, public IDropSource, public IDropTarget {
 protected:
     static HACCEL accelTable;
+    static int CAPTION_HEIGHT;
 
 public:
     static void init();
