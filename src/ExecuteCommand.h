@@ -8,6 +8,8 @@
 
 namespace chromafiler {
 
+void initExecuteCommand();
+
 // https://devblogs.microsoft.com/oldnewthing/20100312-01/?p=14623
 
 // {87612720-a94e-4fd3-a1f6-b78d7768424f}

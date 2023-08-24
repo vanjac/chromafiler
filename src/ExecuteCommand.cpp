@@ -4,6 +4,16 @@
 
 namespace chromafiler {
 
+const wchar_t TESTPOS_CLASS[] = L"ChromaFiler Test Window";
+
+void initExecuteCommand() {
+    WNDCLASS wndClass = {};
+    wndClass.lpfnWndProc = DefWindowProc;
+    wndClass.hInstance = GetModuleHandle(nullptr);
+    wndClass.lpszClassName = TESTPOS_CLASS;
+    RegisterClass(&wndClass);
+}
+
 CFExecute::CFExecute() {
     lockProcess();
 }
@@ -96,7 +106,17 @@ void CFExecute::openItem(CComPtr<IShellItem> item) {
     item = resolveLink(item);
     CComPtr<ItemWindow> window = createItemWindow(nullptr, item);
     SIZE size = window->requestedSize();
-    // TODO: better rect
+    if (position.x != CW_USEDEFAULT) {
+        // find a good position for the window
+        HWND owner = checkLE(CreateWindow(TESTPOS_CLASS, nullptr, WS_OVERLAPPED,
+            position.x, position.y, 0, 0, nullptr, nullptr, GetModuleHandle(nullptr), 0));
+        HWND defWnd = checkLE(CreateWindow(TESTPOS_CLASS, nullptr, WS_OVERLAPPED,
+            CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, owner, nullptr, GetModuleHandle(nullptr), 0));
+        RECT defRect = windowRect(defWnd);
+        checkLE(DestroyWindow(owner));
+        position.x = defRect.left;
+        position.y = defRect.top;
+    }
     RECT rect = {position.x, position.y, position.x + size.cx, position.y + size.cy};
     window->create(rect, showCommand);
     // fix issue when invoking 64-bit ChromaFiler from 32-bit app
