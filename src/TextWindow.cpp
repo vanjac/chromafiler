@@ -169,7 +169,7 @@ int TextWindow::getToolbarTooltip(WORD command) {
 }
 
 void TextWindow::trackContextMenu(POINT pos) {
-    if (SendMessage(edit, EM_GETOPTIONS, 0, 0) & ECO_READONLY) {
+    if (!isEditable()) {
         ItemWindow::trackContextMenu(pos);
         return;
     }
@@ -187,6 +187,10 @@ void TextWindow::onActivate(WORD state, HWND prevWindow) {
 
 void TextWindow::onSize(SIZE size) {
     ItemWindow::onSize(size);
+    updateEditSize();
+}
+
+void TextWindow::updateEditSize() {
     RECT body = windowBody();
     MoveWindow(edit, body.left, body.top, rectWidth(body), rectHeight(body), TRUE);
 }
@@ -218,7 +222,7 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             ReleaseSRWLockExclusive(&asyncLoadResultLock);
             if (result.textStart) {
                 SendMessage(edit, EM_SETTEXTEX, (WPARAM)&result.setText, (LPARAM)result.textStart);
-                SendMessage(edit, EM_SETOPTIONS, ECOOP_AND, ~ECO_READONLY);
+                Edit_SetReadOnly(edit, FALSE);
                 CHARRANGE sel = {0, 0};
                 SendMessage(edit, EM_EXSETSEL, 0, (LPARAM)&sel);
                 Edit_SetModify(edit, FALSE);
@@ -474,7 +478,7 @@ void TextWindow::setWordWrap(bool wordWrap) {
 
     DestroyWindow(edit);
     edit = createRichEdit(false, wordWrap);
-    onSize(clientSize(hwnd));
+    updateEditSize();
 
     SETTEXTEX setText = {ST_UNICODE, CP_UTF16LE};
     SendMessage(edit, EM_SETTEXTEX, (WPARAM)&setText, (LPARAM)buffer.get());

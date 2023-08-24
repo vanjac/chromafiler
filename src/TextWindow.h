@@ -54,6 +54,7 @@ private:
     bool isEditable();
     CComPtr<ITextDocument> getTOMDocument();
     void updateFont();
+    void updateEditSize();
     void updateStatus();
     void userSave();
     bool confirmSave(bool willDelete);
