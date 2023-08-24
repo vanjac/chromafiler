@@ -214,6 +214,7 @@ void FolderWindow::listViewCreated() {
     style &= ~LVS_ALIGNLEFT;
     style |= LVS_ALIGNTOP;
     SetWindowLong(listView, GWL_STYLE, style);
+    ListView_SetExtendedListViewStyleEx(listView, LVS_EX_COLUMNSNAPPOINTS, 0);
     SetWindowSubclass(listView, listViewSubclassProc, 0, (DWORD_PTR)this);
     SetWindowSubclass(defView, listViewOwnerProc, 0, (DWORD_PTR)this);
     SIZE size = clientSize(listView);
