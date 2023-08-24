@@ -27,6 +27,7 @@ SetCompressor LZMA
 
 !define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\ChromaFiler"
 !define CONTEXT_MENU_TEXT "Open in ChromaFiler"
+!define EXECUTE_GUID "{87612720-a94e-4fd3-a1f6-b78d7768424f}"
 
 !define MUI_ICON "..\src\res\folder.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
@@ -67,7 +68,7 @@ UninstPage Custom un.LockedListShow
 LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
 LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the Start Menu to launch $(^Name)."
 LangString DESC_SecProgID ${LANG_ENGLISH} "Add an entry to the 'Open with' menu for all file types. (Does not change the default app for any file type.)"
-LangString DESC_SecContext ${LANG_ENGLISH} "Add an 'Open in $(^Name)' command when right-clicking a folder."
+LangString DESC_SecContext ${LANG_ENGLISH} "Add 'Open in $(^Name)' command when right-clicking a folder. Required to set default file browser."
 LangString LOCKED_LIST_TITLE ${LANG_ENGLISH} "Close Programs"
 LangString LOCKED_LIST_SUBTITLE ${LANG_ENGLISH} "Make sure all $(^Name) windows are closed before continuing (including the tray)."
 
@@ -193,6 +194,9 @@ Section "Add to folder context menu" SecContext
 	StrCmp $default_browser "" 0 +2
 		WriteRegStr SHCTX "Software\Classes\Drive\Shell" "" "none"
 
+	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}" "" "ChromaFiler"
+	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}\LocalServer32" "" "$INSTDIR\ChromaFiler.exe"
+
 	WriteRegStr SHCTX Software\Classes\Directory\shell\chromafiler "" "${CONTEXT_MENU_TEXT}"
 	WriteRegStr SHCTX Software\Classes\Directory\Background\shell\chromafiler "" "${CONTEXT_MENU_TEXT}"
 	WriteRegStr SHCTX Software\Classes\CompressedFolder\shell\chromafiler "" "${CONTEXT_MENU_TEXT}"
@@ -211,6 +215,11 @@ Section "Add to folder context menu" SecContext
 	WriteRegStr SHCTX Software\Classes\Directory\Background\shell\chromafiler\command "" '$context_menu_command'
 	WriteRegStr SHCTX Software\Classes\CompressedFolder\shell\chromafiler\command "" '$context_menu_command'
 	WriteRegStr SHCTX Software\Classes\Drive\shell\chromafiler\command "" '$context_menu_command'
+
+	WriteRegStr SHCTX Software\Classes\Directory\shell\chromafiler\command "DelegateExecute" "${EXECUTE_GUID}"
+	WriteRegStr SHCTX Software\Classes\Directory\Background\shell\chromafiler\command "DelegateExecute" "${EXECUTE_GUID}"
+	WriteRegStr SHCTX Software\Classes\CompressedFolder\shell\chromafiler\command "DelegateExecute" "${EXECUTE_GUID}"
+	WriteRegStr SHCTX Software\Classes\Drive\shell\chromafiler\command "DelegateExecute" "${EXECUTE_GUID}"
 SectionEnd
 
 Function FinishPageShow
@@ -236,6 +245,7 @@ Section "un.Uninstall"
 	DeleteRegKey SHCTX Software\Classes\Directory\Background\shell\chromafiler
 	DeleteRegKey SHCTX Software\Classes\CompressedFolder\shell\chromafiler
 	DeleteRegKey SHCTX Software\Classes\Drive\shell\chromafiler
+	DeleteRegKey SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}"
 
 	Delete $SMPROGRAMS\ChromaFiler.lnk
 
