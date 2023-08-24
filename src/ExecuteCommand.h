@@ -3,6 +3,7 @@
 
 #include "COMUtils.h"
 #include "ShObjIdl.h"
+#include "WinUtils.h"
 #include <atlbase.h>
 
 namespace chromafiler {
@@ -33,13 +34,16 @@ public:
     STDMETHODIMP SetPosition(POINT) override;
     STDMETHODIMP SetShowWindow(int) override;
     STDMETHODIMP SetNoShowUI(BOOL) override;
-    STDMETHODIMP SetDirectory(LPCWSTR) override;
+    STDMETHODIMP SetDirectory(const wchar_t *path) override;
     STDMETHODIMP Execute() override;
 
 private:
+    void openItem(CComPtr<IShellItem> item);
+
     CComPtr<IShellItemArray> itemArray;
     POINT position = {CW_USEDEFAULT, CW_USEDEFAULT};
     int showCommand = SW_SHOWNORMAL;
+    wstr_ptr workingDir;
 };
 
 class CFExecuteFactory : public IClassFactory {

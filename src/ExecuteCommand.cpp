@@ -51,7 +51,12 @@ STDMETHODIMP CFExecute::GetSelection(REFIID id, void **obj) {
 STDMETHODIMP CFExecute::SetKeyState(DWORD) { return S_OK; }
 STDMETHODIMP CFExecute::SetParameters(const wchar_t *) { return S_OK; }
 STDMETHODIMP CFExecute::SetNoShowUI(BOOL) { return S_OK; }
-STDMETHODIMP CFExecute::SetDirectory(LPCWSTR) { return S_OK; }
+STDMETHODIMP CFExecute::SetDirectory(const wchar_t *path) {
+    int size = lstrlen(path) + 1;
+    workingDir = wstr_ptr(new wchar_t[size]);
+    CopyMemory(workingDir.get(), path, size * sizeof(wchar_t));
+    return S_OK;
+}
 
 STDMETHODIMP CFExecute::SetPosition(POINT point) {
     position = point;
@@ -65,24 +70,35 @@ STDMETHODIMP CFExecute::SetShowWindow(int show) {
 
 STDMETHODIMP CFExecute::Execute() {
     debugPrintf(L"Invoked with DelegateExecute\n");
-    if (!itemArray)
-        return E_UNEXPECTED;
+    if (!itemArray) {
+        if (!workingDir)
+            return E_UNEXPECTED;
+        // this happens when invoked on background
+        CComPtr<IShellItem> item;
+        if (checkHR(SHCreateItemFromParsingName(workingDir.get(), nullptr, IID_PPV_ARGS(&item))))
+            openItem(item);
+        return S_OK;
+    }
     HRESULT hr;
     CComPtr<IEnumShellItems> enumItems;
-    if (SUCCEEDED(hr = itemArray->EnumItems(&enumItems))) {
+    if (checkHR(hr = itemArray->EnumItems(&enumItems))) {
         CComPtr<IShellItem> item;
         while (enumItems->Next(1, &item, nullptr) == S_OK) {
-            item = resolveLink(item);
-            CComPtr<ItemWindow> window = createItemWindow(nullptr, item);
-            SIZE size = window->requestedSize();
-            // TODO: better rect
-            RECT rect = {position.x, position.y, position.x + size.cx, position.y + size.cy};
-            window->create(rect, showCommand);
+            openItem(item);
             item = nullptr;
         }
         return S_OK;
     }
     return hr;
+}
+
+void CFExecute::openItem(CComPtr<IShellItem> item) {
+    item = resolveLink(item);
+    CComPtr<ItemWindow> window = createItemWindow(nullptr, item);
+    SIZE size = window->requestedSize();
+    // TODO: better rect
+    RECT rect = {position.x, position.y, position.x + size.cx, position.y + size.cy};
+    window->create(rect, showCommand);
 }
 
 /* Factory */
