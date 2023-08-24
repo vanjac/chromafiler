@@ -1682,6 +1682,13 @@ void ItemWindow::completeRename() {
 
     if (lstrcmp(newName, title) == 0)
         return; // names are identical, which would cause an unnecessary error message
+    if (PathCleanupSpec(nullptr, newName) & (PCS_REPLACEDCHAR | PCS_REMOVEDCHAR)) {
+        enableChain(false);
+        checkHR(TaskDialog(hwnd, GetModuleHandle(nullptr), MAKEINTRESOURCE(IDS_ERROR_CAPTION),
+            nullptr, MAKEINTRESOURCE(IDS_INVALID_CHARS), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr));
+        enableChain(true);
+        return;
+    }
 
     CComHeapPtr<wchar_t> fileName;
     // SIGDN_PARENTRELATIVEFORADDRESSBAR will always have the extension even if hidden in options
