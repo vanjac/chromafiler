@@ -64,6 +64,7 @@ STDMETHODIMP CFExecute::SetShowWindow(int show) {
 }
 
 STDMETHODIMP CFExecute::Execute() {
+    debugPrintf(L"Invoked with DelegateExecute\n");
     if (!itemArray)
         return E_UNEXPECTED;
     HRESULT hr;

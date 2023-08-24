@@ -49,6 +49,7 @@ void logLastError(const char *file, int line, const char *expr) {
 }
 #endif
 
+bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand);
 DWORD WINAPI checkLastVersion(void *);
 void showWelcomeDialog();
 HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LONG_PTR data);
@@ -83,7 +84,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     TextWindow::init();
     TrayWindow::init();
 
-
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));
 
@@ -94,80 +94,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie);
     checkHR(regHR);
 
-    {
-        int argc;
-        wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
-
-        wstr_ptr pathAlloc;
-        wchar_t *path = nullptr;
-        bool tray = false, scratch = false;
-        for (int i = 1; i < argc; i++) {
-            wchar_t *arg = argv[i];
-            if (arg[0] != L'/') { // path
-                if (!path) {
-                    int argLen = lstrlen(arg);
-                    if (arg[argLen - 1] == '"')
-                        arg[argLen - 1] = '\\'; // fix weird CommandLineToArgvW behavior with \"
-
-                    if ((argLen >= 1 && arg[0] == ':') || (argLen >= _countof(SHELL_PREFIX)
-                            && _memicmp(arg, SHELL_PREFIX, _countof(SHELL_PREFIX)) == 0)) {
-                        path = arg; // assume desktop absolute parsing name
-                    } else { // assume relative file system path
-                        pathAlloc = wstr_ptr(new wchar_t[MAX_PATH]);
-                        path = pathAlloc.get();
-                        if (!GetFullPathName(arg, MAX_PATH, path, nullptr))
-                            path = arg;
-                    }
-                }
-            } else if (lstrcmpi(arg, L"/tray") == 0) {
-                tray = true;
-                scratch = false;
-            } else if (lstrcmpi(arg, L"/scratch") == 0) {
-                scratch = true;
-                tray = false;
-            }
-        }
-
-        if (!path) {
-            if (tray) {
-                pathAlloc = settings::getTrayFolder();
-            } else if (scratch) {
-                pathAlloc = settings::getScratchFolder();
-            } else {
-                pathAlloc = settings::getStartingFolder();
-            }
-            path = pathAlloc.get();
-        }
-
-        CComPtr<IShellItem> startItem = itemFromPath(path);
-        if (!startItem)
-            return 0;
-        startItem = resolveLink(startItem);
-
-        CComPtr<ItemWindow> initialWindow;
-        if (tray) {
-            initialWindow.Attach(new TrayWindow(nullptr, startItem));
-            checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
-                RECOVERY_DEFAULT_PING_INTERVAL, 0));
-        } else if (scratch) {
-            CComPtr<IShellItem> scratchFile = createScratchFile(startItem);
-            if (!scratchFile)
-                return 0;
-            initialWindow.Attach(new TextWindow(nullptr, scratchFile, true));
-        } else {
-            initialWindow = createItemWindow(nullptr, startItem);
-        }
-        RECT rect;
-        if (tray) {
-            rect = ((TrayWindow *)initialWindow.p)->requestedRect();
-        } else {
-            SIZE size = initialWindow->requestedSize();
-            rect = {CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
-        }
-        initialWindow->create(rect, showCommand);
-
-        LocalFree(argv);
-    }
+    int argc;
+    wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
+    bool success = createWindowFromCommandLine(argc, argv, showCommand);
+    LocalFree(argv);
+    if (!success)
+        return 0;
 
     HANDLE jumpListThread = nullptr, versionThread = nullptr, updateCheckThread = nullptr;
     SHCreateThreadWithHandle(updateJumpList, nullptr, CTF_COINIT_STA, nullptr, &jumpListThread);
@@ -230,6 +162,79 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 #endif
     debugPrintf(L"Goodbye\n");
     return (int)msg.wParam;
+}
+
+bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand) {
+    wstr_ptr pathAlloc;
+    wchar_t *path = nullptr;
+    bool tray = false, scratch = false;
+    for (int i = 1; i < argc; i++) {
+        wchar_t *arg = argv[i];
+        if (lstrcmpi(arg, L"/tray") == 0) {
+            tray = true;
+            scratch = false;
+        } else if (lstrcmpi(arg, L"/scratch") == 0) {
+            scratch = true;
+            tray = false;
+        } else if (lstrcmpi(arg, L"/embedding") == 0 || lstrcmpi(arg, L"-embedding") == 0) {
+            // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
+            debugPrintf(L"Started as local COM server\n");
+            return true;
+        } else if (!path) {
+            int argLen = lstrlen(arg);
+            if (arg[argLen - 1] == '"')
+                arg[argLen - 1] = '\\'; // fix weird CommandLineToArgvW behavior with \"
+
+            if ((argLen >= 1 && arg[0] == ':') || (argLen >= _countof(SHELL_PREFIX)
+                    && _memicmp(arg, SHELL_PREFIX, _countof(SHELL_PREFIX)) == 0)) {
+                path = arg; // assume desktop absolute parsing name
+            } else { // assume relative file system path
+                pathAlloc = wstr_ptr(new wchar_t[MAX_PATH]);
+                path = pathAlloc.get();
+                if (!GetFullPathName(arg, MAX_PATH, path, nullptr))
+                    path = arg;
+            }
+        }
+    }
+
+    if (!path) {
+        if (tray) {
+            pathAlloc = settings::getTrayFolder();
+        } else if (scratch) {
+            pathAlloc = settings::getScratchFolder();
+        } else {
+            pathAlloc = settings::getStartingFolder();
+        }
+        path = pathAlloc.get();
+    }
+
+    CComPtr<IShellItem> startItem = itemFromPath(path);
+    if (!startItem)
+        return false;
+    startItem = resolveLink(startItem);
+
+    CComPtr<ItemWindow> initialWindow;
+    if (tray) {
+        initialWindow.Attach(new TrayWindow(nullptr, startItem));
+        checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
+            RECOVERY_DEFAULT_PING_INTERVAL, 0));
+    } else if (scratch) {
+        CComPtr<IShellItem> scratchFile = createScratchFile(startItem);
+        if (!scratchFile)
+            return false;
+        initialWindow.Attach(new TextWindow(nullptr, scratchFile, true));
+    } else {
+        initialWindow = createItemWindow(nullptr, startItem);
+    }
+    RECT rect;
+    if (tray) {
+        rect = ((TrayWindow *)initialWindow.p)->requestedRect();
+    } else {
+        SIZE size = initialWindow->requestedSize();
+        rect = {CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
+    }
+    initialWindow->create(rect, showCommand);
+    return true;
 }
 
 DWORD WINAPI checkLastVersion(void *) {

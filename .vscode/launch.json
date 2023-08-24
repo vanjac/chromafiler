@@ -38,6 +38,17 @@
             "console": "externalTerminal"
         },
         {
+            "name": "Local Server",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}\\build\\ChromaFiler.exe",
+            "args": ["-embedding"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}\\build",
+            "environment": [],
+            "console": "externalTerminal"
+        },
+        {
             "name": "Explorer",
             "type": "cppvsdbg",
             "request": "launch",
