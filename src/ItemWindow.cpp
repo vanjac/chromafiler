@@ -287,6 +287,10 @@ void ItemWindow::activate() {
     SetActiveWindow(hwnd);
 }
 
+void ItemWindow::setForeground() {
+    SetForegroundWindow(hwnd);
+}
+
 void ItemWindow::setRect(RECT rect) {
     SetWindowPos(hwnd, nullptr, rect.left, rect.top, rectWidth(rect), rectHeight(rect),
         SWP_NOZORDER | SWP_NOACTIVATE);

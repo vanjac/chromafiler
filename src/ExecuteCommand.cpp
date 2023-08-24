@@ -99,6 +99,9 @@ void CFExecute::openItem(CComPtr<IShellItem> item) {
     // TODO: better rect
     RECT rect = {position.x, position.y, position.x + size.cx, position.y + size.cy};
     window->create(rect, showCommand);
+    // fix issue when invoking 64-bit ChromaFiler from 32-bit app
+    if (showCommand == SW_SHOWNORMAL)
+        window->setForeground();
 }
 
 /* Factory */

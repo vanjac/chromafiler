@@ -25,6 +25,7 @@ public:
 
     bool create(RECT rect, int showCommand);
     void close();
+    void setForeground();
 
     // attempt to relocate item if it has been renamed, moved, or deleted
     bool resolveItem();
