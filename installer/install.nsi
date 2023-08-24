@@ -174,9 +174,16 @@ Section "Start Menu shortcut" SecStart
 	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\ChromaFiler.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.file"
 SectionEnd
 
+Function RegisterExecuteCommand
+	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}" "" "ChromaFiler"
+	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}\LocalServer32" "" "$INSTDIR\ChromaFiler.exe"
+FunctionEnd
+
 Section "Add to Open With menu" SecProgID
+	Call RegisterExecuteCommand
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
+	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "DelegateExecute" "${EXECUTE_GUID}"
 	; hack for ArsClip (TODO: add to all users?)
 	WriteRegStr HKCU "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
 SectionEnd
@@ -194,8 +201,7 @@ Section "Add to folder context menu" SecContext
 	StrCmp $default_browser "" 0 +2
 		WriteRegStr SHCTX "Software\Classes\Drive\Shell" "" "none"
 
-	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}" "" "ChromaFiler"
-	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}\LocalServer32" "" "$INSTDIR\ChromaFiler.exe"
+	Call RegisterExecuteCommand
 
 	WriteRegStr SHCTX Software\Classes\Directory\shell\chromafiler "" "${CONTEXT_MENU_TEXT}"
 	WriteRegStr SHCTX Software\Classes\Directory\Background\shell\chromafiler "" "${CONTEXT_MENU_TEXT}"
