@@ -96,6 +96,7 @@ STRINGTABLE {
     IDS_UNKNOWN_ERROR,      "Unknown error"
     IDS_ERROR_CAPTION,      "Error"
     IDS_CANT_FIND_ITEM,     "Unable to find item at path: %1"
+    IDS_INVALID_CHARS,      "File name cannot contain the following characters:\n\\ / : * ? "" < > |"
 
     IDS_NEW_SCRATCH_TASK,   "New Scratch File"
 
