@@ -1876,6 +1876,11 @@ void ItemWindow::IconThread::run() {
     SHFILEINFO fileInfo = {};
     checkLE(SHGetFileInfo((wchar_t *)(ITEMIDLIST *)itemIDList, 0, &fileInfo, sizeof(fileInfo),
         SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_SMALLICON));
+    if (fileInfo.hIcon == nullptr) {
+        // bug (possibly windows 7 only?) where the first call sometimes fails
+        checkLE(SHGetFileInfo((wchar_t *)(ITEMIDLIST *)itemIDList, 0, &fileInfo, sizeof(fileInfo),
+            SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_SMALLICON));
+    }
     HICON hIconSmall = fileInfo.hIcon;
     checkLE(SHGetFileInfo((wchar_t *)(ITEMIDLIST *)itemIDList, 0, &fileInfo, sizeof(fileInfo),
         SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_LARGEICON));
