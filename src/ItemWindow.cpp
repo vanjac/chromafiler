@@ -1459,8 +1459,8 @@ void ItemWindow::openParentMenu() {
         SHFILEINFO fileInfo = {};
         CComHeapPtr<ITEMIDLIST> idList;
         if (checkHR(SHGetIDListFromObject(curItem, &idList))) {
-            SHGetFileInfo((wchar_t *)(ITEMIDLIST *)idList, 0, &fileInfo, sizeof(fileInfo),
-                SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_SMALLICON);
+            checkLE(SHGetFileInfo((wchar_t *)(ITEMIDLIST *)idList, 0, &fileInfo, sizeof(fileInfo),
+                SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_SMALLICON));
         }
         if (fileInfo.hIcon) {
             // http://shellrevealed.com:80/blogs/shellblog/archive/2007/02/06/Vista-Style-Menus_2C00_-Part-1-_2D00_-Adding-icons-to-standard-menus.aspx
@@ -1874,11 +1874,11 @@ ItemWindow::IconThread::IconThread(CComPtr<IShellItem> item, ItemWindow *callbac
 
 void ItemWindow::IconThread::run() {
     SHFILEINFO fileInfo = {};
-    SHGetFileInfo((wchar_t *)(ITEMIDLIST *)itemIDList, 0, &fileInfo, sizeof(fileInfo),
-        SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_SMALLICON);
+    checkLE(SHGetFileInfo((wchar_t *)(ITEMIDLIST *)itemIDList, 0, &fileInfo, sizeof(fileInfo),
+        SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_SMALLICON));
     HICON hIconSmall = fileInfo.hIcon;
-    SHGetFileInfo((wchar_t *)(ITEMIDLIST *)itemIDList, 0, &fileInfo, sizeof(fileInfo),
-        SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_LARGEICON);
+    checkLE(SHGetFileInfo((wchar_t *)(ITEMIDLIST *)itemIDList, 0, &fileInfo, sizeof(fileInfo),
+        SHGFI_PIDL | SHGFI_ICON | SHGFI_ADDOVERLAYS | SHGFI_LARGEICON));
 
     AcquireSRWLockExclusive(&stopLock);
     if (!isStopped()) {
@@ -1888,14 +1888,18 @@ void ItemWindow::IconThread::run() {
             CHROMAFILER_MEMLEAK_FREE;
         }
         callbackWindow->iconLarge = fileInfo.hIcon;
-        CHROMAFILER_MEMLEAK_ALLOC;
+        if (fileInfo.hIcon) {
+            CHROMAFILER_MEMLEAK_ALLOC;
+        }
     
         if (callbackWindow->iconSmall) {
             checkLE(DestroyIcon(callbackWindow->iconSmall));
             CHROMAFILER_MEMLEAK_FREE;
         }
         callbackWindow->iconSmall = hIconSmall;
-        CHROMAFILER_MEMLEAK_ALLOC;
+        if (hIconSmall) {
+            CHROMAFILER_MEMLEAK_ALLOC;
+        }
         ReleaseSRWLockExclusive(&callbackWindow->iconLock);
 
         PostMessage(callbackWindow->hwnd, MSG_UPDATE_ICONS, 0, 0);
