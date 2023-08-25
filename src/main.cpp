@@ -96,6 +96,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     if (!success)
         return 0;
 
+    CFExecuteFactory executeFactory;
     HRESULT regHR = E_FAIL;
     DWORD regCookie = 0;
     if (tray) {
@@ -103,7 +104,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             RECOVERY_DEFAULT_PING_INTERVAL, 0));
     } else {
         // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
-        CFExecuteFactory executeFactory;
         regHR = CoRegisterClassObject(CLSID_CFExecute, &executeFactory,
             CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie);
         checkHR(regHR);
