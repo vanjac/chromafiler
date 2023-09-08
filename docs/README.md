@@ -8,9 +8,11 @@ It functions similar to a column-view browser, but each column can be broken off
 
 ChromaFiler works on Windows 7 through 11.
 
+<img src="https://user-images.githubusercontent.com/8228102/232920671-ad7bc157-02e4-4b22-ba59-9d7c6b10aa69.png" width="420" alt="Sequence of ChromaFiler windows for each version of Windows">
+
 ## Download
 
-Check the [Releases](https://github.com/vanjac/chromafiler/releases) page for the latest beta build. ChromaFiler can also be downloaded from the [Microsoft Store](https://apps.microsoft.com/store/detail/XPFFWH44RPBGQJ) (single user only). See [installation instructions](https://github.com/vanjac/chromafiler/wiki/Installation) for additional information.
+Check the [Releases](https://github.com/vanjac/chromafiler/releases) page for the latest beta build. ChromaFiler can also be downloaded from the [Microsoft Store](https://apps.microsoft.com/store/detail/XPFFWH44RPBGQJ) (single user only, currently out of date!). See [installation instructions](https://github.com/vanjac/chromafiler/wiki/Installation) for additional information.
 
 ChromaFiler is still in development, so be sure to turn on the [auto check for updates](https://github.com/vanjac/chromafiler/wiki/Settings#updateabout) feature so you'll be notified of new releases.
 
@@ -29,8 +31,10 @@ VS Code must be launched from the "x64 Native Tools Command Prompt" (or equivale
 - [Everything](https://www.voidtools.com/) by voidtools (recommend installing with folder context menus)
 - [Microsoft PowerToys](https://github.com/microsoft/PowerToys) (see notes on [preview handlers](https://github.com/vanjac/chromafiler/wiki/Preview-Handlers))
 
-## Contact me:
-
-For questions / feedback / bug reports please [email me](https://chroma.zone/contact)
+## Donate
 
 If you enjoy ChromaFiler, please consider [donating](https://chroma.zone/donate) to support development.
+
+## Contact me
+
+For questions / feedback / bug reports please [email me](https://chroma.zone/contact)
