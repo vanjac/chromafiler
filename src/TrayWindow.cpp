@@ -58,9 +58,9 @@ void TrayWindow::init() {
 }
 
 TrayWindow::TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
-        : FolderWindow(parent, item, propertyBag()) {}
+        : FolderWindow(parent, item) {}
 
-const wchar_t * TrayWindow::className() {
+const wchar_t * TrayWindow::className() const {
     return TRAY_WINDOW_CLASS;
 }
 
@@ -78,7 +78,7 @@ RECT getTaskbarRect() {
     return abData.rc; // TODO this is incorrect if DPI changes while app is running
 }
 
-SIZE TrayWindow::requestedSize() const {
+SIZE TrayWindow::requestedSize() {
     SIZE traySize = settings::getTraySize();
     if (traySize.cy == settings::DEFAULT_TRAY_SIZE.cy) {
         SIZE taskbarSize = rectSize(getTaskbarRect());
@@ -171,7 +171,7 @@ POINT TrayWindow::childPos(SIZE size) {
     }
 }
 
-wchar_t * TrayWindow::propertyBag() const {
+wchar_t * TrayWindow::propBagName() const {
     return L"chromafiler.tray";
 }
 

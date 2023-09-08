@@ -11,12 +11,9 @@ class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlg
 public:
     static void init();
 
-    FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item,
-        const wchar_t *propBagOverride = nullptr);
+    FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
     bool persistSizeInParent() const override;
-    SIZE requestedSize() const override;
-    SIZE requestedChildSize() const override;
 
     bool handleTopLevelMessage(MSG *msg) override;
 
@@ -101,13 +98,18 @@ protected:
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
+    bool useDefaultStatusText() const override;
+    SIZE defaultSize() const override;
+
+    virtual FOLDERSETTINGS folderSettings() const;
+    virtual void initDefaultView(CComPtr<IFolderView2> folderView);
+
     void onCreate() override;
     void onDestroy() override;
     bool onCommand(WORD command) override;
     LRESULT onDropdown(int command, POINT pos) override;
     void onActivate(WORD state, HWND prevWindow) override;
     void onSize(SIZE size) override;
-    void onExitSizeMove(bool moved, bool sized) override;
 
     void addToolbarButtons(HWND tb) override;
     int getToolbarTooltip(WORD command) override;
@@ -115,7 +117,6 @@ protected:
     void trackContextMenu(POINT pos) override;
 
     void onChildDetached() override;
-    void onChildResized(SIZE size) override;
 
     void onItemChanged() override;
     void refresh() override;
@@ -124,13 +125,7 @@ protected:
     CComPtr<IShellView> shellView;
 
 private:
-    const wchar_t * className() override;
-
-    bool useDefaultStatusText() const override;
-
-    virtual wchar_t * propertyBag() const;
-    virtual FOLDERSETTINGS folderSettings() const;
-    virtual void initDefaultView(CComPtr<IFolderView2> folderView);
+    const wchar_t * className() const override;
 
     void listViewCreated();
     static LRESULT CALLBACK listViewSubclassProc(HWND hwnd, UINT message,
@@ -153,7 +148,6 @@ private:
     void unregisterShellWindow();
 
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
-    CComPtr<IPropertyBag> propBag;
     DWORD eventsCookie = 0;
     long shellWindowCookie = 0;
 

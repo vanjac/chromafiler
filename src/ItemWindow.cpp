@@ -21,6 +21,10 @@ const wchar_t CHAIN_OWNER_CLASS[] = L"ChromaFile Chain";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 const UINT SC_DRAGMOVE = SC_MOVE | 2; // https://stackoverflow.com/a/35880547/11525734
 
+// property bag
+const wchar_t PROP_SIZE[] = L"Size";
+const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
+
 // dimensions
 static int PARENT_BUTTON_WIDTH = 34; // caption only, matches close button width in windows 10
 static int COMP_CAPTION_VMARGIN = 1;
@@ -187,12 +191,12 @@ bool ItemWindow::persistSizeInParent() const {
     return true;
 }
 
-SIZE ItemWindow::requestedSize() const {
+SIZE ItemWindow::defaultSize() const {
     return scaleDPI(settings::getItemWindowSize());
 }
 
-SIZE ItemWindow::requestedChildSize() const {
-    return scaleDPI(settings::getItemWindowSize());
+wchar_t * ItemWindow::propBagName() const {
+    return L"chromafiler";
 }
 
 DWORD ItemWindow::windowStyle() const {
@@ -229,6 +233,19 @@ SettingsPage ItemWindow::settingsStartPage() const {
 
 const wchar_t * ItemWindow::helpURL() const {
     return L"https://github.com/vanjac/chromafiler/wiki";
+}
+
+CComPtr<IPropertyBag> ItemWindow::getPropBag() {
+    // local property bags can be found at:
+    // HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags
+    if (!propBag) {
+        CComHeapPtr<ITEMIDLIST> idList;
+        if (checkHR(SHGetIDListFromObject(item, &idList))) {
+            checkHR(SHGetViewStatePropertyBag(idList, propBagName(), SHGVSPB_FOLDERNODEFAULTS,
+                IID_PPV_ARGS(&propBag)));
+        }
+    }
+    return propBag;
 }
 
 bool ItemWindow::create(RECT rect, int showCommand) {
@@ -1115,8 +1132,14 @@ void ItemWindow::windowRectChanged() {
 }
 
 void ItemWindow::onExitSizeMove(bool, bool sized) {
-    if (sized && parent && persistSizeInParent())
-        parent->onChildResized(rectSize(windowRect(hwnd)));
+    if (sized) {
+        SIZE size = rectSize(windowRect(hwnd));
+        if (parent && persistSizeInParent())
+            parent->onChildResized(size);
+        CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
+        if (auto bag = getPropBag())
+            checkHR(bag->Write(PROP_SIZE, &sizeVar));
+    }
 }
 
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {
@@ -1269,7 +1292,12 @@ void ItemWindow::detachFromParent(bool closeParent) {
 }
 
 void ItemWindow::onChildDetached() {}
-void ItemWindow::onChildResized(SIZE) {}
+
+void ItemWindow::onChildResized(SIZE size) {
+    CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
+    if (auto bag = getPropBag())
+        checkHR(bag->Write(PROP_CHILD_SIZE, &sizeVar));
+}
 
 void ItemWindow::detachAndMove(bool closeParent) {
     ItemWindow *rootParent = this;
@@ -1294,6 +1322,28 @@ void ItemWindow::detachAndMove(bool closeParent) {
             pos.y = monitorInfo.rcWork.top;
         setPos(pos);
     }
+}
+
+SIZE ItemWindow::requestedSize() {
+    if (auto bag = getPropBag()) {
+        VARIANT sizeVar = {};
+        sizeVar.vt = VT_UI4;
+        if (SUCCEEDED(bag->Read(PROP_SIZE, &sizeVar, nullptr))) {
+            return scaleDPI(sizeFromLParam(sizeVar.ulVal));
+        }
+    }
+    return defaultSize();
+}
+
+SIZE ItemWindow::requestedChildSize() {
+    if (auto bag = getPropBag()) {
+        VARIANT sizeVar = {};
+        sizeVar.vt = VT_UI4;
+        if (SUCCEEDED(bag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
+            return scaleDPI(sizeFromLParam(sizeVar.ulVal));
+        }
+    }
+    return scaleDPI(settings::getItemWindowSize());
 }
 
 POINT ItemWindow::childPos(SIZE size) {
@@ -1426,6 +1476,7 @@ void ItemWindow::onItemChanged() {
         itemDropTarget = nullptr;
         item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
     }
+    propBag = nullptr; // TODO: transfer settings from old bag?
 }
 
 void ItemWindow::refresh() {

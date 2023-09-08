@@ -25,7 +25,7 @@ ThumbnailWindow::~ThumbnailWindow() {
     }
 }
 
-const wchar_t * ThumbnailWindow::className() {
+const wchar_t * ThumbnailWindow::className() const {
     return THUMBNAIL_WINDOW_CLASS;
 }
 

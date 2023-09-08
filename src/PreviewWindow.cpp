@@ -63,7 +63,7 @@ PreviewWindow::PreviewWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> ite
     : ItemWindow(parent, item),
       previewID(previewID) {}
 
-const wchar_t * PreviewWindow::className() {
+const wchar_t * PreviewWindow::className() const {
     return PREVIEW_WINDOW_CLASS;
 }
 

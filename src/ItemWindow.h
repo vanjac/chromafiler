@@ -20,8 +20,7 @@ public:
 
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
-    virtual SIZE requestedSize() const; // called if (! persistSizeInParent())
-    virtual SIZE requestedChildSize() const; // called if child->persistSizeInParent()
+    virtual SIZE requestedSize(); // called if (! persistSizeInParent())
     virtual bool persistSizeInParent() const;
 
     bool create(RECT rect, int showCommand);
@@ -60,10 +59,20 @@ protected:
     static WNDCLASS createWindowClass(const wchar_t *name);
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
+    virtual SIZE defaultSize() const;
+    virtual wchar_t * propBagName() const;
     virtual DWORD windowStyle() const;
     virtual DWORD windowExStyle() const;
+    virtual bool useCustomFrame() const;
     // a window that stays open and is not shown in taskbar. currently only used by TrayWindow
     virtual bool paletteWindow() const;
+    virtual bool stickToChild() const; // for windows that override childPos
+
+    virtual bool useDefaultStatusText() const;
+    virtual SettingsPage settingsStartPage() const;
+    virtual const wchar_t * helpURL() const;
+
+    CComPtr<IPropertyBag> getPropBag();
 
     // general window commands
     void activate();
@@ -99,7 +108,7 @@ protected:
     void openChild(CComPtr<IShellItem> childItem);
     void closeChild();
     virtual void onChildDetached();
-    virtual void onChildResized(SIZE size); // only called if child->persistSizeInParent()
+    SIZE requestedChildSize(); // called if child->persistSizeInParent()
     virtual POINT childPos(SIZE size);
     POINT parentPos(SIZE size);
     void enableChain(bool enabled);
@@ -121,15 +130,9 @@ protected:
 
 private:
     static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-    virtual const wchar_t * className() = 0;
+    virtual const wchar_t * className() const = 0;
 
-    virtual bool useCustomFrame() const;
-    virtual bool stickToChild() const; // for windows that override childPos
     bool centeredProxy() const; // requires useCustomFrame() == true
-
-    virtual bool useDefaultStatusText() const;
-    virtual SettingsPage settingsStartPage() const;
-    virtual const wchar_t * helpURL() const;
 
     HWND createChainOwner(int showCommand);
 
@@ -142,6 +145,7 @@ private:
     void openParent();
     void clearParent();
     void detachFromParent(bool closeParent); // updates UI state
+    void onChildResized(SIZE size); // only called if child->persistSizeInParent()
     void detachAndMove(bool closeParent);
 
     void addChainPreview();
@@ -166,6 +170,7 @@ private:
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     CComPtr<IShellLink> link;
+    CComPtr<IPropertyBag> propBag;
 
     HWND proxyToolbar = nullptr, proxyTooltip = nullptr;
     HWND parentToolbar = nullptr, renameBox = nullptr;

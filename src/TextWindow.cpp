@@ -49,7 +49,7 @@ TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, boo
     replaceBuffer[0] = 0;
 }
 
-const wchar_t * TextWindow::className() {
+const wchar_t * TextWindow::className() const {
     return TEXT_WINDOW_CLASS;
 }
 

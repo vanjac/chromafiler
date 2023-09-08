@@ -15,7 +15,7 @@ public:
 
     TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
-    SIZE requestedSize() const override;
+    SIZE requestedSize() override;
     RECT requestedRect();
 
     bool handleTopLevelMessage(MSG *msg) override;
@@ -35,7 +35,15 @@ protected:
 
     DWORD windowStyle() const override;
     DWORD windowExStyle() const override;
+    bool useCustomFrame() const override;
     bool paletteWindow() const override;
+    bool stickToChild() const override;
+    SettingsPage settingsStartPage() const override;
+
+    POINT childPos(SIZE size) override;
+    wchar_t * propBagName() const override;
+    void initDefaultView(CComPtr<IFolderView2> folderView) override;
+    FOLDERSETTINGS folderSettings() const override;
 
     RECT windowBody() override;
 
@@ -48,15 +56,7 @@ protected:
     void refresh() override;
 
 private:
-    const wchar_t * className() override;
-
-    bool useCustomFrame() const override;
-    bool stickToChild() const override;
-    SettingsPage settingsStartPage() const override;
-    POINT childPos(SIZE size) override;
-    wchar_t * propertyBag() const override;
-    FOLDERSETTINGS folderSettings() const override;
-    void initDefaultView(CComPtr<IFolderView2> folderView) override;
+    const wchar_t * className() const override;
 
     void fixListViewColors();
 

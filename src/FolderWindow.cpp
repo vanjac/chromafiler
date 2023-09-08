@@ -19,8 +19,6 @@ namespace chromafiler {
 const wchar_t FOLDER_WINDOW_CLASS[] = L"ChromaFile Folder";
 
 const wchar_t PROP_VISITED[] = L"Visited";
-const wchar_t PROP_SIZE[] = L"Size";
-const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
 
 const EXPLORER_BROWSER_OPTIONS BROWSER_OPTIONS = EBO_NOBORDER | EBO_NOTRAVELLOG;
 
@@ -42,18 +40,6 @@ const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
 static CComPtr<IShellItem> controlPanelItem;
 static CComHeapPtr<ITEMID_CHILD> hiddenItemIDs[_countof(HIDDEN_ITEM_PARSE_NAMES)];
 
-// local property bags can be found at:
-// HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags
-CComPtr<IPropertyBag> getItemPropertyBag(CComPtr<IShellItem> item, const wchar_t *name) {
-    CComPtr<IPropertyBag> propBag;
-    CComHeapPtr<ITEMIDLIST> idList;
-    if (checkHR(SHGetIDListFromObject(item, &idList))) {
-        checkHR(SHGetViewStatePropertyBag(idList, name, SHGVSPB_FOLDERNODEFAULTS,
-            IID_PPV_ARGS(&propBag)));
-    }
-    return propBag;
-}
-
 void FolderWindow::init() {
     RegisterClass(tempPtr(createWindowClass(FOLDER_WINDOW_CLASS)));
 
@@ -69,14 +55,10 @@ void FolderWindow::init() {
     }
 }
 
-FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item,
-        const wchar_t *propBagOverride)
-        : ItemWindow(parent, item) {
-    // can't call virtual method in constructor!
-    propBag = getItemPropertyBag(item, propBagOverride ? propBagOverride : propertyBag());
-}
+FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
+        : ItemWindow(parent, item) {}
 
-const wchar_t * FolderWindow::className() {
+const wchar_t * FolderWindow::className() const {
     return FOLDER_WINDOW_CLASS;
 }
 
@@ -88,30 +70,8 @@ bool FolderWindow::useDefaultStatusText() const {
     return false;
 }
 
-SIZE FolderWindow::requestedSize() const {
-    if (propBag) {
-        VARIANT sizeVar = {};
-        sizeVar.vt = VT_UI4;
-        if (SUCCEEDED(propBag->Read(PROP_SIZE, &sizeVar, nullptr))) {
-            return scaleDPI(sizeFromLParam(sizeVar.ulVal));
-        }
-    }
+SIZE FolderWindow::defaultSize() const {
     return scaleDPI(settings::getFolderWindowSize());
-}
-
-SIZE FolderWindow::requestedChildSize() const {
-    if (propBag) {
-        VARIANT sizeVar = {};
-        sizeVar.vt = VT_UI4;
-        if (SUCCEEDED(propBag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
-            return scaleDPI(sizeFromLParam(sizeVar.ulVal));
-        }
-    }
-    return ItemWindow::requestedChildSize();
-}
-
-wchar_t * FolderWindow::propertyBag() const {
-    return L"chromafiler";
 }
 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
@@ -149,7 +109,7 @@ void FolderWindow::onCreate() {
 
     checkHR(IUnknown_SetSite(browser, (IServiceProvider *)this));
     checkHR(browser->Advise(this, &eventsCookie));
-    checkHR(browser->SetPropertyBag(propertyBag()));
+    checkHR(browser->SetPropertyBag(propBagName()));
     // will call IExplorerBrowserEvents callbacks
     HRESULT hr;
     if (!checkHR(hr = browser->BrowseToObject(item, SBSP_ABSOLUTE))) {
@@ -306,11 +266,13 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
 }
 
 void FolderWindow::onDestroy() {
-    if (shellView && propBag) {
-        // view settings are only written when shell view is destroyed
-        CComVariant visitedVar(true);
-        checkHR(propBag->Write(PROP_VISITED, &visitedVar));
-    } else if (!shellView) {
+    if (shellView) {
+        if (auto bag = getPropBag()) {
+            // view settings are only written when shell view is destroyed
+            CComVariant visitedVar(true);
+            checkHR(bag->Write(PROP_VISITED, &visitedVar));
+        }
+    } else {
         // prevent view settings from being trashed before navigation complete
         checkHR(browser->SetPropertyBag(L""));
     }
@@ -374,21 +336,6 @@ void FolderWindow::onSize(SIZE size) {
 
     if (browser)
         checkHR(browser->SetRect(nullptr, windowBody()));
-}
-
-void FolderWindow::onExitSizeMove(bool moved, bool sized) {
-    ItemWindow::onExitSizeMove(moved, sized);
-    if (sized) {
-        SIZE size = rectSize(windowRect(hwnd));
-        CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
-        checkHR(propBag->Write(PROP_SIZE, &sizeVar));
-    }
-}
-
-void FolderWindow::onChildResized(SIZE size) {
-    ItemWindow::onChildResized(size);
-    CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
-    checkHR(propBag->Write(PROP_CHILD_SIZE, &sizeVar));
 }
 
 void FolderWindow::selectionChanged() {
@@ -483,7 +430,6 @@ void FolderWindow::onChildDetached() {
 
 void FolderWindow::onItemChanged() {
     ItemWindow::onItemChanged();
-    propBag = getItemPropertyBag(item, propertyBag());
     if (browser) {
         shellView = nullptr;
         checkHR(browser->SetOptions(BROWSER_OPTIONS)); // temporarily enable navigation
@@ -833,10 +779,10 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
     shellView = view;
 
     bool visited = false; // folder has been visited before
-    if (propBag) {
+    if (auto bag = getPropBag()) {
         VARIANT var = {};
         var.vt = VT_BOOL;
-        if (SUCCEEDED(propBag->Read(PROP_VISITED, &var, nullptr)))
+        if (SUCCEEDED(bag->Read(PROP_VISITED, &var, nullptr)))
             visited = !!var.boolVal;
     }
     if (!visited) {

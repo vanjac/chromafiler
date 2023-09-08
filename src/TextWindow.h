@@ -29,6 +29,10 @@ protected:
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
+    bool useDefaultStatusText() const override;
+    SettingsPage settingsStartPage() const override;
+    const wchar_t * helpURL() const override;
+
     void onCreate() override;
     bool onCloseRequest() override;
     void onDestroy() override;
@@ -44,11 +48,7 @@ protected:
     void trackContextMenu(POINT pos) override;
 
 private:
-    const wchar_t * className() override;
-
-    bool useDefaultStatusText() const override;
-    SettingsPage settingsStartPage() const override;
-    const wchar_t * helpURL() const override;
+    const wchar_t * className() const override;
 
     HWND createRichEdit(bool readOnly, bool wordWrap);
     bool isEditable();

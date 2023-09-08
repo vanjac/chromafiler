@@ -51,7 +51,7 @@ protected:
     void refresh() override;
 
 private:
-    const wchar_t * className() override;
+    const wchar_t * className() const override;
 
     void destroyPreview();
 
