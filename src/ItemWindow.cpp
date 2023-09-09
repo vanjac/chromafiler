@@ -293,7 +293,15 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         checkLE(SetProp(owner, L"NonRudeHWND", (HANDLE)TRUE));
     }
 
+    if (compositionEnabled && (parent || child)) {
+        checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+            tempPtr((BOOL)TRUE), sizeof(BOOL))); // disable open/close animation
+    }
     ShowWindow(createHwnd, showCommand);
+    if (compositionEnabled && !(parent || child)) {
+        checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+            tempPtr((BOOL)TRUE), sizeof(BOOL))); // disable close animation
+    }
 
     AddRef(); // keep window alive while open
     lockProcess();
@@ -628,11 +636,6 @@ void ItemWindow::onCreate() {
 
     if (!paletteWindow() && (!parent || parent->paletteWindow()))
         addChainPreview();
-
-    if (compositionEnabled) {
-        checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-            tempPtr((BOOL)TRUE), sizeof(BOOL))); // disable animations
-    }
 
     HMODULE instance = GetWindowInstance(hwnd);
     if (useCustomFrame()) {
