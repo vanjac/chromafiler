@@ -1471,6 +1471,16 @@ void ItemWindow::enableChain(bool enabled) {
 
 void ItemWindow::addChainPreview() {
     HWND owner = checkLE(GetWindowOwner(hwnd));
+    // update app user model id
+    CComPtr<IPropertyStore> propStore;
+    if (checkHR(SHGetPropertyStoreForWindow(owner, IID_PPV_ARGS(&propStore)))) {
+        PROPVARIANT propVar;
+        if (checkHR(InitPropVariantFromString(appUserModelID(), &propVar))) {
+            checkHR(propStore->SetValue(PKEY_AppUserModel_ID, propVar));
+            checkHR(PropVariantClear(&propVar));
+        }
+    }
+    // update taskbar preview
     CComPtr<ITaskbarList4> taskbar;
     if (checkHR(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
         checkHR(taskbar->RegisterTab(hwnd, owner));
@@ -1484,15 +1494,6 @@ void ItemWindow::addChainPreview() {
     SendMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     SendMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
     ReleaseSRWLockExclusive(&iconLock);
-    // update app user model id
-    CComPtr<IPropertyStore> propStore;
-    if (checkHR(SHGetPropertyStoreForWindow(owner, IID_PPV_ARGS(&propStore)))) {
-        PROPVARIANT propVar;
-        if (checkHR(InitPropVariantFromString(appUserModelID(), &propVar))) {
-            checkHR(propStore->SetValue(PKEY_AppUserModel_ID, propVar));
-            checkHR(PropVariantClear(&propVar));
-        }
-    }
 }
 
 void ItemWindow::removeChainPreview() {
