@@ -277,7 +277,6 @@ void FolderWindow::onDestroy() {
         checkHR(browser->SetPropertyBag(L""));
     }
     ItemWindow::onDestroy();
-    unregisterShellWindow();
     if (browser) {
         checkHR(browser->Unadvise(eventsCookie));
         checkHR(IUnknown_SetSite(browser, nullptr));
@@ -381,17 +380,14 @@ void FolderWindow::updateSelection() {
                 selected = newSelected;
                 // openChild() could cause a permission dialog to appear,
                 // so don't call it more than necessary!
-                if (compare) {
+                if (compare)
                     openChild(selected);
-                    unregisterShellWindow();
-                }
             }
         }
     } else {
         // 0 or more than 1 item selected
         selected = nullptr;
         closeChild();
-        registerShellWindow();
     }
 
     // note: sometimes the first selection change event occurs before navigation is complete and
@@ -426,6 +422,10 @@ void FolderWindow::clearSelection() {
 void FolderWindow::onChildDetached() {
     ItemWindow::onChildDetached();
     clearSelection();
+}
+
+IDispatch * FolderWindow::getDispatch() {
+    return this;
 }
 
 void FolderWindow::onItemChanged() {
@@ -612,30 +612,6 @@ void FolderWindow::openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMEN
     }
 }
 
-void FolderWindow::registerShellWindow() {
-    // https://www.vbforums.com/showthread.php?894889-VB6-Using-IShellWindows-to-register-for-SHOpenFolderAndSelectItems
-    // https://github.com/derceg/explorerplusplus/blob/55208360ccbad78f561f22bdb3572ed7b0780fa0/Explorer%2B%2B/Explorer%2B%2B/ShellBrowser/BrowsingHandler.cpp#L238
-    if (shellWindowCookie)
-        return;
-    CComQIPtr<IPersistIDList> persistIDList(item);
-    CComPtr<IShellWindows> shellWindows;
-    if (persistIDList && checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows))) {
-        CComVariant empty, pidlVar(persistIDList);
-        checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
-            SWC_BROWSER, &shellWindowCookie));
-        checkHR(shellWindows->Register(this, HandleToLong(hwnd), SWC_BROWSER, &shellWindowCookie));
-    }
-}
-
-void FolderWindow::unregisterShellWindow() {
-    if (shellWindowCookie) {
-        CComPtr<IShellWindows> shellWindows;
-        if (checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows)))
-            checkHR(shellWindows->Revoke(shellWindowCookie));
-        shellWindowCookie = 0;
-    }
-}
-
 /* IUnknown */
 
 STDMETHODIMP FolderWindow::QueryInterface(REFIID id, void **obj) {
@@ -671,7 +647,7 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
         return QueryInterface(riid, ppv); // ICommDlgBrowser
     } else if (guidService == SID_SFolderView) {
         if (shellView)
-            return shellView->QueryInterface(riid, ppv);
+            return shellView->QueryInterface(riid, ppv); // for SHOpenFolderAndSelectItems
     }
     // SID_STopLevelBrowser is also requested...
     // TODO: forward to IExplorerBrowser?
@@ -756,17 +732,7 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
     if (hasStatusText())
         updateStatus();
 
-    if (shellWindowCookie) {
-        // onItemChanged was called
-        CComQIPtr<IPersistIDList> persistIDList(item);
-        CComPtr<IShellWindows> shellWindows;
-        if (persistIDList && checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows))) {
-            CComVariant pidlVar(persistIDList);
-            checkHR(shellWindows->OnNavigate(shellWindowCookie, &pidlVar));
-        }
-    } else if (!child) {
-        registerShellWindow();
-    }
+    onViewReady();
     return S_OK;
 }
 
@@ -806,7 +772,7 @@ STDMETHODIMP FolderWindow::Invoke(
 /* IWebBrowser */
 
 STDMETHODIMP FolderWindow::get_Document(IDispatch **dispatch) {
-    return QueryInterface(__uuidof(IDispatch), (void **)dispatch);
+    return QueryInterface(__uuidof(IDispatch), (void **)dispatch); // for SHOpenFolderAndSelectItems
 }
 
 STDMETHODIMP FolderWindow::GoBack() { return E_NOTIMPL; }

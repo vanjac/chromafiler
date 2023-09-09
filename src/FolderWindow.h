@@ -118,6 +118,7 @@ protected:
 
     void onChildDetached() override;
 
+    IDispatch * getDispatch() override;
     void onItemChanged() override;
     void refresh() override;
 
@@ -144,12 +145,8 @@ private:
     void openViewMenu(POINT point);
     void openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu, POINT point);
 
-    void registerShellWindow();
-    void unregisterShellWindow();
-
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
     DWORD eventsCookie = 0;
-    long shellWindowCookie = 0;
 
     CComPtr<IShellItem> selected;
 

@@ -115,6 +115,8 @@ protected:
     POINT parentPos(SIZE size);
     void enableChain(bool enabled);
 
+    virtual IDispatch * getDispatch();
+    void onViewReady();
     virtual void onItemChanged();
     virtual void refresh();
 
@@ -150,8 +152,13 @@ private:
     void onChildResized(SIZE size); // only called if child->persistSizeInParent()
     void detachAndMove(bool closeParent);
 
+    // left-most non-palette window gets the chain preview
     void addChainPreview();
     void removeChainPreview();
+
+    // only (non-palette) windows with no parent OR child are registered
+    void registerShellWindow();
+    void unregisterShellWindow();
 
     void openParentMenu();
 
@@ -180,6 +187,7 @@ private:
     HIMAGELIST imageList = nullptr;
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;
+    long shellWindowCookie = 0;
 
     POINT moveAccum;
     SIZE lastSize;

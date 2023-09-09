@@ -57,6 +57,8 @@ static HFONT symbolFont = nullptr;
 
 static BOOL compositionEnabled = FALSE;
 
+static CComPtr<IShellWindows> shellWindows;
+
 HACCEL ItemWindow::accelTable;
 
 bool highContrastEnabled() {
@@ -763,6 +765,9 @@ void ItemWindow::onCreate() {
         SendMessage(parentToolbar, TB_ADDBUTTONS, 1, (LPARAM)&parentButton);
         SendMessage(parentToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(width, height));
     }
+
+    if (!getDispatch())
+        onViewReady();
 }
 
 bool ItemWindow::hasStatusText() {
@@ -842,6 +847,7 @@ void ItemWindow::onDestroy() {
         activeWindow = nullptr;
 
     removeChainPreview();
+    unregisterShellWindow();
     if (HWND owner = checkLE(GetWindowOwner(hwnd))) {
         SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, 0);
         if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
@@ -1234,8 +1240,9 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
         int compare;
         if (checkHR(child->item->Compare(childItem, compareFlags, &compare)) && compare == 0)
             return; // already open
-        closeChild();
+        child->close();
     }
+    unregisterShellWindow();
     child = createItemWindow(this, childItem);
     SIZE size = child->persistSizeInParent() ? requestedChildSize() : child->requestedSize();
     POINT pos = childPos(size);
@@ -1250,6 +1257,8 @@ void ItemWindow::closeChild() {
     if (child) {
         child->close();
         child = nullptr; // onChildDetached will not be called
+        if (!parent && !paletteWindow())
+            registerShellWindow();
     }
 }
 
@@ -1261,6 +1270,7 @@ void ItemWindow::openParent() {
     parent->child = this;
 
     removeChainPreview();
+    unregisterShellWindow();
     SIZE size = parent->requestedSize();
     POINT pos = parentPos(size);
     RECT rect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
@@ -1296,6 +1306,8 @@ void ItemWindow::detachFromParent(bool closeParent) {
         SetWindowLongPtr(prevOwner, GWLP_USERDATA,
             GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
         addChainPreview();
+        if (!child)
+            registerShellWindow();
     }
     clearParent();
 
@@ -1465,6 +1477,48 @@ void ItemWindow::removeChainPreview() {
     }
 }
 
+IDispatch * ItemWindow::getDispatch() {
+    return nullptr;
+}
+
+void ItemWindow::onViewReady() {
+    if (shellWindowCookie) {
+        // onItemChanged was called
+        CComQIPtr<IPersistIDList> persistIDList(item);
+        if (persistIDList && shellWindows) {
+            CComVariant pidlVar(persistIDList);
+            checkHR(shellWindows->OnNavigate(shellWindowCookie, &pidlVar));
+        }
+    } else if (!child && !parent && !paletteWindow()) {
+        registerShellWindow();
+    }
+}
+
+void ItemWindow::registerShellWindow() {
+    // https://www.vbforums.com/showthread.php?894889-VB6-Using-IShellWindows-to-register-for-SHOpenFolderAndSelectItems
+    // https://github.com/derceg/explorerplusplus/blob/55208360ccbad78f561f22bdb3572ed7b0780fa0/Explorer%2B%2B/Explorer%2B%2B/ShellBrowser/BrowsingHandler.cpp#L238
+    if (shellWindowCookie)
+        return;
+    CComQIPtr<IPersistIDList> persistIDList(item);
+    if (!shellWindows)
+        shellWindows.CoCreateInstance(CLSID_ShellWindows);
+    if (persistIDList && shellWindows) {
+        CComVariant empty, pidlVar(persistIDList);
+        checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
+            SWC_BROWSER, &shellWindowCookie));
+        checkHR(shellWindows->Register(getDispatch(), HandleToLong(hwnd),
+            SWC_BROWSER, &shellWindowCookie));
+    }
+}
+
+void ItemWindow::unregisterShellWindow() {
+    if (shellWindowCookie) {
+        if (shellWindows)
+            checkHR(shellWindows->Revoke(shellWindowCookie));
+        shellWindowCookie = 0;
+    }
+}
+
 bool ItemWindow::resolveItem() {
     if (closing) // can happen when closing save prompt (window is activated)
         return true;
@@ -1534,6 +1588,8 @@ void ItemWindow::onItemChanged() {
         item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
     }
     propBag = nullptr; // TODO: transfer settings from old bag?
+    if (!getDispatch())
+        onViewReady();
 }
 
 void ItemWindow::refresh() {
