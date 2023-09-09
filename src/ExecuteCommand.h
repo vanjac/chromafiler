@@ -8,8 +8,6 @@
 
 namespace chromafiler {
 
-void initExecuteCommand();
-
 // https://devblogs.microsoft.com/oldnewthing/20100312-01/?p=14623
 
 // {87612720-a94e-4fd3-a1f6-b78d7768424f}
@@ -43,7 +41,7 @@ private:
     void openItem(CComPtr<IShellItem> item);
 
     CComPtr<IShellItemArray> itemArray;
-    POINT position = {CW_USEDEFAULT, CW_USEDEFAULT};
+    HMONITOR monitor = nullptr;
     int showCommand = SW_SHOWNORMAL;
     wstr_ptr workingDir;
 };

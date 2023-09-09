@@ -18,10 +18,12 @@
 namespace chromafiler {
 
 const wchar_t CHAIN_OWNER_CLASS[] = L"ChromaFile Chain";
+const wchar_t TESTPOS_CLASS[] = L"ChromaFiler Test Window";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 const UINT SC_DRAGMOVE = SC_MOVE | 2; // https://stackoverflow.com/a/35880547/11525734
 
 // property bag
+const wchar_t PROP_POS[] = L"Pos";
 const wchar_t PROP_SIZE[] = L"Size";
 const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
 
@@ -81,6 +83,10 @@ int windowBorderSize() {
     }
 }
 
+int ItemWindow::cascadeSize() {
+    return CAPTION_HEIGHT + windowBorderSize();
+}
+
 void ItemWindow::init() {
     HINSTANCE hInstance = GetModuleHandle(nullptr);
 
@@ -89,6 +95,12 @@ void ItemWindow::init() {
     chainClass.lpfnWndProc = chainWindowProc;
     chainClass.hInstance = hInstance;
     RegisterClass(&chainClass);
+
+    WNDCLASS testPosClass = {};
+    testPosClass.lpszClassName = TESTPOS_CLASS;
+    testPosClass.lpfnWndProc = DefWindowProc;
+    testPosClass.hInstance = hInstance;
+    RegisterClass(&testPosClass);
 
     checkHR(DwmIsCompositionEnabled(&compositionEnabled));
 
@@ -1132,13 +1144,21 @@ void ItemWindow::windowRectChanged() {
 }
 
 void ItemWindow::onExitSizeMove(bool, bool sized) {
+    RECT rect = windowRect(hwnd);
     if (sized) {
-        SIZE size = rectSize(windowRect(hwnd));
+        SIZE size = rectSize(rect);
         if (parent && persistSizeInParent())
             parent->onChildResized(size);
         CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
         if (auto bag = getPropBag())
             checkHR(bag->Write(PROP_SIZE, &sizeVar));
+    }
+    if (!parent) {
+        // unlike the tray we don't store the DPI along with the unscaled position
+        // because we don't need to be pixel-perfect
+        CComVariant posVar((unsigned long)MAKELONG(invScaleDPI(rect.left), invScaleDPI(rect.top)));
+        if (auto bag = getPropBag())
+            checkHR(bag->Write(PROP_POS, &posVar));
     }
 }
 
@@ -1310,15 +1330,15 @@ void ItemWindow::detachAndMove(bool closeParent) {
     if (closeParent) {
         setPos({rootRect.left, rootRect.top});
     } else {
-        int ncCaption = CAPTION_HEIGHT + windowBorderSize();
-        POINT pos = {rootRect.left + ncCaption, rootRect.top + ncCaption};
+        int cascade = cascadeSize();
+        POINT pos = {rootRect.left + cascade, rootRect.top + cascade};
 
         HMONITOR curMonitor = MonitorFromWindow(rootParent->hwnd, MONITOR_DEFAULTTONEAREST);
         MONITORINFO monitorInfo = {sizeof(monitorInfo)};
         GetMonitorInfo(curMonitor, &monitorInfo);
-        if (pos.x + ncCaption > monitorInfo.rcWork.right)
+        if (pos.x + cascade > monitorInfo.rcWork.right)
             pos.x = monitorInfo.rcWork.left;
-        if (pos.y + ncCaption > monitorInfo.rcWork.bottom)
+        if (pos.y + cascade > monitorInfo.rcWork.bottom)
             pos.y = monitorInfo.rcWork.top;
         setPos(pos);
     }
@@ -1333,6 +1353,44 @@ SIZE ItemWindow::requestedSize() {
         }
     }
     return defaultSize();
+}
+
+RECT ItemWindow::requestedRect(HMONITOR preferMonitor) {
+    SIZE size = requestedSize();
+
+    MONITORINFO monitorInfo = {sizeof(monitorInfo)};
+    if (preferMonitor)
+        GetMonitorInfo(preferMonitor, &monitorInfo);
+
+    if (auto bag = getPropBag()) {
+        VARIANT posVar = {};
+        posVar.vt = VT_UI4;
+        if (SUCCEEDED(bag->Read(PROP_POS, &posVar, nullptr))) {
+            POINT pos = scaleDPI(pointFromLParam(posVar.ulVal));
+            if (!preferMonitor) {
+                preferMonitor = MonitorFromPoint(pos, MONITOR_DEFAULTTONEAREST);
+                GetMonitorInfo(preferMonitor, &monitorInfo);
+            }
+            int cascade = cascadeSize();
+            if (PtInRect(&monitorInfo.rcWork, pos)
+                    && PtInRect(&monitorInfo.rcWork, {pos.x + cascade, pos.y + cascade})) {
+                return RECT{pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
+            }
+        }
+    }
+    if (!preferMonitor)
+        return RECT{CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
+
+    // find a good position for the window on the preferred monitor
+    // https://devblogs.microsoft.com/oldnewthing/20131122-00/?p=2593
+    HINSTANCE inst = GetModuleHandle(nullptr);
+    HWND owner = checkLE(CreateWindow(TESTPOS_CLASS, nullptr, WS_OVERLAPPED,
+        monitorInfo.rcWork.left, monitorInfo.rcWork.top, 1, 1, nullptr, nullptr, inst, 0));
+    HWND defWnd = checkLE(CreateWindow(TESTPOS_CLASS, nullptr, WS_OVERLAPPED,
+        CW_USEDEFAULT, CW_USEDEFAULT, size.cx, size.cy, owner, nullptr, inst, 0));
+    RECT defRect = windowRect(defWnd);
+    checkLE(DestroyWindow(owner));
+    return defRect;
 }
 
 SIZE ItemWindow::requestedChildSize() {
@@ -1368,9 +1426,8 @@ POINT ItemWindow::parentPos(SIZE size) {
     GetMonitorInfo(curMonitor, &monitorInfo);
     if (pos.x < monitorInfo.rcWork.left)
         pos.x = monitorInfo.rcWork.left;
-    int ncCaption = CAPTION_HEIGHT + windowBorderSize();
-    if (pos.y + ncCaption > monitorInfo.rcWork.bottom)
-        pos.y = monitorInfo.rcWork.bottom - ncCaption;
+    if (pos.y + cascadeSize() > monitorInfo.rcWork.bottom)
+        pos.y = monitorInfo.rcWork.bottom - cascadeSize();
     return pos;
 }
 

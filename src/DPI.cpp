@@ -37,6 +37,10 @@ SIZE scaleDPI(SIZE size) {
     return {scaleDPI(size.cx), scaleDPI(size.cy)};
 }
 
+POINT scaleDPI(POINT p) {
+    return {scaleDPI(p.x), scaleDPI(p.y)};
+}
+
 int invScaleDPI(int px) {
     return MulDiv(px, USER_DEFAULT_SCREEN_DPI, systemDPI);
 }

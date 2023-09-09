@@ -257,7 +257,7 @@ void openTray(wchar_t *path) {
         return;
     CComPtr<TrayWindow> tray;
     tray.Attach(new TrayWindow(nullptr, item));
-    tray->create(tray->requestedRect(), SW_SHOWNORMAL);
+    tray->create(tray->requestedRect(nullptr), SW_SHOWNORMAL);
 }
 
 INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {

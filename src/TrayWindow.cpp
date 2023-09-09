@@ -92,7 +92,8 @@ SIZE TrayWindow::requestedSize() {
     }
 }
 
-RECT TrayWindow::requestedRect() {
+RECT TrayWindow::requestedRect(HMONITOR) {
+    // ignore preferred monitor
     SIZE traySize = requestedSize();
     POINT trayPos = settings::getTrayPosition();
     if (pointEqual(trayPos, settings::DEFAULT_TRAY_POSITION)) {
@@ -321,7 +322,7 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             break; // pass to FolderWindow
         case WM_DISPLAYCHANGE: // resolution changed OR monitor connected/disconnected
-            setRect(requestedRect());
+            setRect(requestedRect(nullptr));
             return 0;
         case WM_HOTKEY:
             if (wParam == HOTKEY_FOCUS_TRAY) {
@@ -344,7 +345,7 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         }
     }
     if (resetPositionMessage && message == resetPositionMessage) {
-        setRect(requestedRect());
+        setRect(requestedRect(nullptr));
         return 0;
     } else if (taskbarCreatedMessage && message == taskbarCreatedMessage) {
         // https://learn.microsoft.com/en-us/windows/win32/shell/taskbar#taskbar-creation-notification

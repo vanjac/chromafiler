@@ -16,7 +16,7 @@ public:
     TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
     SIZE requestedSize() override;
-    RECT requestedRect();
+    RECT requestedRect(HMONITOR preferMonitor) override;
 
     bool handleTopLevelMessage(MSG *msg) override;
 

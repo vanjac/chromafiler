@@ -77,7 +77,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     InitCommonControlsEx(&controls);
 
     initDPI();
-    initExecuteCommand();
     ItemWindow::init();
     FolderWindow::init();
     ThumbnailWindow::init();
@@ -233,14 +232,8 @@ bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand, bool
     } else {
         initialWindow = createItemWindow(nullptr, startItem);
     }
-    RECT rect;
-    if (*tray) {
-        rect = ((TrayWindow *)initialWindow.p)->requestedRect();
-    } else {
-        SIZE size = initialWindow->requestedSize();
-        rect = {CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
-    }
-    initialWindow->create(rect, showCommand);
+    // TODO can we get the monitor passed to ShellExecuteEx?
+    initialWindow->create(initialWindow->requestedRect(nullptr), showCommand);
     return true;
 }
 

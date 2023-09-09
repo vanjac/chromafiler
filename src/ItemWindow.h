@@ -13,6 +13,7 @@ class ItemWindow : public IUnknownImpl, public IDropSource, public IDropTarget {
 protected:
     static HACCEL accelTable;
     static int CAPTION_HEIGHT;
+    static int cascadeSize();
 
 public:
     static void init();
@@ -21,6 +22,7 @@ public:
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
     virtual SIZE requestedSize(); // called if (! persistSizeInParent())
+    virtual RECT requestedRect(HMONITOR preferMonitor); // called for root windows
     virtual bool persistSizeInParent() const;
 
     bool create(RECT rect, int showCommand);

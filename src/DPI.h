@@ -17,6 +17,7 @@ int monitorDPI(HMONITOR monitor);
 
 int scaleDPI(int dp);
 SIZE scaleDPI(SIZE size);
+POINT scaleDPI(POINT p);
 int invScaleDPI(int px);
 SIZE invScaleDPI(SIZE size);
 POINT pointMulDiv(POINT p, int num, int denom);
