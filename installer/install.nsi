@@ -172,7 +172,13 @@ Section "Start Menu shortcut" SecStart
 	; SMPROGRAMS will be set by MultiUser
 	CreateShortcut /NoWorkingDir "$SMPROGRAMS\ChromaFiler.lnk" "$INSTDIR\ChromaFiler.exe"
 	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\ChromaFiler.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.file"
+	Call CreateChromaTextShortcut
 SectionEnd
+
+Function CreateChromaTextShortcut
+	CreateShortcut /NoWorkingDir "$SMPROGRAMS\ChromaText.lnk" "$INSTDIR\ChromaFiler.exe" "/scratch" "C:\Windows\System32\imageres.dll" -102
+	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\ChromaText.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.text"
+FunctionEnd
 
 Function RegisterExecuteCommand
 	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}" "" "ChromaFiler"

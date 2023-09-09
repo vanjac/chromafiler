@@ -14,8 +14,6 @@
 #include "WinUtils.h"
 #include <shellapi.h>
 #include <shlobj.h>
-#include <propkey.h>
-#include <Propvarutil.h>
 
 #pragma comment(lib, "Dwmapi.lib")
 #pragma comment(lib, "Gdi32.lib")
@@ -381,31 +379,7 @@ DWORD WINAPI updateJumpList(void *) {
     UINT minSlots;
     CComPtr<IObjectArray> removedDestinations;
     checkHR(jumpList->BeginList(&minSlots, IID_PPV_ARGS(&removedDestinations)));
-
-    CComPtr<IObjectCollection> tasks;
-    if (!checkHR(tasks.CoCreateInstance(__uuidof(EnumerableObjectCollection))))
-        return 0;
-    
-    CComPtr<IShellLink> scratchLink;
-    if (checkHR(scratchLink.CoCreateInstance(__uuidof(ShellLink)))) {
-        wchar_t exePath[MAX_PATH];
-        if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH))) {
-            checkHR(scratchLink->SetPath(exePath));
-            checkHR(scratchLink->SetArguments(L"/scratch"));
-            checkHR(scratchLink->SetIconLocation(exePath, IDR_APP_ICON));
-
-            CComQIPtr<IPropertyStore> trayLinkProps(scratchLink);
-            PROPVARIANT propVar;
-            if (checkHR(InitPropVariantFromString(getString(IDS_NEW_SCRATCH_TASK), &propVar))) {
-                checkHR(trayLinkProps->SetValue(PKEY_Title, propVar));
-                checkHR(PropVariantClear(&propVar));
-            }
-
-            checkHR(tasks->AddObject(scratchLink));
-        }        
-    }
-
-    checkHR(jumpList->AddUserTasks(tasks));
+    // previous versions had a jump list, this will clear it
     checkHR(jumpList->CommitList());
     return 0;
 }
