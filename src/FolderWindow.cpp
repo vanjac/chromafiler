@@ -149,7 +149,7 @@ int FolderWindow::getToolbarTooltip(WORD command) {
 FOLDERSETTINGS FolderWindow::folderSettings() const {
     FOLDERSETTINGS settings = {};
     settings.ViewMode = FVM_DETAILS; // also set in initDefaultView
-    settings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
+    settings.fFlags = FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
     return settings;
 }
 
@@ -157,6 +157,7 @@ void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     // FVM_SMALLICON only seems to work if it's also specified with an icon size
     // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
     checkHR(folderView->SetCurrentViewMode(FVM_DETAILS));
+    checkHR(folderView->SetCurrentFolderFlags(FWF_AUTOARRANGE, FWF_AUTOARRANGE));
     CComQIPtr<IColumnManager> columnMgr(folderView);
     if (columnMgr) {
         PROPERTYKEY keys[] = {PKEY_ItemNameDisplay};
