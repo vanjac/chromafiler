@@ -28,7 +28,6 @@
 #define IDC_TEXT_EDITOR_ENABLED     1201
 #define IDC_TEXT_FONT               1202
 #define IDC_TEXT_FONT_NAME          1203
-#define IDC_TEXT_WRAP               1204
 #define IDC_TEXT_AUTO_INDENT        1205
 #define IDC_SCRATCH_FOLDER_PATH     1206
 #define IDC_SCRATCH_FOLDER_BROWSE   1207
