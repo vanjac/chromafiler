@@ -148,7 +148,7 @@ private:
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
     DWORD eventsCookie = 0;
 
-    CComPtr<IShellItem> selected;
+    CComPtr<IShellItem> selected; // links are not resolved unlike child->item
 
     // jank flags
     bool selectionDirty = false;

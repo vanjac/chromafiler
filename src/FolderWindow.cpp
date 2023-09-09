@@ -722,8 +722,9 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
         CComHeapPtr<ITEMID_CHILD> childID;
         if (checkHR(CComQIPtr<IParentAndItem>(child->item)
                 ->GetParentAndItem(nullptr, nullptr, &childID))) {
-            checkHR(shellView->SelectItem(childID,
-                SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS));
+            if (checkHR(shellView->SelectItem(childID,
+                    SVSI_SELECT | SVSI_FOCUSED | SVSI_ENSUREVISIBLE | SVSI_NOTAKEFOCUS)))
+                selected = child->item;
         }
     }
 
