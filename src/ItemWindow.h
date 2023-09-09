@@ -19,6 +19,8 @@ public:
     static void init();
     static void uninit();
 
+    static void flashWindow(HWND hwnd);
+
     ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
     virtual SIZE requestedSize(); // called if (! persistSizeInParent())
@@ -56,6 +58,7 @@ protected:
         MSG_UPDATE_ICONS = WM_USER,
         // WPARAM: 0, LPARAM: 0
         MSG_UPDATE_DEFAULT_STATUS_TEXT,
+        MSG_FLASH_WINDOW,
         MSG_LAST
     };
     static WNDCLASS createWindowClass(const wchar_t *name);

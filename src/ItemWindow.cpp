@@ -174,6 +174,10 @@ WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
     return wndClass;
 }
 
+void ItemWindow::flashWindow(HWND hwnd) {
+    PostMessage(hwnd, MSG_FLASH_WINDOW, 0, 0);
+}
+
 LRESULT CALLBACK ItemWindow::windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     ItemWindow *self = nullptr;
     if (message == WM_NCCREATE) {
@@ -597,6 +601,11 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             }
             ReleaseSRWLockExclusive(&defaultStatusTextLock);
             return 0;
+        case MSG_FLASH_WINDOW: {
+            FLASHWINFO flash = {sizeof(flash), hwnd, FLASHW_ALL, 3, 100};
+            FlashWindowEx(&flash);
+            return 0;
+        }
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);

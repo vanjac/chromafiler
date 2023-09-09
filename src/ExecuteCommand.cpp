@@ -116,6 +116,7 @@ void CFExecute::openItem(CComPtr<IShellItem> item) {
                     debugPrintf(L"Found already-open window\n");
                     SetForegroundWindow(hwnd);
                     ShowWindow(hwnd, showCommand);
+                    ItemWindow::flashWindow(hwnd);
                     return;
                 }
             }
