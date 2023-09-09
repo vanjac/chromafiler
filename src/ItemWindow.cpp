@@ -1282,6 +1282,10 @@ void ItemWindow::openParent() {
 
     if (persistSizeInParent())
         parent->onChildResized(rectSize(windowRect(hwnd)));
+    if (auto bag = getPropBag()) {
+        CComVariant empty;
+        checkHR(bag->Write(PROP_POS, &empty)); // forget window position
+    }
 }
 
 void ItemWindow::clearParent() {
