@@ -183,8 +183,7 @@ void TrayWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
 FOLDERSETTINGS TrayWindow::folderSettings() const {
     FOLDERSETTINGS settings = {};
     settings.ViewMode = FVM_ICON;
-    settings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOCOLUMNHEADER | FWF_ALIGNLEFT
-        | FWF_DESKTOP;
+    settings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOCOLUMNHEADER | FWF_DESKTOP;
     return settings;
 }
 

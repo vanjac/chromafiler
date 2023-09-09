@@ -97,6 +97,11 @@ void FolderWindow::onCreate() {
     if (!checkHR(browser.CoCreateInstance(__uuidof(ExplorerBrowser))))
         return;
     checkHR(browser->SetOptions(BROWSER_OPTIONS));
+    CComQIPtr<IFolderViewOptions> options(browser);
+    if (options) {
+        const auto enableFlags = FVO_VISTALAYOUT | FVO_CUSTOMPOSITION | FVO_CUSTOMORDERING;
+        options->SetFolderViewOptions(enableFlags, enableFlags);
+    }
     if (!checkHR(browser->Initialize(hwnd, &browserRect, tempPtr(folderSettings())))) {
         browser = nullptr;
         return;
@@ -144,8 +149,7 @@ int FolderWindow::getToolbarTooltip(WORD command) {
 FOLDERSETTINGS FolderWindow::folderSettings() const {
     FOLDERSETTINGS settings = {};
     settings.ViewMode = FVM_DETAILS; // also set in initDefaultView
-    // FWF_ALIGNLEFT forces old ListView style!
-    settings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS | FWF_ALIGNLEFT;
+    settings.fFlags = FWF_AUTOARRANGE | FWF_NOWEBVIEW | FWF_NOHEADERINALLVIEWS;
     return settings;
 }
 
@@ -170,10 +174,6 @@ void FolderWindow::listViewCreated() {
     if (!checkLE(defView)) return;
     listView = FindWindowEx(defView, nullptr, WC_LISTVIEW, nullptr);
     if (!checkLE(listView)) return;
-    DWORD style = GetWindowLong(listView, GWL_STYLE);
-    style &= ~LVS_ALIGNLEFT;
-    style |= LVS_ALIGNTOP;
-    SetWindowLong(listView, GWL_STYLE, style);
     ListView_SetExtendedListViewStyleEx(listView, LVS_EX_COLUMNSNAPPOINTS, 0);
     SetWindowSubclass(listView, listViewSubclassProc, 0, (DWORD_PTR)this);
     SetWindowSubclass(defView, listViewOwnerProc, 0, (DWORD_PTR)this);
