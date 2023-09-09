@@ -152,7 +152,7 @@ private:
 
     // jank flags
     bool selectionDirty = false;
-    bool ignoreNextSelection = false;
+    bool ignoreInitialSelection = false;
     bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;
     bool clickActivate = true;

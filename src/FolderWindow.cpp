@@ -338,7 +338,7 @@ void FolderWindow::onSize(SIZE size) {
 }
 
 void FolderWindow::selectionChanged() {
-    if (!ignoreNextSelection) {
+    if (!ignoreInitialSelection) {
         updateSelectionOnActivate = false;
         if (GetActiveWindow() != hwnd) { // in background
             // this could happen when dragging a file. don't try to create any windows yet
@@ -350,8 +350,10 @@ void FolderWindow::selectionChanged() {
             selectionDirty = true;
             PostMessage(hwnd, MSG_SELECTION_CHANGED, 0, 0);
         }
+    } else if (hasStatusText()) {
+        updateStatus(); // make sure parent shows 1 selected
     }
-    ignoreNextSelection = false;
+    ignoreInitialSelection = false;
 }
 
 LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -716,7 +718,7 @@ STDMETHODIMP FolderWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE) {
 
     if (child && shellView) {
         // window was created by clicking the parent button OR onItemChanged was called
-        ignoreNextSelection = true; // TODO jank
+        ignoreInitialSelection = true; // TODO jank
         CComHeapPtr<ITEMID_CHILD> childID;
         if (checkHR(CComQIPtr<IParentAndItem>(child->item)
                 ->GetParentAndItem(nullptr, nullptr, &childID))) {
