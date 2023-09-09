@@ -1,6 +1,7 @@
 #include "ExecuteCommand.h"
 #include "main.h"
 #include "CreateItemWindow.h"
+#include "TextWindow.h"
 #include <ExDisp.h>
 
 namespace chromafiler {
@@ -33,7 +34,15 @@ STDMETHODIMP CFExecute::QueryInterface(REFIID id, void **obj) {
 
 /* IInitializeCommand */
 
-STDMETHODIMP CFExecute::Initialize(PCWSTR, IPropertyBag *) { return S_OK; }
+STDMETHODIMP CFExecute::Initialize(PCWSTR, IPropertyBag *bag) {
+    VARIANT typeVar = {VT_BSTR};
+    if (SUCCEEDED(bag->Read(L"CFType", &typeVar, nullptr))) {
+        if (lstrcmpi(typeVar.bstrVal, L"text") == 0)
+            text = true;
+        VariantClear(&typeVar);
+    }
+    return S_OK;
+}
 
 /* IObjectWithSelection */
 
@@ -54,6 +63,7 @@ STDMETHODIMP CFExecute::GetSelection(REFIID id, void **obj) {
 STDMETHODIMP CFExecute::SetKeyState(DWORD) { return S_OK; }
 STDMETHODIMP CFExecute::SetParameters(const wchar_t *) { return S_OK; }
 STDMETHODIMP CFExecute::SetNoShowUI(BOOL) { return S_OK; }
+
 STDMETHODIMP CFExecute::SetDirectory(const wchar_t *path) {
     int size = lstrlen(path) + 1;
     workingDir = wstr_ptr(new wchar_t[size]);
@@ -123,7 +133,12 @@ void CFExecute::openItem(CComPtr<IShellItem> item) {
         }
     }
 
-    CComPtr<ItemWindow> window = createItemWindow(nullptr, item);
+    CComPtr<ItemWindow> window;
+    if (text) {
+        window.Attach(new TextWindow(nullptr, item));
+    } else {
+        window = createItemWindow(nullptr, item);
+    }
     window->create(window->requestedRect(monitor), showCommand);
     // fix issue when invoking 64-bit ChromaFiler from 32-bit app
     if (showCommand == SW_SHOWNORMAL)

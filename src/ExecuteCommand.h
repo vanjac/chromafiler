@@ -44,6 +44,7 @@ private:
     HMONITOR monitor = nullptr;
     int showCommand = SW_SHOWNORMAL;
     wstr_ptr workingDir;
+    bool text = false;
 };
 
 class CFExecuteFactory : public IClassFactory {
