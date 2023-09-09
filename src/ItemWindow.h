@@ -86,6 +86,7 @@ protected:
     void setPos(POINT pos);
     void move(int x, int y);
     virtual RECT windowBody();
+    void enableTransitions(bool enabled);
 
     // message callbacks
     virtual void onCreate();

@@ -146,6 +146,8 @@ bool TextWindow::onCloseRequest() {
                 || FAILED(item->GetAttributes(SFGAO_VALIDATE, &attr)))) // doesn't exist
             userSave();
     }
+    if (isUnsavedScratchFile)
+        enableTransitions(true); // emphasize window closing
     return ItemWindow::onCloseRequest();
 }
 

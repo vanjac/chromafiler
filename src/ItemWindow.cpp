@@ -299,15 +299,11 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         checkLE(SetProp(owner, L"NonRudeHWND", (HANDLE)TRUE));
     }
 
-    if (compositionEnabled && (parent || child)) {
-        checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-            tempPtr((BOOL)TRUE), sizeof(BOOL))); // disable open/close animation
-    }
+    if (parent || child)
+        enableTransitions(false); // disable open/close animation
     ShowWindow(createHwnd, showCommand);
-    if (compositionEnabled && !(parent || child)) {
-        checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-            tempPtr((BOOL)TRUE), sizeof(BOOL))); // disable close animation
-    }
+    if (!(parent || child))
+        enableTransitions(false); // disable close animation
 
     AddRef(); // keep window alive while open
     lockProcess();
@@ -361,6 +357,13 @@ RECT ItemWindow::windowBody() {
     if (statusText || cmdToolbar)
         rect.top += TOOLBAR_HEIGHT;
     return rect;
+}
+
+void ItemWindow::enableTransitions(bool enabled) {
+    if (compositionEnabled) {
+        checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+            tempPtr((BOOL)!enabled), sizeof(BOOL)));
+    }
 }
 
 LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -1583,11 +1586,7 @@ bool ItemWindow::resolveItem() {
     }
 
     debugPrintf(L"Item has been deleted!\n");
-    if (compositionEnabled) {
-        // reenable animations to emphasize window closing
-        checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
-            tempPtr((BOOL)FALSE), sizeof(BOOL)));
-    }
+    enableTransitions(true); // emphasize window closing
     close();
     return false;
 }
