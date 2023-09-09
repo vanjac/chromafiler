@@ -26,6 +26,8 @@ using namespace chromafiler;
 
 const wchar_t SHELL_PREFIX[] = L"shell:";
 
+enum LaunchType {LAUNCH_FAIL, LAUNCH_HEADLESS, LAUNCH_AUTO, LAUNCH_TRAY, LAUNCH_TEXT};
+
 #ifdef CHROMAFILER_DEBUG
 int main(int, char**) {
     return wWinMain(nullptr, nullptr, nullptr, SW_SHOWNORMAL);
@@ -46,7 +48,7 @@ void logLastError(const char *file, int line, const char *expr) {
 }
 #endif
 
-bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand, bool *tray);
+LaunchType createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand);
 DWORD WINAPI checkLastVersion(void *);
 void showWelcomeDialog();
 HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam, LONG_PTR data);
@@ -86,16 +88,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     int argc;
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
-    bool tray;
-    bool success = createWindowFromCommandLine(argc, argv, showCommand, &tray);
+    LaunchType type = createWindowFromCommandLine(argc, argv, showCommand);
     LocalFree(argv);
-    if (!success)
+    if (type == LAUNCH_FAIL)
         return 0;
 
     CFExecuteFactory executeFactory;
     HRESULT regHR = E_FAIL;
     DWORD regCookie = 0;
-    if (tray) {
+    if (type == LAUNCH_TRAY) {
         checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
             RECOVERY_DEFAULT_PING_INTERVAL, 0));
     } else {
@@ -168,23 +169,24 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     return (int)msg.wParam;
 }
 
-bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand, bool *tray) {
+LaunchType createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand) {
     wstr_ptr pathAlloc;
     wchar_t *path = nullptr;
+    LaunchType type = LAUNCH_AUTO;
     bool scratch = false;
-    *tray = false;
     for (int i = 1; i < argc; i++) {
         wchar_t *arg = argv[i];
         if (lstrcmpi(arg, L"/tray") == 0) {
-            *tray = true;
-            scratch = false;
-        } else if (lstrcmpi(arg, L"/scratch") == 0) {
+            type = LAUNCH_TRAY;
+        } else if (lstrcmpi(arg, L"/scratch") == 0) { // deprecated
+            type = LAUNCH_TEXT;
             scratch = true;
-            *tray = false;
+        } else if (lstrcmpi(arg, L"/text") == 0) {
+            type = LAUNCH_TEXT;
         } else if (lstrcmpi(arg, L"/embedding") == 0 || lstrcmpi(arg, L"-embedding") == 0) {
             // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
             debugPrintf(L"Started as local COM server\n");
-            return true;
+            return LAUNCH_HEADLESS;
         } else if (!path) {
             int argLen = lstrlen(arg);
             if (arg[argLen - 1] == '"')
@@ -203,10 +205,13 @@ bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand, bool
     }
 
     if (!path) {
-        if (*tray) {
-            pathAlloc = settings::getTrayFolder();
-        } else if (scratch) {
+        if (scratch) {
             pathAlloc = settings::getScratchFolder();
+        } else if (type == LAUNCH_TEXT) {
+            pathAlloc = settings::getScratchFolder();
+            scratch = true;
+        } else if (type == LAUNCH_TRAY) {
+            pathAlloc = settings::getTrayFolder();
         } else {
             pathAlloc = settings::getStartingFolder();
         }
@@ -215,23 +220,24 @@ bool createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand, bool
 
     CComPtr<IShellItem> startItem = itemFromPath(path);
     if (!startItem)
-        return false;
+        return LAUNCH_FAIL;
     startItem = resolveLink(startItem);
+    if (scratch)
+        startItem = createScratchFile(startItem);
+    if (!startItem)
+        return LAUNCH_FAIL;
 
     CComPtr<ItemWindow> initialWindow;
-    if (*tray) {
+    if (type == LAUNCH_TRAY) {
         initialWindow.Attach(new TrayWindow(nullptr, startItem));
-    } else if (scratch) {
-        CComPtr<IShellItem> scratchFile = createScratchFile(startItem);
-        if (!scratchFile)
-            return false;
-        initialWindow.Attach(new TextWindow(nullptr, scratchFile, true));
+    } else if (type == LAUNCH_TEXT) {
+        initialWindow.Attach(new TextWindow(nullptr, startItem, scratch));
     } else {
         initialWindow = createItemWindow(nullptr, startItem);
     }
     // TODO can we get the monitor passed to ShellExecuteEx?
     initialWindow->create(initialWindow->requestedRect(nullptr), showCommand);
-    return true;
+    return type;
 }
 
 DWORD WINAPI checkLastVersion(void *) {

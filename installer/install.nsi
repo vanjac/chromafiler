@@ -176,7 +176,7 @@ Section "Start Menu shortcut" SecStart
 SectionEnd
 
 Function CreateChromaTextShortcut
-	CreateShortcut /NoWorkingDir "$SMPROGRAMS\ChromaText.lnk" "$INSTDIR\ChromaFiler.exe" "/scratch" "C:\Windows\System32\imageres.dll" -102
+	CreateShortcut /NoWorkingDir "$SMPROGRAMS\ChromaText.lnk" "$INSTDIR\ChromaFiler.exe" "/text" "C:\Windows\System32\imageres.dll" -102
 	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\ChromaText.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.text"
 FunctionEnd
 

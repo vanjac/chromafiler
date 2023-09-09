@@ -27,11 +27,11 @@
             "console": "externalTerminal"
         },
         {
-            "name": "Scratch",
+            "name": "Text",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}\\build\\ChromaFiler.exe",
-            "args": ["/scratch"],
+            "args": ["/text"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}\\build",
             "environment": [],
