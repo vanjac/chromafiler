@@ -13,6 +13,8 @@
 #include <vssym32.h>
 #include <shellapi.h>
 #include <strsafe.h>
+#include <propkey.h>
+#include <Propvarutil.h>
 #include <VersionHelpers.h>
 
 namespace chromafiler {
@@ -213,8 +215,12 @@ SIZE ItemWindow::defaultSize() const {
     return scaleDPI(settings::getItemWindowSize());
 }
 
-wchar_t * ItemWindow::propBagName() const {
+const wchar_t * ItemWindow::propBagName() const {
     return L"chromafiler";
+}
+
+const wchar_t * ItemWindow::appUserModelID() const {
+    return APP_ID;
 }
 
 DWORD ItemWindow::windowStyle() const {
@@ -1478,6 +1484,15 @@ void ItemWindow::addChainPreview() {
     SendMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
     SendMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
     ReleaseSRWLockExclusive(&iconLock);
+    // update app user model id
+    CComPtr<IPropertyStore> propStore;
+    if (checkHR(SHGetPropertyStoreForWindow(owner, IID_PPV_ARGS(&propStore)))) {
+        PROPVARIANT propVar;
+        if (checkHR(InitPropVariantFromString(appUserModelID(), &propVar))) {
+            checkHR(propStore->SetValue(PKEY_AppUserModel_ID, propVar));
+            checkHR(PropVariantClear(&propVar));
+        }
+    }
 }
 
 void ItemWindow::removeChainPreview() {

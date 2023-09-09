@@ -41,7 +41,7 @@ protected:
     SettingsPage settingsStartPage() const override;
 
     POINT childPos(SIZE size) override;
-    wchar_t * propBagName() const override;
+    const wchar_t * propBagName() const override;
     void initDefaultView(CComPtr<IFolderView2> folderView) override;
     FOLDERSETTINGS folderSettings() const override;
 

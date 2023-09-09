@@ -26,7 +26,6 @@
 
 using namespace chromafiler;
 
-const wchar_t APP_ID[] = L"chroma.file";
 const wchar_t SHELL_PREFIX[] = L"shell:";
 
 #ifdef CHROMAFILER_DEBUG
@@ -397,8 +396,10 @@ DWORD WINAPI updateJumpList(void *) {
 
             CComQIPtr<IPropertyStore> trayLinkProps(scratchLink);
             PROPVARIANT propVar;
-            if (checkHR(InitPropVariantFromString(getString(IDS_NEW_SCRATCH_TASK), &propVar)))
+            if (checkHR(InitPropVariantFromString(getString(IDS_NEW_SCRATCH_TASK), &propVar))) {
                 checkHR(trayLinkProps->SetValue(PKEY_Title, propVar));
+                checkHR(PropVariantClear(&propVar));
+            }
 
             checkHR(tasks->AddObject(scratchLink));
         }        

@@ -172,7 +172,7 @@ POINT TrayWindow::childPos(SIZE size) {
     }
 }
 
-wchar_t * TrayWindow::propBagName() const {
+const wchar_t * TrayWindow::propBagName() const {
     return L"chromafiler.tray";
 }
 

@@ -65,7 +65,8 @@ protected:
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
     virtual SIZE defaultSize() const;
-    virtual wchar_t * propBagName() const;
+    virtual const wchar_t * propBagName() const;
+    virtual const wchar_t * appUserModelID() const;
     virtual DWORD windowStyle() const;
     virtual DWORD windowExStyle() const;
     virtual bool useCustomFrame() const;

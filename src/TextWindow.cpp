@@ -55,6 +55,10 @@ const wchar_t * TextWindow::className() const {
     return TEXT_WINDOW_CLASS;
 }
 
+const wchar_t * TextWindow::appUserModelID() const {
+    return L"chroma.text";
+}
+
 bool TextWindow::useDefaultStatusText() const {
     return false;
 }
