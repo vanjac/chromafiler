@@ -144,8 +144,6 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 settings::getTextEditorEnabled() ? BST_CHECKED : BST_UNCHECKED);
             logFont = settings::getTextFont();
             updateFontNameText(hwnd, logFont);
-            CheckDlgButton(hwnd, IDC_TEXT_WRAP,
-                settings::getTextWrap() ? BST_CHECKED : BST_UNCHECKED);
             SetDlgItemInt(hwnd, IDC_TEXT_TAB_SIZE, settings::getTextTabWidth(), FALSE);
             SendDlgItemMessage(hwnd, IDC_TEXT_TAB_SIZE_UD, UDM_SETRANGE32, 0, 16);
             CheckDlgButton(hwnd, IDC_TEXT_AUTO_INDENT,
@@ -178,7 +176,6 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             } else if (notif->code == PSN_APPLY) {
                 settings::setTextEditorEnabled(!!IsDlgButtonChecked(hwnd, IDC_TEXT_EDITOR_ENABLED));
                 settings::setTextFont(logFont);
-                settings::setTextWrap(!!IsDlgButtonChecked(hwnd, IDC_TEXT_WRAP));
                 BOOL success;
                 int tabWidth = GetDlgItemInt(hwnd, IDC_TEXT_TAB_SIZE, &success, FALSE);
                 if (success)
@@ -232,7 +229,6 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 }
                 return TRUE;
             } else if (LOWORD(wParam) == IDC_TEXT_EDITOR_ENABLED && HIWORD(wParam) == BN_CLICKED
-                    || LOWORD(wParam) == IDC_TEXT_WRAP && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TEXT_AUTO_INDENT && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TEXT_AUTO_NEWLINES && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TEXT_AUTO_ENCODING && HIWORD(wParam) == BN_CLICKED

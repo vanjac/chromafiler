@@ -1374,8 +1374,7 @@ void ItemWindow::detachAndMove(bool closeParent) {
 
 SIZE ItemWindow::requestedSize() {
     if (auto bag = getPropBag()) {
-        VARIANT sizeVar = {};
-        sizeVar.vt = VT_UI4;
+        VARIANT sizeVar = {VT_UI4};
         if (SUCCEEDED(bag->Read(PROP_SIZE, &sizeVar, nullptr))) {
             return scaleDPI(sizeFromLParam(sizeVar.ulVal));
         }
@@ -1391,8 +1390,7 @@ RECT ItemWindow::requestedRect(HMONITOR preferMonitor) {
         GetMonitorInfo(preferMonitor, &monitorInfo);
 
     if (auto bag = getPropBag()) {
-        VARIANT posVar = {};
-        posVar.vt = VT_UI4;
+        VARIANT posVar = {VT_UI4};
         if (SUCCEEDED(bag->Read(PROP_POS, &posVar, nullptr))) {
             POINT pos = scaleDPI(pointFromLParam(posVar.ulVal));
             if (!preferMonitor) {
@@ -1423,8 +1421,7 @@ RECT ItemWindow::requestedRect(HMONITOR preferMonitor) {
 
 SIZE ItemWindow::requestedChildSize() {
     if (auto bag = getPropBag()) {
-        VARIANT sizeVar = {};
-        sizeVar.vt = VT_UI4;
+        VARIANT sizeVar = {VT_UI4};
         if (SUCCEEDED(bag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
             return scaleDPI(sizeFromLParam(sizeVar.ulVal));
         }

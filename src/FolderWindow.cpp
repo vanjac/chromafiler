@@ -750,8 +750,7 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
 
     bool visited = false; // folder has been visited before
     if (auto bag = getPropBag()) {
-        VARIANT var = {};
-        var.vt = VT_BOOL;
+        VARIANT var = {VT_BOOL};
         if (SUCCEEDED(bag->Read(PROP_VISITED, &var, nullptr)))
             visited = !!var.boolVal;
     }

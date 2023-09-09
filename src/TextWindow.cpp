@@ -13,6 +13,8 @@ namespace chromafiler {
 
 const wchar_t TEXT_WINDOW_CLASS[] = L"ChromaFile Text";
 
+const wchar_t PROP_WORD_WRAP[] = L"WordWrap";
+
 const ULONG MAX_FILE_SIZE = 50'000'000;
 
 const UINT CP_UTF16LE = 1200;
@@ -75,7 +77,11 @@ void TextWindow::onCreate() {
 
     logFont = settings::getTextFont();
     updateFont();
-    edit = createRichEdit(true, settings::getTextWrap());
+    auto bag = getPropBag();
+    VARIANT wordWrapVar = {VT_BOOL};
+    if (!(bag && SUCCEEDED(bag->Read(PROP_WORD_WRAP, &wordWrapVar, nullptr))))
+        wordWrapVar.boolVal = settings::getTextWrap();
+    edit = createRichEdit(true, wordWrapVar.boolVal);
     setStatusText(getString(IDS_TEXT_LOADING));
 
     loadThread.Attach(new LoadThread(item, this));
@@ -280,9 +286,6 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         }
     }
     if (updateSettingsMessage && message == updateSettingsMessage) {
-        bool wordWrap = settings::getTextWrap();
-        if (wordWrap != isWordWrap())
-            setWordWrap(wordWrap);
         LOGFONT newLogFont = settings::getTextFont();
         if (memcmp(&newLogFont, &logFont, sizeof(logFont)) != 0) {
             debugPrintf(L"Font changed\n");
@@ -358,6 +361,9 @@ bool TextWindow::onCommand(WORD command) {
             bool wordWrap = !isWordWrap();
             setWordWrap(wordWrap);
             settings::setTextWrap(wordWrap);
+            CComVariant wordWrapVar(wordWrap);
+            if (auto bag = getPropBag())
+                checkHR(bag->Write(PROP_WORD_WRAP, &wordWrapVar));
             return true;
         }
         case IDM_ZOOM_IN:
