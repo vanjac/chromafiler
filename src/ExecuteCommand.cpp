@@ -1,8 +1,11 @@
 #include "ExecuteCommand.h"
 #include "main.h"
 #include "CreateItemWindow.h"
+#include <ExDisp.h>
 
 namespace chromafiler {
+
+static CComPtr<IShellWindows> shellWindows;
 
 CFExecute::CFExecute() {
     lockProcess();
@@ -94,6 +97,31 @@ STDMETHODIMP CFExecute::Execute() {
 
 void CFExecute::openItem(CComPtr<IShellItem> item) {
     item = resolveLink(item);
+
+    // find existing window
+    if (!shellWindows)
+        shellWindows.CoCreateInstance(CLSID_ShellWindows);
+    if (shellWindows) {
+        CComQIPtr<IPersistIDList> persistIDList(item);
+        if (persistIDList) {
+            CComVariant empty, pidlVar(persistIDList);
+            long lWnd;
+            CComPtr<IDispatch> dispatch; // ignored
+            HRESULT hr = shellWindows->FindWindowSW(
+                &pidlVar, &empty, SWC_BROWSER, &lWnd, 0, &dispatch); // don't require dispatch!
+            checkHR(hr);
+            if (hr == S_OK) {
+                HWND hwnd = (HWND)LongToHandle(lWnd);
+                if (isCFWindow(hwnd)) {
+                    debugPrintf(L"Found already-open window\n");
+                    SetForegroundWindow(hwnd);
+                    ShowWindow(hwnd, showCommand);
+                    return;
+                }
+            }
+        }
+    }
+
     CComPtr<ItemWindow> window = createItemWindow(nullptr, item);
     window->create(window->requestedRect(monitor), showCommand);
     // fix issue when invoking 64-bit ChromaFiler from 32-bit app

@@ -180,6 +180,16 @@ STDMETHODIMP NewItemSink::QueryInterface(REFIID id, void **obj) {
 };
 
 
+bool isCFWindow(HWND hwnd) {
+    wchar_t className[64] = L"";
+    if (!checkLE(GetClassName(hwnd, className, _countof(className))))
+        return false;
+    const wchar_t prefix[] = L"ChromaFile";
+    className[_countof(prefix) - 1] = 0;
+    return lstrcmpi(className, prefix) == 0;
+}
+
+
 void debugDisplayNames(HWND hwnd, CComPtr<IShellItem> item) {
     static SIGDN nameTypes[] = {SIGDN_NORMALDISPLAY, SIGDN_PARENTRELATIVE,
         SIGDN_PARENTRELATIVEEDITING, SIGDN_PARENTRELATIVEFORUI,
