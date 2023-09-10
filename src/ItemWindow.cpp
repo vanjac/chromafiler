@@ -329,7 +329,8 @@ HWND ItemWindow::createChainOwner(int showCommand) {
     HWND window = checkLE(CreateWindowEx(isPopup ? (WS_EX_LAYERED | WS_EX_TOOLWINDOW) : 0,
         CHAIN_OWNER_CLASS, nullptr, isPopup ? WS_OVERLAPPED : WS_POPUP, 0, 0, 0, 0,
         nullptr, nullptr, GetModuleHandle(nullptr), 0)); // user data stores num owned windows
-    ShowWindow(window, showCommand); // show in taskbar
+    if (showCommand != -1)
+        ShowWindow(window, showCommand); // show in taskbar
     if (isPopup)
         SetLayeredWindowAttributes(window, 0, 0, LWA_ALPHA); // invisible but still drawn
     return window;
@@ -1333,7 +1334,7 @@ void ItemWindow::detachFromParent(bool closeParent) {
     ItemWindow *rootParent = parent;
     if (!parent->paletteWindow()) {
         HWND prevOwner = checkLE(GetWindowOwner(hwnd));
-        HWND owner = createChainOwner(SW_SHOWNORMAL);
+        HWND owner = createChainOwner(-1);
         int numChildren = 0;
         for (ItemWindow *next = this; next != nullptr; next = next->child) {
             SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
@@ -1345,6 +1346,7 @@ void ItemWindow::detachFromParent(bool closeParent) {
         addChainPreview();
         if (!child)
             registerShellWindow();
+        ShowWindow(owner, SW_SHOWNORMAL);
     }
     clearParent();
 
