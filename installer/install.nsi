@@ -186,6 +186,7 @@ Function RegisterExecuteCommand
 FunctionEnd
 
 Section "Add to Open With menu" SecProgID
+	; https://learn.microsoft.com/en-us/windows/win32/shell/customizing-file-types-bumper
 	Call RegisterExecuteCommand
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
@@ -260,6 +261,7 @@ Section "un.Uninstall"
 	DeleteRegKey SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}"
 
 	Delete $SMPROGRAMS\ChromaFiler.lnk
+	Delete $SMPROGRAMS\ChromaText.lnk
 
 	${If} $MultiUser.InstallMode == "CurrentUser"
 		Call un.CleanupCurrentUser
