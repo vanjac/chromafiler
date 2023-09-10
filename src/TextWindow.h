@@ -34,6 +34,8 @@ protected:
     SettingsPage settingsStartPage() const override;
     const wchar_t * helpURL() const override;
 
+    void resetPropBag(CComPtr<IPropertyBag> bag) override;
+
     void onCreate() override;
     bool onCloseRequest() override;
     void onDestroy() override;

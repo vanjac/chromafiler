@@ -74,6 +74,12 @@ SIZE FolderWindow::defaultSize() const {
     return scaleDPI(settings::getFolderWindowSize());
 }
 
+void FolderWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
+    ItemWindow::resetPropBag(bag);
+    CComVariant visitedVar(false);
+    checkHR(bag->Write(PROP_VISITED, &visitedVar));
+}
+
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
     if (ItemWindow::handleTopLevelMessage(msg))
         return true;

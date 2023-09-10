@@ -71,6 +71,12 @@ const wchar_t * TextWindow::helpURL() const {
     return L"https://github.com/vanjac/chromafiler/wiki/Text-Editor";
 }
 
+void TextWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
+    ItemWindow::resetPropBag(bag);
+    CComVariant empty;
+    checkHR(bag->Write(PROP_WORD_WRAP, &empty));
+}
+
 void TextWindow::updateAllSettings() {
     // https://stackoverflow.com/q/15987051
     checkLE(SendNotifyMessage(HWND_BROADCAST, updateSettingsMessage, 0, 0));

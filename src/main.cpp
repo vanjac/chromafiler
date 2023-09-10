@@ -235,6 +235,8 @@ LaunchType createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand
     } else {
         initialWindow = createItemWindow(nullptr, startItem);
     }
+    if (scratch)
+        initialWindow->resetViewState();
     // TODO can we get the monitor passed to ShellExecuteEx?
     initialWindow->create(initialWindow->requestedRect(nullptr), showCommand);
     return type;

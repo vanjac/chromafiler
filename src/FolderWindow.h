@@ -101,6 +101,8 @@ protected:
     bool useDefaultStatusText() const override;
     SIZE defaultSize() const override;
 
+    void resetPropBag(CComPtr<IPropertyBag> bag) override;
+
     virtual FOLDERSETTINGS folderSettings() const;
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
 

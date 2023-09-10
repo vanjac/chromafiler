@@ -272,6 +272,18 @@ CComPtr<IPropertyBag> ItemWindow::getPropBag() {
     return propBag;
 }
 
+void ItemWindow::resetViewState() {
+    if (auto bag = getPropBag())
+        resetPropBag(bag);
+}
+
+void ItemWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
+    CComVariant empty;
+    checkHR(bag->Write(PROP_SIZE, &empty));
+    checkHR(bag->Write(PROP_POS, &empty));
+    checkHR(bag->Write(PROP_CHILD_SIZE, &empty));
+}
+
 bool ItemWindow::create(RECT rect, int showCommand) {
     if (!checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &title)))
         return false;
@@ -1615,7 +1627,8 @@ void ItemWindow::onItemChanged() {
         itemDropTarget = nullptr;
         item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
     }
-    propBag = nullptr; // TODO: transfer settings from old bag?
+    propBag = nullptr;
+    resetViewState(); // TODO: transfer settings from old bag?
     if (!getDispatch())
         onViewReady();
 }

@@ -27,6 +27,8 @@ public:
     virtual RECT requestedRect(HMONITOR preferMonitor); // called for root windows
     virtual bool persistSizeInParent() const;
 
+    void resetViewState(); // call immediately after constructing to reset all view state properties
+
     bool create(RECT rect, int showCommand);
     void close();
     void setForeground();
@@ -79,6 +81,7 @@ protected:
     virtual const wchar_t * helpURL() const;
 
     CComPtr<IPropertyBag> getPropBag();
+    virtual void resetPropBag(CComPtr<IPropertyBag> bag);
 
     // general window commands
     void activate();
