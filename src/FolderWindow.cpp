@@ -667,7 +667,8 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
 
 // called when double-clicking a file
 STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
-    if (selected && settings::getDeselectOnOpen()) { // single selection
+    if (selected && settings::getDeselectOnOpen() && GetKeyState(VK_MENU) >= 0) {
+        // single selection
         selected = nullptr; // prevent recursion
         CComQIPtr<IFolderView2> folderView(view);
         if (folderView)
