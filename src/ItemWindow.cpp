@@ -1356,6 +1356,8 @@ void ItemWindow::detachFromParent(bool closeParent) {
             rootParent = rootParent->parent;
         if (!rootParent->paletteWindow())
             rootParent->close();
+    } else if (!rootParent->paletteWindow()) {
+        rootParent->activate(); // no window is focused by default
     }
     activate(); // bring this chain to front
 }
