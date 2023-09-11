@@ -195,6 +195,7 @@ FunctionEnd
 Section "Add to Open With menu" SecProgID
 	; https://learn.microsoft.com/en-us/windows/win32/shell/customizing-file-types-bumper
 	Call RegisterExecuteCommand
+	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe" "FriendlyAppName" "ChromaFiler Preview"
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "DelegateExecute" "${EXECUTE_GUID}"
 	; hack for ArsClip (TODO: add to all users?)
