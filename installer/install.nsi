@@ -66,6 +66,7 @@ UninstPage Custom un.LockedListShow
 !insertmacro MUI_LANGUAGE "English"
 
 LangString DESC_SecBase ${LANG_ENGLISH} "The main application and required components."
+LangString DESC_SecText ${LANG_ENGLISH} "Integrated Notepad-like text editor."
 LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the Start Menu to launch $(^Name)."
 LangString DESC_SecProgID ${LANG_ENGLISH} "Add an entry to the 'Open with' menu for all file types. (Does not change the default app for any file type.)"
 LangString DESC_SecContext ${LANG_ENGLISH} "Add 'Open in $(^Name)' command when right-clicking a folder. Required to set default file browser."
@@ -168,11 +169,16 @@ Section "ChromaFiler" SecBase
 	Delete $INSTDIR\LockedList.dll
 SectionEnd
 
+Section "ChromaText (text editor)" SecText
+SectionEnd
+
 Section "Start Menu shortcut" SecStart
 	; SMPROGRAMS will be set by MultiUser
 	CreateShortcut /NoWorkingDir "$SMPROGRAMS\ChromaFiler.lnk" "$INSTDIR\ChromaFiler.exe"
 	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\ChromaFiler.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.file"
-	Call CreateChromaTextShortcut
+	${If} ${SectionIsSelected} ${SecText}
+		Call CreateChromaTextShortcut
+	${EndIf}
 SectionEnd
 
 Function CreateChromaTextShortcut
@@ -307,6 +313,7 @@ FunctionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecBase} $(DESC_SecBase)
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecText} $(DESC_SecText)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecStart} $(DESC_SecStart)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecProgID} $(DESC_SecProgID)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecContext} $(DESC_SecContext)
