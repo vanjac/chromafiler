@@ -209,6 +209,8 @@ Section "Add to Open With menu" SecProgID
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd\shell\open\command" "" '"$INSTDIR\ChromaText.cmd" "%1"'
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd\shell\open\command" "DelegateExecute" "${EXECUTE_GUID}"
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd\shell\open" "CFType" "text"
+		; preview handler
+		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd\shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}" "" "{1531d583-8375-4d3f-b5fb-d23bbd169f22}"
 		; hack
 		WriteRegStr HKCU "Software\Classes\Applications\ChromaText.cmd\shell\open\command" "" '"$INSTDIR\ChromaText.cmd" "%1"'
 	${EndIf}
