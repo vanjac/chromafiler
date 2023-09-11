@@ -1,5 +1,6 @@
 #include "Settings.h"
 #include <strsafe.h>
+#include "UIStrings.h"
 
 namespace chromafiler {
 namespace settings {
@@ -163,12 +164,11 @@ void setTrayOpenOnStartup(bool value) {
     if (value) {
         if (getTrayOpenOnStartup())
             return; // don't overwrite existing command
-        wchar_t command[MAX_PATH];
-        command[0] = L'"';
-        if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), command + 1, _countof(command) - 1))
-                && checkHR(StringCchCat(command, _countof(command), L"\" /tray"))) {
+        wchar_t exePath[MAX_PATH];
+        if (checkLE(GetModuleFileName(nullptr, exePath, _countof(exePath)))) {
+            local_wstr_ptr command = format(L"\"%1\" /tray", exePath);
             RegSetKeyValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP, REG_EXPAND_SZ,
-                command, (lstrlen(command) + 1) * sizeof(wchar_t));
+                command.get(), (lstrlen(command.get()) + 1) * sizeof(wchar_t));
         }
     } else {
         RegDeleteKeyValue(HKEY_CURRENT_USER, KEY_STARTUP, VAL_STARTUP);

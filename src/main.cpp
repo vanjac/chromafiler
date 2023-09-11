@@ -312,7 +312,7 @@ HRESULT WINAPI welcomeDialogCallback(HWND hwnd, UINT msg, WPARAM wParam, LPARAM,
 
 void startTrayProcess() {
     wchar_t exePath[MAX_PATH];
-    if (checkLE(GetModuleFileName(GetModuleHandle(nullptr), exePath, MAX_PATH))) {
+    if (checkLE(GetModuleFileName(nullptr, exePath, _countof(exePath)))) {
         STARTUPINFO startup = {sizeof(startup)};
         PROCESS_INFORMATION info = {};
         checkLE(CreateProcess(exePath, L"ChromaFiler.exe /tray", nullptr, nullptr, FALSE,
