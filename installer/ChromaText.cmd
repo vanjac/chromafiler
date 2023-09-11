@@ -1,0 +1,1 @@
+"%~dp0ChromaFiler.exe" /text %*

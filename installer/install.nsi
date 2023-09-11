@@ -170,6 +170,7 @@ Section "ChromaFiler" SecBase
 SectionEnd
 
 Section "ChromaText (text editor)" SecText
+	File ChromaText.cmd
 SectionEnd
 
 Section "Start Menu shortcut" SecStart
@@ -194,11 +195,23 @@ FunctionEnd
 Section "Add to Open With menu" SecProgID
 	; https://learn.microsoft.com/en-us/windows/win32/shell/customizing-file-types-bumper
 	Call RegisterExecuteCommand
-	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "DelegateExecute" "${EXECUTE_GUID}"
 	; hack for ArsClip (TODO: add to all users?)
 	WriteRegStr HKCU "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
+	; clean up old icon (removed v0.7.0)
+	DeleteRegValue SHCTX "Software\Classes\Applications\ChromaFiler.exe\DefaultIcon" ""
+
+	${If} ${SectionIsSelected} ${SecText}
+		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd" "FriendlyAppName" "ChromaText"
+		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd" "AppUserModelID" "chroma.text"
+		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
+		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd\shell\open\command" "" '"$INSTDIR\ChromaText.cmd" "%1"'
+		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd\shell\open\command" "DelegateExecute" "${EXECUTE_GUID}"
+		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.cmd\shell\open" "CFType" "text"
+		; hack
+		WriteRegStr HKCU "Software\Classes\Applications\ChromaText.cmd\shell\open\command" "" '"$INSTDIR\ChromaText.cmd" "%1"'
+	${EndIf}
 SectionEnd
 
 Section "Add to folder context menu" SecContext
@@ -260,6 +273,7 @@ Section "un.Uninstall"
 	DeleteRegKey SHCTX "${REG_UNINST_KEY}"
 	DeleteRegKey SHCTX Software\ChromaFiler
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaFiler.exe"
+	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaText.cmd"
 	DeleteRegKey SHCTX Software\Classes\Directory\shell\chromafiler
 	DeleteRegKey SHCTX Software\Classes\Directory\Background\shell\chromafiler
 	DeleteRegKey SHCTX Software\Classes\CompressedFolder\shell\chromafiler
@@ -279,6 +293,7 @@ SectionEnd
 Function un.CleanupCurrentUser
 	DeleteRegKey HKCU "Software\ChromaFiler"
 	DeleteRegKey HKCU "Software\Classes\Applications\ChromaFiler.exe"
+	DeleteRegKey HKCU "Software\Classes\Applications\ChromaText.cmd"
 	DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
 	; clear shell defaults if set to chromafiler
@@ -297,6 +312,7 @@ Function un.CleanupUser
 	Pop $0
 	DeleteRegKey HKU "$0\Software\ChromaFiler"
 	DeleteRegKey HKU "$0\Software\Classes\Applications\ChromaFiler.exe"
+	DeleteRegKey HKU "$0\Software\Classes\Applications\ChromaText.cmd"
 	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
 	; clear shell defaults if set to chromafiler
