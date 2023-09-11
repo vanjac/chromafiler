@@ -248,12 +248,16 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 void openTray(wchar_t *path) {
-    CComPtr<IShellItem> item = itemFromPath(path);
-    if (!item)
-        return;
-    CComPtr<TrayWindow> tray;
-    tray.Attach(new TrayWindow(nullptr, item));
-    tray->create(tray->requestedRect(nullptr), SW_SHOWNORMAL);
+    wchar_t exePath[MAX_PATH];
+    if (checkLE(GetModuleFileName(nullptr, exePath, _countof(exePath)))) {
+        local_wstr_ptr command = format(L"ChromaFiler.exe /tray \"%1\"", path);
+        STARTUPINFO startup = {sizeof(startup)};
+        PROCESS_INFORMATION info = {};
+        checkLE(CreateProcess(exePath, command.get(), nullptr, nullptr, FALSE,
+            DETACHED_PROCESS, nullptr, nullptr, &startup, &info));
+        checkLE(CloseHandle(info.hProcess));
+        checkLE(CloseHandle(info.hThread));
+    }
 }
 
 INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
