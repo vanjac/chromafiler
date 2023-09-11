@@ -8,9 +8,19 @@
 				"/D", "_UNICODE",
 				"/D", "UNICODE",
 				"/n",
-				"/fo",
-				"${workspaceFolder}\\build\\resource.res",
+				"/fo", "${workspaceFolder}\\build\\resource.res",
 				"${workspaceFolder}\\src\\resource.rc",
+			],
+			"group": {
+				"kind": "build",
+			},
+		},
+		{
+			"label": "ChromaText resources",
+			"command": "rc.exe",
+			"args": [
+				"/fo", "${workspaceFolder}\\build\\text.res",
+				"${workspaceFolder}\\src\\text\\resource.rc",
 			],
 			"group": {
 				"kind": "build",
@@ -19,6 +29,7 @@
 		{
 			"type": "cppbuild",
 			"label": "ChromaText",
+			"dependsOn": ["ChromaText resources"],
 			"command": "cl.exe",
 			"args": [
 				"/nologo",
@@ -28,6 +39,7 @@
 				"/Fe:", "${workspaceFolder}\\build\\ChromaText.exe",
 				"/I", "${workspaceFolder}\\src",
 				"${workspaceFolder}\\src\\text\\textmain.cpp",
+				"${workspaceFolder}\\build\\text.res",
 				"Kernel32.lib", "Shlwapi.lib",
 				"/link",
 				"/incremental:no", "/manifest:no", "/subsystem:windows",
