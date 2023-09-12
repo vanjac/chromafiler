@@ -1912,6 +1912,7 @@ void ItemWindow::beginRename() {
         Edit_SetSel(renameBox, 0, ext - title);
     }
     ShowWindow(renameBox, SW_SHOW);
+    EnableWindow(proxyToolbar, FALSE);
 }
 
 void ItemWindow::completeRename() {
@@ -1958,6 +1959,7 @@ void ItemWindow::completeRename() {
 
 void ItemWindow::cancelRename() {
     ShowWindow(renameBox, SW_HIDE);
+    EnableWindow(proxyToolbar, TRUE);
 }
 
 /* IUnknown */
