@@ -66,7 +66,7 @@ LRESULT CALLBACK pathCBProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 }
 
 void setupPathCB(HWND hwnd, const wchar_t *path) {
-    SHAutoComplete((HWND)SendMessage(hwnd, CBEM_GETEDITCONTROL, 0, 0), SHACF_FILESYS_DIRS);
+    checkHR(SHAutoComplete((HWND)SendMessage(hwnd, CBEM_GETEDITCONTROL, 0, 0), SHACF_FILESYS_DIRS));
     SetWindowSubclass(hwnd, pathCBProc, 0, 0);
     DragAcceptFiles(hwnd, TRUE);
     setCBPath(hwnd, path);
@@ -200,6 +200,8 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             SendDlgItemMessage(hwnd, IDC_SCRATCH_FOLDER_PATH, CBEM_INSERTITEM, 0, (LPARAM)&item);
             setupPathCB(GetDlgItem(hwnd, IDC_SCRATCH_FOLDER_PATH),
                 settings::getScratchFolder().get());
+            checkHR(SHAutoComplete(GetDlgItem(hwnd, IDC_SCRATCH_FILE_NAME),
+                SHACF_AUTOAPPEND_FORCE_OFF | SHACF_AUTOSUGGEST_FORCE_OFF));
             SetDlgItemText(hwnd, IDC_SCRATCH_FILE_NAME, settings::getScratchFileName().get());
             return TRUE;
         }
