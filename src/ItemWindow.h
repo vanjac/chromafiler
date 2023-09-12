@@ -68,6 +68,7 @@ protected:
 
     virtual SIZE defaultSize() const;
     virtual const wchar_t * propBagName() const;
+    virtual const wchar_t * appUserModelID() const;
     virtual DWORD windowStyle() const;
     virtual DWORD windowExStyle() const;
     virtual bool useCustomFrame() const;

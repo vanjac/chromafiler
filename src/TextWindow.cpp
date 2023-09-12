@@ -68,6 +68,10 @@ const wchar_t * TextWindow::className() const {
     return TEXT_WINDOW_CLASS;
 }
 
+const wchar_t * TextWindow::appUserModelID() const {
+    return L"chroma.text";
+}
+
 bool TextWindow::useDefaultStatusText() const {
     return false;
 }
@@ -87,7 +91,7 @@ void TextWindow::updateWindowPropStore(CComPtr<IPropertyStore> propStore) {
     }
     // matches ChromaText.lnk created by the installer
     // these properties will be used if ChromaText was not added to the start menu
-    propStoreWriteString(propStore, PKEY_AppUserModel_ID, L"chroma.text");
+    propStoreWriteString(propStore, PKEY_AppUserModel_ID, appUserModelID());
     propStoreWriteString(propStore, PKEY_AppUserModel_RelaunchCommand, textExePath);
     propStoreWriteString(propStore, PKEY_AppUserModel_RelaunchDisplayNameResource,
         getString(IDS_CHROMATEXT));

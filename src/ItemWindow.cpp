@@ -225,6 +225,10 @@ const wchar_t * ItemWindow::propBagName() const {
     return L"chromafiler";
 }
 
+const wchar_t * ItemWindow::appUserModelID() const {
+    return APP_ID;
+}
+
 DWORD ItemWindow::windowStyle() const {
     return WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX;
 }
@@ -262,6 +266,7 @@ const wchar_t * ItemWindow::helpURL() const {
 }
 
 void ItemWindow::updateWindowPropStore(CComPtr<IPropertyStore> propStore) {
+    // https://learn.microsoft.com/en-us/windows/win32/shell/appids
     PROPVARIANT empty = {VT_EMPTY};
     propStore->SetValue(PKEY_AppUserModel_ID, empty); // use process explicit
     propStore->SetValue(PKEY_AppUserModel_RelaunchCommand, empty);
@@ -680,6 +685,9 @@ void ItemWindow::onCreate() {
 
     if (!paletteWindow() && (!parent || parent->paletteWindow()))
         addChainPreview();
+
+    if (!child && !parent && !paletteWindow())
+        SHAddToRecentDocs(SHARD_APPIDINFO, tempPtr(SHARDAPPIDINFO{item, appUserModelID()}));
 
     HMODULE instance = GetWindowInstance(hwnd);
     if (useCustomFrame()) {
@@ -1384,6 +1392,7 @@ void ItemWindow::detachFromParent(bool closeParent) {
         rootParent->activate(); // no window is focused by default
     }
     activate(); // bring this chain to front
+    SHAddToRecentDocs(SHARD_APPIDINFO, tempPtr(SHARDAPPIDINFO{item, appUserModelID()}));
 }
 
 void ItemWindow::onChildDetached() {}
