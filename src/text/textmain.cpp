@@ -19,7 +19,6 @@ int __stdcall wWinMainCRTStartup() {
     wchar_t *cmdLineFull = (wchar_t *)HeapAlloc(heap, 0, size);
     lstrcpy(cmdLineFull, cmdLine);
     lstrcpy(cmdLineFull + cmdLineLen, APPEND);
-    OutputDebugString(cmdLineFull);
 
     STARTUPINFO startup;
     startup.cb = sizeof(startup);

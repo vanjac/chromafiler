@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <windowsx.h>
 #include <shlobj.h>
+#include <propkey.h>
 #include <propvarutil.h>
 
 namespace chromafiler {
@@ -29,6 +30,7 @@ static CComVariant MATCH_SPACE(L" \t");
 static CComVariant MATCH_TAB(L"\t");
 static CComVariant MATCH_NEWLINE(L"\n");
 
+static wchar_t textExePath[MAX_PATH];
 static HACCEL textAccelTable;
 static UINT updateSettingsMessage, findReplaceMessage;
 
@@ -42,6 +44,17 @@ void TextWindow::init() {
 
     updateSettingsMessage = checkLE(RegisterWindowMessage(L"chromafiler_TextUpdateSettings"));
     findReplaceMessage = checkLE(RegisterWindowMessage(FINDMSGSTRING));
+
+    if (checkLE(GetModuleFileName(nullptr, textExePath, _countof(textExePath)))) {
+        PathRemoveFileSpec(textExePath);
+        PathAppend(textExePath, L"ChromaText.exe");
+        if (!PathFileExists(textExePath)) {
+            debugPrintf(L"Couldn't find ChromaText.exe\n");
+            textExePath[0] = 0;
+        }
+    } else {
+        textExePath[0] = 0;
+    }
 }
 
 TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, bool scratch)
@@ -55,10 +68,6 @@ const wchar_t * TextWindow::className() const {
     return TEXT_WINDOW_CLASS;
 }
 
-const wchar_t * TextWindow::appUserModelID() const {
-    return L"chroma.text";
-}
-
 bool TextWindow::useDefaultStatusText() const {
     return false;
 }
@@ -69,6 +78,21 @@ SettingsPage TextWindow::settingsStartPage() const {
 
 const wchar_t * TextWindow::helpURL() const {
     return L"https://github.com/vanjac/chromafiler/wiki/Text-Editor";
+}
+
+void TextWindow::updateWindowPropStore(CComPtr<IPropertyStore> propStore) {
+    if (!textExePath[0]) {
+        ItemWindow::updateWindowPropStore(propStore);
+        return;
+    }
+    // matches ChromaText.lnk created by the installer
+    // these properties will be used if ChromaText was not added to the start menu
+    propStoreWriteString(propStore, PKEY_AppUserModel_ID, L"chroma.text");
+    propStoreWriteString(propStore, PKEY_AppUserModel_RelaunchCommand, textExePath);
+    propStoreWriteString(propStore, PKEY_AppUserModel_RelaunchDisplayNameResource,
+        getString(IDS_CHROMATEXT));
+    local_wstr_ptr iconResource = format(L"%1,-101", textExePath);
+    propStoreWriteString(propStore, PKEY_AppUserModel_RelaunchIconResource, iconResource.get());
 }
 
 void TextWindow::resetPropBag(CComPtr<IPropertyBag> bag) {

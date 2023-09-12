@@ -5,6 +5,9 @@
 #include <memory>
 #include <windows.h>
 
+#define XSTRINGIFY(X) STRINGIFY(X)
+#define STRINGIFY(X) #X
+
 namespace chromafiler {
 
 struct LocalDeleter {

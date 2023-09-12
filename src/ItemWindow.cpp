@@ -53,6 +53,7 @@ const BYTE INACTIVE_CAPTION_ALPHA = 156;
 
 const BYTE PROXY_BUTTON_STYLE = BTNS_DROPDOWN | BTNS_NOPREFIX;
 
+static local_wstr_ptr iconResource;
 static HANDLE symbolFontHandle = nullptr;
 static HFONT captionFont = nullptr, statusFont = nullptr;
 static HFONT symbolFont = nullptr;
@@ -152,6 +153,11 @@ void ItemWindow::init() {
     }
 
     accelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ITEM_ACCEL));
+
+    wchar_t exePath[MAX_PATH];
+    if (checkLE(GetModuleFileName(nullptr, exePath, _countof(exePath)))) {
+        iconResource = format(L"%1,-" XSTRINGIFY(IDR_APP_ICON), exePath);
+    }
 }
 
 void ItemWindow::uninit() {
@@ -219,10 +225,6 @@ const wchar_t * ItemWindow::propBagName() const {
     return L"chromafiler";
 }
 
-const wchar_t * ItemWindow::appUserModelID() const {
-    return APP_ID;
-}
-
 DWORD ItemWindow::windowStyle() const {
     return WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX;
 }
@@ -257,6 +259,26 @@ SettingsPage ItemWindow::settingsStartPage() const {
 
 const wchar_t * ItemWindow::helpURL() const {
     return L"https://github.com/vanjac/chromafiler/wiki";
+}
+
+void ItemWindow::updateWindowPropStore(CComPtr<IPropertyStore> propStore) {
+    PROPVARIANT empty = {VT_EMPTY};
+    propStore->SetValue(PKEY_AppUserModel_ID, empty); // use process explicit
+    propStore->SetValue(PKEY_AppUserModel_RelaunchCommand, empty);
+    propStore->SetValue(PKEY_AppUserModel_RelaunchDisplayNameResource, empty);
+    if (iconResource)
+        propStoreWriteString(propStore, PKEY_AppUserModel_RelaunchIconResource, iconResource.get());
+    else
+        propStore->SetValue(PKEY_AppUserModel_RelaunchIconResource, empty);
+}
+
+void ItemWindow::propStoreWriteString(CComPtr<IPropertyStore> propStore,
+        const PROPERTYKEY &key, const wchar_t *value) {
+    PROPVARIANT propVar;
+    if (checkHR(InitPropVariantFromString(value, &propVar))) {
+        checkHR(propStore->SetValue(key, propVar));
+        checkHR(PropVariantClear(&propVar));
+    }
 }
 
 CComPtr<IPropertyBag> ItemWindow::getPropBag() {
@@ -1492,13 +1514,8 @@ void ItemWindow::addChainPreview() {
     HWND owner = checkLE(GetWindowOwner(hwnd));
     // update app user model id
     CComPtr<IPropertyStore> propStore;
-    if (checkHR(SHGetPropertyStoreForWindow(owner, IID_PPV_ARGS(&propStore)))) {
-        PROPVARIANT propVar;
-        if (checkHR(InitPropVariantFromString(appUserModelID(), &propVar))) {
-            checkHR(propStore->SetValue(PKEY_AppUserModel_ID, propVar));
-            checkHR(PropVariantClear(&propVar));
-        }
-    }
+    if (checkHR(SHGetPropertyStoreForWindow(owner, IID_PPV_ARGS(&propStore))))
+        updateWindowPropStore(propStore);
     // update taskbar preview
     CComPtr<ITaskbarList4> taskbar;
     if (checkHR(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {

@@ -68,7 +68,6 @@ protected:
 
     virtual SIZE defaultSize() const;
     virtual const wchar_t * propBagName() const;
-    virtual const wchar_t * appUserModelID() const;
     virtual DWORD windowStyle() const;
     virtual DWORD windowExStyle() const;
     virtual bool useCustomFrame() const;
@@ -79,6 +78,10 @@ protected:
     virtual bool useDefaultStatusText() const;
     virtual SettingsPage settingsStartPage() const;
     virtual const wchar_t * helpURL() const;
+
+    virtual void updateWindowPropStore(CComPtr<IPropertyStore> propStore);
+    static void propStoreWriteString(CComPtr<IPropertyStore> propStore,
+        const PROPERTYKEY &key, const wchar_t *value);
 
     CComPtr<IPropertyBag> getPropBag();
     virtual void resetPropBag(CComPtr<IPropertyBag> bag);

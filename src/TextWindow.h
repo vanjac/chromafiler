@@ -29,10 +29,11 @@ protected:
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
-    const wchar_t * appUserModelID() const override;
     bool useDefaultStatusText() const override;
     SettingsPage settingsStartPage() const override;
     const wchar_t * helpURL() const override;
+
+    void updateWindowPropStore(CComPtr<IPropertyStore> propStore) override;
 
     void resetPropBag(CComPtr<IPropertyBag> bag) override;
 

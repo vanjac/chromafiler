@@ -24,6 +24,7 @@
 
 using namespace chromafiler;
 
+const wchar_t APP_ID[] = L"chroma.file";
 const wchar_t SHELL_PREFIX[] = L"shell:";
 
 enum LaunchType {LAUNCH_FAIL, LAUNCH_HEADLESS, LAUNCH_AUTO, LAUNCH_TRAY, LAUNCH_TEXT};
