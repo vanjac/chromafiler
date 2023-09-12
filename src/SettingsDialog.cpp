@@ -43,14 +43,49 @@ bool chooseFolder(HWND owner, CComHeapPtr<wchar_t> &pathOut) {
     return checkHR(item->GetDisplayName(SIGDN_DESKTOPABSOLUTEPARSING, &pathOut));
 }
 
+void setCBPath(HWND hwnd, const wchar_t *path) {
+    COMBOBOXEXITEM item = {CBEIF_TEXT, -1, (wchar_t *)path};
+    SendMessage(hwnd, CBEM_SETITEM, 0, (LPARAM)&item);
+}
+
+LRESULT CALLBACK pathCBProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam,
+        UINT_PTR, DWORD_PTR) {
+    switch (message) {
+        case WM_DROPFILES: {
+            wchar_t path[MAX_PATH];
+            if (DragQueryFile((HDROP)wParam, 0, path, _countof(path))) {
+                setCBPath(hwnd, path);
+                SendMessage(GetParent(hwnd), WM_COMMAND,
+                    MAKEWPARAM(GetDlgCtrlID(hwnd), CBN_SELCHANGE), (LPARAM)hwnd);
+            }
+            DragFinish((HDROP)wParam);
+            return 0;
+        }
+    }
+    return DefSubclassProc(hwnd, message, wParam, lParam);
+}
+
+void setupPathCB(HWND hwnd, const wchar_t *path) {
+    SHAutoComplete((HWND)SendMessage(hwnd, CBEM_GETEDITCONTROL, 0, 0), SHACF_FILESYS_DIRS);
+    SetWindowSubclass(hwnd, pathCBProc, 0, 0);
+    DragAcceptFiles(hwnd, TRUE);
+    setCBPath(hwnd, path);
+}
+
+bool pathCBChanged(WPARAM wParam, LPARAM lParam) {
+    return HIWORD(wParam) == CBN_EDITCHANGE && SendMessage((HWND)lParam, CBEM_HASEDITCHANGED, 0, 0)
+        || HIWORD(wParam) == CBN_SELCHANGE;
+}
+
 INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
         case WM_INITDIALOG: {
             for (int i = 0; i < _countof(SPECIAL_PATHS); i++) {
-                SendDlgItemMessage(hwnd, IDC_START_FOLDER_PATH, CB_ADDSTRING, 0,
-                    (LPARAM)SPECIAL_PATHS[i]);
+                COMBOBOXEXITEM item = {CBEIF_TEXT, -1, (wchar_t *)SPECIAL_PATHS[i]};
+                SendDlgItemMessage(hwnd, IDC_START_FOLDER_PATH, CBEM_INSERTITEM, 0, (LPARAM)&item);
             }
-            SetDlgItemText(hwnd, IDC_START_FOLDER_PATH, settings::getStartingFolder().get());
+            setupPathCB(GetDlgItem(hwnd, IDC_START_FOLDER_PATH),
+                settings::getStartingFolder().get());
             SIZE folderWindowSize = settings::getFolderWindowSize();
             SetDlgItemInt(hwnd, IDC_FOLDER_WINDOW_WIDTH, folderWindowSize.cx, TRUE);
             SetDlgItemInt(hwnd, IDC_FOLDER_WINDOW_HEIGHT, folderWindowSize.cy, TRUE);
@@ -106,7 +141,7 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
             if (LOWORD(wParam) == IDC_START_FOLDER_BROWSE && HIWORD(wParam) == BN_CLICKED) {
                 CComHeapPtr<wchar_t> selected;
                 if (chooseFolder(GetParent(hwnd), selected)) {
-                    SetDlgItemText(hwnd, IDC_START_FOLDER_PATH, selected);
+                    setCBPath(GetDlgItem(hwnd, IDC_START_FOLDER_PATH), selected);
                     PropSheet_Changed(GetParent(hwnd), hwnd);
                 }
                 return TRUE;
@@ -116,8 +151,7 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                     L"rundll32.exe", L"shell32.dll,Options_RunDLL 7", nullptr, SW_SHOWNORMAL);
                 return TRUE;
             } else if (HIWORD(wParam) == EN_CHANGE
-                    || LOWORD(wParam) == IDC_START_FOLDER_PATH && HIWORD(wParam) == CBN_EDITCHANGE
-                    || LOWORD(wParam) == IDC_START_FOLDER_PATH && HIWORD(wParam) == CBN_SELCHANGE
+                    || LOWORD(wParam) == IDC_START_FOLDER_PATH && pathCBChanged(wParam, lParam)
                     || LOWORD(wParam) == IDC_STATUS_TEXT_ENABLED && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TOOLBAR_ENABLED && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_PREVIEWS_ENABLED && HIWORD(wParam) == BN_CLICKED) {
@@ -162,9 +196,10 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             SendDlgItemMessage(hwnd, IDC_TEXT_ENCODING, CB_SETCURSEL,
                 settings::getTextDefaultEncoding() - ENC_UTF8, 0);
             CheckDlgButton(hwnd, IDC_TEXT_AUTO_ENCODING, settings::getTextAutoEncoding());
-            SendDlgItemMessage(hwnd, IDC_SCRATCH_FOLDER_PATH, CB_ADDSTRING, 0,
-                (LPARAM)settings::DEFAULT_SCRATCH_FOLDER);
-            SetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH, settings::getScratchFolder().get());
+            COMBOBOXEXITEM item = {CBEIF_TEXT, -1, (wchar_t *)settings::DEFAULT_SCRATCH_FOLDER};
+            SendDlgItemMessage(hwnd, IDC_SCRATCH_FOLDER_PATH, CBEM_INSERTITEM, 0, (LPARAM)&item);
+            setupPathCB(GetDlgItem(hwnd, IDC_SCRATCH_FOLDER_PATH),
+                settings::getScratchFolder().get());
             SetDlgItemText(hwnd, IDC_SCRATCH_FILE_NAME, settings::getScratchFileName().get());
             return TRUE;
         }
@@ -224,7 +259,7 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     && HIWORD(wParam) == BN_CLICKED) {
                 CComHeapPtr<wchar_t> selected;
                 if (chooseFolder(GetParent(hwnd), selected)) {
-                    SetDlgItemText(hwnd, IDC_SCRATCH_FOLDER_PATH, selected);
+                    setCBPath(GetDlgItem(hwnd, IDC_SCRATCH_FOLDER_PATH), selected);
                     PropSheet_Changed(GetParent(hwnd), hwnd);
                 }
                 return TRUE;
@@ -234,8 +269,7 @@ INT_PTR CALLBACK textProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     || LOWORD(wParam) == IDC_TEXT_AUTO_ENCODING && HIWORD(wParam) == BN_CLICKED
                     || LOWORD(wParam) == IDC_TEXT_NEWLINES && HIWORD(wParam) == CBN_SELCHANGE
                     || LOWORD(wParam) == IDC_TEXT_ENCODING && HIWORD(wParam) == CBN_SELCHANGE
-                    || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && HIWORD(wParam) == CBN_EDITCHANGE
-                    || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && HIWORD(wParam) == CBN_SELCHANGE
+                    || LOWORD(wParam) == IDC_SCRATCH_FOLDER_PATH && pathCBChanged(wParam, lParam)
                     || LOWORD(wParam) == IDC_TEXT_TAB_SIZE && HIWORD(wParam) == EN_CHANGE
                     || LOWORD(wParam) == IDC_SCRATCH_FILE_NAME && HIWORD(wParam) == EN_CHANGE) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
@@ -268,10 +302,10 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             CheckDlgButton(hwnd, IDC_OPEN_TRAY_ON_STARTUP,
                 settings::getTrayOpenOnStartup() ? BST_CHECKED : BST_UNCHECKED);
             for (int i = 0; i < _countof(SPECIAL_PATHS); i++) {
-                SendDlgItemMessage(hwnd, IDC_TRAY_FOLDER_PATH, CB_ADDSTRING, 0,
-                    (LPARAM)SPECIAL_PATHS[i]);
+                COMBOBOXEXITEM item = {CBEIF_TEXT, -1, (wchar_t *)SPECIAL_PATHS[i]};
+                SendDlgItemMessage(hwnd, IDC_TRAY_FOLDER_PATH, CBEM_INSERTITEM, 0, (LPARAM)&item);
             }
-            SetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, settings::getTrayFolder().get());
+            setupPathCB(GetDlgItem(hwnd, IDC_TRAY_FOLDER_PATH), settings::getTrayFolder().get());
             switch (settings::getTrayDirection()) {
                 case TRAY_UP:
                     CheckDlgButton(hwnd, IDC_TRAY_DIR_ABOVE, BST_CHECKED);
@@ -327,7 +361,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_BROWSE && HIWORD(wParam) == BN_CLICKED) {
                 CComHeapPtr<wchar_t> selected;
                 if (chooseFolder(GetParent(hwnd), selected)) {
-                    SetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, selected);
+                    setCBPath(GetDlgItem(hwnd, IDC_TRAY_FOLDER_PATH), selected);
                     PropSheet_Changed(GetParent(hwnd), hwnd);
                 }
                 return TRUE;
@@ -337,8 +371,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 settings::setTrayDPI(settings::DEFAULT_TRAY_DPI);
                 TrayWindow::resetTrayPosition();
                 return TRUE;
-            } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_PATH
-                    && (HIWORD(wParam) == CBN_EDITCHANGE || HIWORD(wParam) == CBN_SELCHANGE)) {
+            } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_PATH && pathCBChanged(wParam, lParam)) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
                 return TRUE;
             } else if (HIWORD(wParam) == BN_CLICKED && (LOWORD(wParam) == IDC_OPEN_TRAY_ON_STARTUP
