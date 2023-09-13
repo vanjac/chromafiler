@@ -21,6 +21,7 @@ public:
     bool handleTopLevelMessage(MSG *msg) override;
 
     STDMETHODIMP OnNavigationComplete(PCIDLIST_ABSOLUTE folder) override;
+    STDMETHODIMP MessageSFVCB(UINT msg, WPARAM wParam, LPARAM lParam) override;
 
 protected:
     enum UserMessage {
@@ -52,8 +53,6 @@ protected:
     bool onCommand(WORD command) override;
     void onSize(SIZE size) override;
     void onExitSizeMove(bool moved, bool sized) override;
-
-    void refresh() override;
 
 private:
     const wchar_t * className() const override;

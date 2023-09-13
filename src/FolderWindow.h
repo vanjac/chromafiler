@@ -3,11 +3,12 @@
 
 #include "ItemWindow.h"
 #include <ExDisp.h>
+#include <shlobj_core.h>
 
 namespace chromafiler {
 
 class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlgBrowser2,
-        public IExplorerBrowserEvents, public IWebBrowserApp {
+        public IExplorerBrowserEvents, public IShellFolderViewCB, public IWebBrowserApp {
 public:
     static void init();
 
@@ -36,6 +37,8 @@ public:
     STDMETHODIMP OnNavigationComplete(PCIDLIST_ABSOLUTE folder) override;
     STDMETHODIMP OnNavigationFailed(PCIDLIST_ABSOLUTE folder) override;
     STDMETHODIMP OnViewCreated(IShellView *shellView) override;
+    // IShellFolderViewCB
+    STDMETHODIMP MessageSFVCB(UINT msg, WPARAM wParam, LPARAM lParam) override;
     // IDispatch
     STDMETHODIMP GetTypeInfoCount(UINT *) override;
     STDMETHODIMP GetTypeInfo(UINT, LCID, ITypeInfo **) override;
@@ -149,6 +152,7 @@ private:
 
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
     DWORD eventsCookie = 0;
+    CComPtr<IShellFolderViewCB> prevCB;
 
     CComPtr<IShellItem> selected; // links are not resolved unlike child->item
 

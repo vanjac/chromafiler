@@ -371,11 +371,6 @@ bool TrayWindow::onCommand(WORD command) {
     return FolderWindow::onCommand(command);
 }
 
-void TrayWindow::refresh() {
-    FolderWindow::refresh();
-    fixListViewColors();
-}
-
 void TrayWindow::fixListViewColors() {
     if (listView) {
         ListView_SetBkColor(listView, GetSysColor(COLOR_WINDOW));
@@ -421,6 +416,13 @@ STDMETHODIMP TrayWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE idList) {
     }
     fixListViewColors();
     return S_OK;
+}
+
+STDMETHODIMP TrayWindow::MessageSFVCB(UINT msg, WPARAM wParam, LPARAM lParam) {
+    if (msg == 17) { // refresh
+        fixListViewColors();
+    }
+    return FolderWindow::MessageSFVCB(msg, wParam, lParam);
 }
 
 LRESULT CALLBACK TrayWindow::sizeGripProc(HWND hwnd, UINT message,

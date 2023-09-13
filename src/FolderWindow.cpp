@@ -279,6 +279,12 @@ void FolderWindow::onDestroy() {
             CComVariant visitedVar(true);
             checkHR(bag->Write(PROP_VISITED, &visitedVar));
         }
+        CComQIPtr<IShellFolderView> sfv(shellView);
+        if (sfv) {
+            CComPtr<IShellFolderViewCB> oldCB;
+            checkHR(sfv->SetCallback(prevCB, &oldCB));
+            prevCB = nullptr;
+        }
     } else {
         // prevent view settings from being trashed before navigation complete
         checkHR(browser->SetPropertyBag(L""));
@@ -440,6 +446,12 @@ IDispatch * FolderWindow::getDispatch() {
 void FolderWindow::onItemChanged() {
     ItemWindow::onItemChanged();
     if (browser) {
+        CComQIPtr<IShellFolderView> sfv(shellView);
+        if (sfv) {
+            CComPtr<IShellFolderViewCB> oldCB;
+            checkHR(sfv->SetCallback(prevCB, &oldCB));
+            prevCB = nullptr;
+        }
         shellView = nullptr;
         checkHR(browser->SetOptions(BROWSER_OPTIONS)); // temporarily enable navigation
         checkHR(browser->BrowseToObject(item, SBSP_ABSOLUTE));
@@ -453,7 +465,6 @@ void FolderWindow::refresh() {
         SendMessage(listView, WM_VSCROLL, SB_TOP, 0); // fix drawing glitch on refresh
     if (shellView)
         checkHR(shellView->Refresh()); // TODO: invoke context menu verb instead?
-    firstODDispInfo = false; // TODO won't be called if invoked from context menu!
 }
 
 CComPtr<IContextMenu> FolderWindow::queryBackgroundMenu(HMENU *popupMenu) {
@@ -629,6 +640,7 @@ STDMETHODIMP FolderWindow::QueryInterface(REFIID id, void **obj) {
         QITABENT(FolderWindow, ICommDlgBrowser),
         QITABENT(FolderWindow, ICommDlgBrowser2),
         QITABENT(FolderWindow, IExplorerBrowserEvents),
+        QITABENT(FolderWindow, IShellFolderViewCB),
         QITABENT(FolderWindow, IDispatch),
         QITABENT(FolderWindow, IWebBrowser),
         QITABENT(FolderWindow, IWebBrowserApp),
@@ -755,6 +767,12 @@ STDMETHODIMP FolderWindow::OnNavigationFailed(PCIDLIST_ABSOLUTE) {
 STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
     shellView = view;
 
+    CComQIPtr<IShellFolderView> sfv(view);
+    if (sfv) {
+        prevCB = nullptr;
+        checkHR(sfv->SetCallback(this, &prevCB));
+    }
+
     bool visited = false; // folder has been visited before
     if (auto bag = getPropBag()) {
         VARIANT var = {VT_BOOL};
@@ -768,6 +786,15 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
     }
 
     return S_OK;
+}
+
+STDMETHODIMP FolderWindow::MessageSFVCB(UINT msg, WPARAM wParam, LPARAM lParam) {
+    if (msg == 17) { // refresh
+        firstODDispInfo = false;
+    }
+    if (prevCB)
+        return prevCB->MessageSFVCB(msg, wParam, lParam);
+    return E_NOTIMPL;
 }
 
 /* IDispatch */
