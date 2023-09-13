@@ -42,13 +42,15 @@ IDR_ITEM_ACCEL  ACCELERATORS {
     "R",            IDM_REFRESH,        VIRTKEY, CONTROL
     VK_F1,          IDM_HELP,           VIRTKEY
     VK_OEM_COMMA,   IDM_SETTINGS,       VIRTKEY, CONTROL
+    VK_TAB,         IDM_PARENT_MENU,    VIRTKEY, CONTROL, SHIFT
+    VK_F1,          IDM_DEBUG_NAMES,    VIRTKEY, CONTROL
+    // proxy operations
     VK_F10,         IDM_PROXY_MENU,     VIRTKEY
     VK_F2,          IDM_RENAME_PROXY,   VIRTKEY, SHIFT
     "D",            IDM_DELETE_PROXY,   VIRTKEY, CONTROL, SHIFT
-    VK_TAB,         IDM_PARENT_MENU,    VIRTKEY, CONTROL, SHIFT
+    // folder
     "N",            IDM_NEW_FOLDER,     VIRTKEY, CONTROL, SHIFT
     "N",            IDM_NEW_TEXT_FILE,  VIRTKEY, CONTROL
-    VK_F1,          IDM_DEBUG_NAMES,    VIRTKEY, CONTROL
 }
 
 IDR_TEXT_ACCEL  ACCELERATORS {
@@ -71,7 +73,9 @@ IDR_ITEM_MENU   MENU {
 
 IDR_TEXT_MENU   MENU {
     POPUP "" {
-        // based on Edit control context menu
+        // File
+        MENUITEM    "&Save\tCtrl+S",            IDM_SAVE
+        // Edit
         MENUITEM    "&Undo\tCtrl+Z",            IDM_UNDO
         MENUITEM    "&Redo\tCtrl+Y",            IDM_REDO
         MENUITEM    SEPARATOR
@@ -88,6 +92,12 @@ IDR_TEXT_MENU   MENU {
         MENUITEM    "Find Pre&vious\tShift+F3", IDM_FIND_PREV
         MENUITEM    "R&eplace...\tCtrl+H",      IDM_REPLACE
         MENUITEM    SEPARATOR
+        // View
+        POPUP "&Zoom" {
+            MENUITEM    "Zoom &In\tCtrl+Plus"           IDM_ZOOM_IN
+            MENUITEM    "Zoom &Out\tCtrl+Minus"         IDM_ZOOM_OUT
+            MENUITEM    "&Restore Default Zoom\tCtrl+0" IDM_ZOOM_RESET
+        }
         MENUITEM    "&Word Wrap\tCtrl+Shift+W", IDM_WORD_WRAP
     }
 }
