@@ -417,6 +417,7 @@ STDMETHODIMP TrayWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE idList) {
         style &= ~LVS_ALIGNLEFT;
         style |= LVS_ALIGNTOP | LVS_SHOWSELALWAYS;
         SetWindowLong(listView, GWL_STYLE, style);
+        ListView_SetExtendedListViewStyleEx(listView, LVS_EX_MULTIWORKAREAS, 0);
     }
     fixListViewColors();
     return S_OK;
