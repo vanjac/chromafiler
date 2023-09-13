@@ -295,6 +295,8 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return TRUE;
         case WM_INITMENUPOPUP: {
             HMENU menu = (HMENU)wParam;
+            if (!Edit_GetModify(edit))
+                EnableMenuItem(menu, IDM_SAVE, MF_GRAYED);
             if (!Edit_CanUndo(edit)) {
                 EnableMenuItem(menu, IDM_UNDO, MF_GRAYED);
             } else {
