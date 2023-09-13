@@ -216,6 +216,17 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
         window->clickPos = pos;
     } else if (message == WM_LBUTTONDBLCLK) {
         ((FolderWindow *)refData)->clickTime = 0;
+    } else if (message == WM_RBUTTONDOWN) {
+        FolderWindow *window = (FolderWindow *)refData;
+        window->handlingRButtonDown = true;
+        LRESULT res = DefSubclassProc(hwnd, message, wParam, lParam);
+        window->handlingRButtonDown = false;
+        if (window->selectedWhileHandlingRButtonDown) {
+            window->selectionDirty = true;
+            PostMessage(window->hwnd, MSG_SELECTION_CHANGED, 0, 0);
+            window->selectedWhileHandlingRButtonDown = false;
+        }
+        return res;
     } else if (message == WM_SIZE) {
         if (ListView_GetView(hwnd) == LV_VIEW_DETAILS
                 && !((FolderWindow *)refData)->handlingSetColumnWidth) {
@@ -378,6 +389,10 @@ LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
 }
 
 void FolderWindow::updateSelection() {
+    if (handlingRButtonDown) {
+        selectedWhileHandlingRButtonDown = true;
+        return;
+    }
     CComPtr<IFolderView2> folderView;
     if (FAILED(browser->GetCurrentView(IID_PPV_ARGS(&folderView))))
         return;

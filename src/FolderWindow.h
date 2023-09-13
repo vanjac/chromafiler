@@ -164,6 +164,8 @@ private:
     bool clickActivate = true;
     bool firstODDispInfo = false;
     bool handlingSetColumnWidth = false;
+    bool handlingRButtonDown = false;
+    bool selectedWhileHandlingRButtonDown = false;
 
     DWORD clickTime = 0;
     POINT clickPos;
