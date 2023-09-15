@@ -75,6 +75,7 @@ IDR_TEXT_MENU   MENU {
     POPUP "" {
         // File
         MENUITEM    "&Save\tCtrl+S",            IDM_SAVE
+        MENUITEM    SEPARATOR
         // Edit
         MENUITEM    "&Undo\tCtrl+Z",            IDM_UNDO
         MENUITEM    "&Redo\tCtrl+Y",            IDM_REDO
