@@ -187,7 +187,7 @@ bool TextWindow::onCloseRequest() {
 
 void TextWindow::onDestroy() {
     if (isUnsavedScratchFile)
-        deleteProxy(false);
+        deleteProxy(); // TODO: this will generate a shell event
     ItemWindow::onDestroy();
     if (font)
         DeleteFont(font);

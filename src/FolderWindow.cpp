@@ -91,6 +91,10 @@ SIZE FolderWindow::defaultSize() const {
     return scaleDPI(settings::getFolderWindowSize());
 }
 
+bool FolderWindow::isFolder() const {
+    return true;
+}
+
 void FolderWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
     ItemWindow::resetPropBag(bag);
     CComVariant visitedVar(false);
@@ -815,13 +819,8 @@ STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
     return S_FALSE; // perform default action
 }
 
-STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG change) {
+STDMETHODIMP FolderWindow::OnStateChange(IShellView *, ULONG) {
     // CDBOSC_SELCHANGE is unreliable with the old-style ListView
-    if (change == CDBOSC_RENAME) {
-        // TODO: remove this once there's an automatic system for tracking files
-        if (child)
-            child->resolveItem();
-    }
     return S_OK;
 }
 

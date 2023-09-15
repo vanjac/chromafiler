@@ -60,6 +60,9 @@ protected:
         MSG_UPDATE_ICONS = WM_USER,
         // WPARAM: 0, LPARAM: 0
         MSG_UPDATE_DEFAULT_STATUS_TEXT,
+        // see SHChangeNotification_Lock
+        MSG_SHELL_NOTIFY,
+        // WPARAM: 0, LPARAM: 0
         MSG_FLASH_WINDOW,
         MSG_LAST
     };
@@ -69,6 +72,7 @@ protected:
     virtual SIZE defaultSize() const;
     virtual const wchar_t * propBagName() const;
     virtual const wchar_t * appUserModelID() const;
+    virtual bool isFolder() const;
     virtual DWORD windowStyle() const;
     virtual DWORD windowExStyle() const;
     virtual bool useCustomFrame() const;
@@ -132,7 +136,7 @@ protected:
     virtual void onItemChanged();
     virtual void refresh();
 
-    void deleteProxy(bool resolve = true);
+    void deleteProxy();
     CMINVOKECOMMANDINFOEX makeInvokeInfo(int cmd, POINT point);
 
     HWND hwnd;
@@ -172,6 +176,11 @@ private:
     void registerShellWindow();
     void unregisterShellWindow();
 
+    void registerShellNotify();
+    void unregisterShellNotify();
+
+    void itemMoved(CComPtr<IShellItem> newItem);
+
     void openParentMenu();
 
     void invokeProxyDefaultVerb();
@@ -200,6 +209,7 @@ private:
     CComPtr<IDropTarget> itemDropTarget;
     CComPtr<IDropTargetHelper> dropTargetHelper;
     long shellWindowCookie = 0;
+    ULONG shellNotifyID = 0;
 
     POINT moveAccum;
     SIZE lastSize;

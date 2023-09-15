@@ -229,6 +229,10 @@ const wchar_t * ItemWindow::appUserModelID() const {
     return APP_ID;
 }
 
+bool ItemWindow::isFolder() const {
+    return false;
+}
+
 DWORD ItemWindow::windowStyle() const {
     return WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX & ~WS_MAXIMIZEBOX;
 }
@@ -629,6 +633,32 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     return 0;
             }
             break;
+        case MSG_SHELL_NOTIFY: {
+            LONG event;
+            ITEMIDLIST **idls;
+            HANDLE lock = SHChangeNotification_Lock((HANDLE)wParam, (DWORD)lParam, &idls, &event);
+            if (lock) {
+                CComPtr<IShellItem> item1, item2;
+                if (idls[0])
+                    checkHR(SHCreateItemFromIDList(idls[0], IID_PPV_ARGS(&item1)));
+                if (idls[1])
+                    checkHR(SHCreateItemFromIDList(idls[1], IID_PPV_ARGS(&item2)));
+                SHChangeNotification_Unlock(lock);
+                int compare;
+                // TODO SICHINT_TEST_FILESYSPATH_IF_NOT_EQUAL?
+                if (item1 && checkHR(item1->Compare(item, SICHINT_CANONICAL, &compare))
+                        && compare == 0) {
+                    if ((event & (SHCNE_RENAMEITEM | SHCNE_RENAMEFOLDER)) && item2) {
+                        debugPrintf(L"Item renamed!\n");
+                        itemMoved(item2);
+                    } else {
+                        debugPrintf(L"Resolving item due to shell event\n");
+                        resolveItem();
+                    }
+                }
+            }
+            return 0;
+        }
         case MSG_UPDATE_ICONS: {
             AcquireSRWLockExclusive(&iconLock);
             SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
@@ -682,6 +712,7 @@ void ItemWindow::onCreate() {
             checkHR(link->SetIDList(idList));
         }
     }
+    registerShellNotify();
 
     if (!paletteWindow() && (!parent || parent->paletteWindow()))
         addChainPreview();
@@ -910,6 +941,7 @@ void ItemWindow::onDestroy() {
     if (activeWindow == this)
         activeWindow = nullptr;
 
+    unregisterShellNotify();
     removeChainPreview();
     unregisterShellWindow();
     if (HWND owner = checkLE(GetWindowOwner(hwnd))) {
@@ -1593,6 +1625,26 @@ void ItemWindow::unregisterShellWindow() {
     }
 }
 
+void ItemWindow::registerShellNotify() {
+    CComPtr<IShellItem> parentItem;
+    CComHeapPtr<ITEMIDLIST> idList;
+    if (SUCCEEDED(item->GetParent(&parentItem))
+            && checkHR(SHGetIDListFromObject(parentItem, &idList))) {
+        SHChangeNotifyEntry notifEntry = {idList, FALSE};
+        shellNotifyID = SHChangeNotifyRegister(hwnd,
+            SHCNRF_ShellLevel | SHCNRF_InterruptLevel | SHCNRF_NewDelivery,
+            SHCNE_DELETE | SHCNE_RENAMEITEM | (isFolder() ? (SHCNE_RMDIR | SHCNE_RENAMEFOLDER) : 0),
+            MSG_SHELL_NOTIFY, 1, &notifEntry);
+    }
+}
+
+void ItemWindow::unregisterShellNotify() {
+    if (shellNotifyID) {
+        SHChangeNotifyDeregister(shellNotifyID);
+        shellNotifyID = 0;
+    }
+}
+
 bool ItemWindow::resolveItem() {
     if (closing) // can happen when closing save prompt (window is activated)
         return true;
@@ -1619,7 +1671,7 @@ bool ItemWindow::resolveItem() {
                         close();
                         return false;
                     }
-                    item = newItem;
+                    item = newItem; // itemMoved() is unnecessary since we can reuse link
                     onItemChanged();
                     return true;
                 }
@@ -1631,6 +1683,18 @@ bool ItemWindow::resolveItem() {
     enableTransitions(true); // emphasize window closing
     close();
     return false;
+}
+
+void ItemWindow::itemMoved(CComPtr<IShellItem> newItem) {
+    item = newItem;
+    link = nullptr;
+    CComHeapPtr<ITEMIDLIST> idList;
+    if (checkHR(SHGetIDListFromObject(item, &idList))) {
+        if (checkHR(link.CoCreateInstance(__uuidof(ShellLink)))) {
+            checkHR(link->SetIDList(idList));
+        }
+    }
+    onItemChanged();
 }
 
 void ItemWindow::onItemChanged() {
@@ -1659,6 +1723,8 @@ void ItemWindow::onItemChanged() {
     }
     propBag = nullptr;
     resetViewState(); // TODO: transfer settings from old bag?
+    unregisterShellNotify();
+    registerShellNotify();
     if (!getDispatch())
         onViewReady();
 }
@@ -1767,7 +1833,7 @@ void ItemWindow::openProxyProperties() {
     }
 }
 
-void ItemWindow::deleteProxy(bool resolve) {
+void ItemWindow::deleteProxy() {
     CComHeapPtr<ITEMIDLIST> idList;
     if (checkHR(SHGetIDListFromObject(item, &idList))) {
         SHELLEXECUTEINFO info = {sizeof(info)};
@@ -1776,9 +1842,6 @@ void ItemWindow::deleteProxy(bool resolve) {
         info.lpIDList = idList;
         info.hwnd = hwnd;
         checkLE(ShellExecuteEx(&info));
-        // TODO: remove this once there's an automatic system for tracking files
-        if (resolve)
-            resolveItem();
     }
 }
 
@@ -1824,12 +1887,6 @@ void ItemWindow::openProxyContextMenu() {
         } else {
             auto info = makeInvokeInfo(cmd, point);
             contextMenu->InvokeCommand((CMINVOKECOMMANDINFO *)&info);
-        }
-
-        if (hasVerb && lstrcmpi(verb, L"delete") == 0) {
-            // TODO: remove this once there's an automatic system for tracking files
-            // TODO: since invoke is async, may not be deleted yet?
-            resolveItem();
         }
     }
     checkLE(DestroyMenu(popupMenu));
@@ -1882,8 +1939,10 @@ void ItemWindow::proxyDrag(POINT offset) {
     // original, however the only time I could trigger this was moving a file into a ZIP folder,
     // which does successfully delete the original, only with a delay. So handling this as intended
     // would actually break dragging into ZIP folders and cause loss of data!
+    // TODO: get CFSTR_PERFORMEDDROPEFFECT instead?
     if (DoDragDrop(dataObject, this, okEffects, &effect) == DRAGDROP_S_DROP) {
-        // TODO: remove this once there's an automatic system for tracking files
+        // make sure the item is updated to the new path!
+        // TODO: is this still necessary with SHChangeNotify?
         resolveItem();
     }
     draggingObject = false;
@@ -1949,12 +2008,10 @@ void ItemWindow::completeRename() {
     // TODO: FOFX_ADDUNDORECORD requires Windows 8
     checkHR(operation->SetOperationFlags(
         IsWindows8OrGreater() ? FOFX_ADDUNDORECORD : FOF_ALLOWUNDO));
+    // TODO use sink to get resulting item
     if (!checkHR(operation->RenameItem(item, newName, nullptr)))
         return;
     checkHR(operation->PerformOperations());
-
-    // TODO: remove this once there's an automatic system for tracking files
-    resolveItem();
 }
 
 void ItemWindow::cancelRename() {

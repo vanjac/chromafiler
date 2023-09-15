@@ -101,8 +101,12 @@ protected:
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
+    static bool useCustomIconPersistence();
+    static bool spatialView(CComPtr<IFolderView> folderView);
+
     bool useDefaultStatusText() const override;
     SIZE defaultSize() const override;
+    bool isFolder() const override;
 
     void resetPropBag(CComPtr<IPropertyBag> bag) override;
 
