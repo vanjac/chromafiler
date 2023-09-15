@@ -57,9 +57,8 @@ void TextWindow::init() {
     }
 }
 
-TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, bool scratch)
-        : ItemWindow(parent, item),
-          isUnsavedScratchFile(scratch) {
+TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
+        : ItemWindow(parent, item) {
     findBuffer[0] = 0;
     replaceBuffer[0] = 0;
 }
@@ -176,18 +175,14 @@ void TextWindow::updateFont() {
 bool TextWindow::onCloseRequest() {
     if (isEditable() && Edit_GetModify(edit)) {
         SFGAOF attr;
-        if (confirmSave(isUnsavedScratchFile
+        if (confirmSave(isScratch()
                 || FAILED(item->GetAttributes(SFGAO_VALIDATE, &attr)))) // doesn't exist
             userSave();
     }
-    if (isUnsavedScratchFile)
-        enableTransitions(true); // emphasize window closing
     return ItemWindow::onCloseRequest();
 }
 
 void TextWindow::onDestroy() {
-    if (isUnsavedScratchFile)
-        deleteProxy(); // TODO: this will generate a shell event
     ItemWindow::onDestroy();
     if (font)
         DeleteFont(font);
@@ -288,9 +283,8 @@ LRESULT TextWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_QUERYENDSESSION:
             if (isEditable() && Edit_GetModify(edit)) {
                 userSave();
-            } else if (isUnsavedScratchFile) { // empty
+            } else if (isScratch()) { // empty
                 deleteProxy();
-                isUnsavedScratchFile = false;
             }
             return TRUE;
         case WM_INITMENUPOPUP: {
@@ -470,7 +464,7 @@ void TextWindow::userSave() {
             getErrorMessage(hr).get(), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr));
         enableChain(true);
     }
-    isUnsavedScratchFile = false;
+    onModify();
 }
 
 bool TextWindow::confirmSave(bool willDelete) {

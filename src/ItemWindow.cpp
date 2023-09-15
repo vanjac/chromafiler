@@ -213,6 +213,10 @@ ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : parent(parent),
           item(item) {}
 
+void ItemWindow::setScratch(bool value) {
+    this->scratch = value;
+}
+
 bool ItemWindow::persistSizeInParent() const {
     return true;
 }
@@ -313,6 +317,16 @@ void ItemWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
     checkHR(bag->Write(PROP_SIZE, &empty));
     checkHR(bag->Write(PROP_POS, &empty));
     checkHR(bag->Write(PROP_CHILD_SIZE, &empty));
+}
+
+bool ItemWindow::isScratch() {
+    return scratch;
+}
+
+void ItemWindow::onModify() {
+    if (scratch)
+        SHAddToRecentDocs(SHARD_APPIDINFO, tempPtr(SHARDAPPIDINFO{item, appUserModelID()}));
+    scratch = false;
 }
 
 bool ItemWindow::create(RECT rect, int showCommand) {
@@ -717,7 +731,7 @@ void ItemWindow::onCreate() {
     if (!paletteWindow() && (!parent || parent->paletteWindow()))
         addChainPreview();
 
-    if (!child && !parent && !paletteWindow())
+    if (!child && !parent && !paletteWindow() && !isScratch())
         SHAddToRecentDocs(SHARD_APPIDINFO, tempPtr(SHARDAPPIDINFO{item, appUserModelID()}));
 
     HMODULE instance = GetWindowInstance(hwnd);
@@ -929,6 +943,8 @@ bool ItemWindow::onCloseRequest() {
     // once onDestroy() is called the active window will already be changed, so check here instead
     if (parent && GetActiveWindow() == hwnd)
         parent->activate();
+    if (isScratch()) // will be deleted
+        enableTransitions(true);
     return true;
 }
 
@@ -948,6 +964,11 @@ void ItemWindow::onDestroy() {
         SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, 0);
         if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
             DestroyWindow(owner); // last window in group
+    }
+
+    if (isScratch()) {
+        debugPrintf(L"Deleting scratch file %s\n", &*title);
+        deleteProxy(); // this is done after unregisterShellNotify()
     }
 
     if (iconThread)
@@ -1680,6 +1701,7 @@ bool ItemWindow::resolveItem() {
     }
 
     debugPrintf(L"Item has been deleted!\n");
+    scratch = false;
     enableTransitions(true); // emphasize window closing
     close();
     return false;

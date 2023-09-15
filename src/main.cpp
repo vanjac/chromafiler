@@ -231,10 +231,11 @@ LaunchType createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand
     if (type == LAUNCH_TRAY) {
         initialWindow.Attach(new TrayWindow(nullptr, startItem));
     } else if (type == LAUNCH_TEXT) {
-        initialWindow.Attach(new TextWindow(nullptr, startItem, scratch));
+        initialWindow.Attach(new TextWindow(nullptr, startItem));
     } else {
         initialWindow = createItemWindow(nullptr, startItem);
     }
+    initialWindow->setScratch(scratch);
     if (scratch)
         initialWindow->resetViewState();
     // TODO can we get the monitor passed to ShellExecuteEx?

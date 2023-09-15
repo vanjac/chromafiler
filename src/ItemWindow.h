@@ -27,6 +27,7 @@ public:
     virtual RECT requestedRect(HMONITOR preferMonitor); // called for root windows
     virtual bool persistSizeInParent() const;
 
+    void setScratch(bool scratch);
     void resetViewState(); // call immediately after constructing to reset all view state properties
 
     bool create(RECT rect, int showCommand);
@@ -91,13 +92,15 @@ protected:
     CComPtr<IPropertyBag> getPropBag();
     virtual void resetPropBag(CComPtr<IPropertyBag> bag);
 
+    bool isScratch();
+    void onModify();
+
     // general window commands
     void activate();
     void setRect(RECT rect);
     void setPos(POINT pos);
     void move(int x, int y);
     virtual RECT windowBody();
-    void enableTransitions(bool enabled);
 
     // message callbacks
     virtual void onCreate();
@@ -156,6 +159,7 @@ private:
 
     HWND createChainOwner(int showCommand);
 
+    void enableTransitions(bool enabled);
     void windowRectChanged();
     void autoSizeProxy(LONG width);
     LRESULT hitTestNCA(POINT cursor);
@@ -201,6 +205,7 @@ private:
 
     CComPtr<IShellLink> link;
     CComPtr<IPropertyBag> propBag;
+    bool scratch = false;
 
     HWND proxyToolbar = nullptr, proxyTooltip = nullptr;
     HWND parentToolbar = nullptr, renameBox = nullptr;

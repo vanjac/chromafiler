@@ -13,7 +13,7 @@ class TextWindow : public ItemWindow {
 public:
     static void init();
 
-    TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, bool scratch = false);
+    TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
     static void updateAllSettings();
 
@@ -95,7 +95,6 @@ private:
     HFONT font = nullptr; // scaled for DPI
     TextEncoding detectEncoding = ENC_UNK;
     TextNewlines detectNewlines = NL_UNK;
-    bool isUnsavedScratchFile;
     int vScrollAccum = 0, hScrollAccum = 0; // for high resolution scrolling
 
     HWND findReplaceDialog = nullptr;
