@@ -420,7 +420,8 @@ STDMETHODIMP TrayWindow::OnNavigationComplete(PCIDLIST_ABSOLUTE idList) {
 
 STDMETHODIMP TrayWindow::MessageSFVCB(UINT msg, WPARAM wParam, LPARAM lParam) {
     if (msg == 17) { // refresh
-        fixListViewColors();
+        if (!wParam) // post refresh
+            fixListViewColors();
     }
     return FolderWindow::MessageSFVCB(msg, wParam, lParam);
 }

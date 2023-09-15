@@ -139,6 +139,11 @@ private:
     static LRESULT CALLBACK listViewOwnerProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
+    void saveViewState(CComPtr<IPropertyBag> bag);
+    bool writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
+    void loadViewState(CComPtr<IPropertyBag> bag);
+    void readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
+
     void selectionChanged();
     void updateSelection();
     void clearSelection();
@@ -155,6 +160,8 @@ private:
     CComPtr<IShellFolderViewCB> prevCB;
 
     CComPtr<IShellItem> selected; // links are not resolved unlike child->item
+
+    bool iconPosChanged = false;
 
     // jank flags
     bool selectionDirty = false;

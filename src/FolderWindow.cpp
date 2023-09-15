@@ -10,6 +10,7 @@
 #include <propkey.h>
 #include <Propvarutil.h>
 #include <VersionHelpers.h>
+#include <vector>
 
 // Example of how to host an IExplorerBrowser:
 // https://github.com/microsoft/Windows-classic-samples/tree/main/Samples/Win7Samples/winui/shell/appplatform/ExplorerBrowserCustomContents
@@ -19,6 +20,7 @@ namespace chromafiler {
 const wchar_t FOLDER_WINDOW_CLASS[] = L"ChromaFile Folder";
 
 const wchar_t PROP_VISITED[] = L"Visited";
+const wchar_t PROP_ICON_POS[] = L"IconPos";
 
 const EXPLORER_BROWSER_OPTIONS BROWSER_OPTIONS = EBO_NOBORDER | EBO_NOTRAVELLOG;
 
@@ -39,6 +41,20 @@ const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
 };
 static CComPtr<IShellItem> controlPanelItem;
 static CComHeapPtr<ITEMID_CHILD> hiddenItemIDs[_countof(HIDDEN_ITEM_PARSE_NAMES)];
+
+static bool useCustomIconPersistence() {
+    // shell view icon persistence stopped working in some version of Windows 10,
+    // probably related to changes with desktop icons.
+    // TODO: find which version broke this. somewhere between 1703 and 1809?
+    return IsWindows10OrGreater();
+}
+
+static bool spatialView(CComPtr<IFolderView> folderView) {
+    UINT viewMode;
+    return folderView->GetAutoArrange() == S_FALSE
+        && checkHR(folderView->GetCurrentViewMode(&viewMode))
+        && viewMode != FVM_DETAILS && viewMode != FVM_LIST;
+}
 
 void FolderWindow::init() {
     RegisterClass(tempPtr(createWindowClass(FOLDER_WINDOW_CLASS)));
@@ -283,12 +299,81 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 
+void FolderWindow::saveViewState(CComPtr<IPropertyBag> bag) {
+    CComPtr<IFolderView> folderView;
+    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
+        if (iconPosChanged && useCustomIconPersistence() && spatialView(folderView)) {
+            CComPtr<IStream> stream;
+            stream.Attach(SHCreateMemStream(nullptr, 0));
+            if (stream) {
+                if (writeIconPositions(folderView, stream)) {
+                    CComVariant streamVar((IUnknown*)stream);
+                    checkHR(bag->Write(PROP_ICON_POS, &streamVar));
+                    iconPosChanged = false;
+                }
+            }
+        }
+    }
+}
+
+bool FolderWindow::writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream) {
+    debugPrintf(L"Write icon positions\n");
+    CComPtr<IEnumIDList> enumID;
+    if (checkHR(folderView->Items(SVGIO_ALLVIEW, IID_PPV_ARGS(&enumID)))) {
+        CComHeapPtr<ITEMID_CHILD> idList;
+        while (enumID->Next(1, &idList, nullptr) == S_OK) {
+            POINT pos;
+            if (checkHR(folderView->GetItemPosition(idList, &pos))) {
+                pos = invScaleDPI(pos);
+                if (!checkHR(IStream_WritePidl(stream, idList))) return false;
+                if (!checkHR(IStream_Write(stream, &pos, sizeof(pos)))) return false;
+            }
+            idList.Free();
+        }
+    }
+    return true;
+}
+
+void FolderWindow::loadViewState(CComPtr<IPropertyBag> bag) {
+    CComPtr<IFolderView> folderView;
+    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
+        if (useCustomIconPersistence() && spatialView(folderView)) {
+            VARIANT streamVar = {VT_UNKNOWN};
+            if (SUCCEEDED(bag->Read(PROP_ICON_POS, &streamVar, nullptr))) {
+                CComQIPtr<IStream> stream(streamVar.punkVal);
+                streamVar.punkVal->Release();
+                if (stream)
+                    readIconPositions(folderView, stream);
+            }
+        }
+    }
+}
+
+void FolderWindow::readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream) {
+    // https://devblogs.microsoft.com/oldnewthing/20130318-00/?p=4933
+    std::vector<PITEMID_CHILD> ids;
+    std::vector<POINT> pts;
+    PITEMID_CHILD nextID;
+    POINT nextPt;
+    while (SUCCEEDED(IStream_ReadPidl(stream, &nextID))
+            && SUCCEEDED(IStream_Read(stream, &nextPt, sizeof(nextPt)))) {
+        ids.push_back(nextID);
+        pts.push_back(scaleDPI(nextPt));
+    }
+    debugPrintf(L"Positioning %zd icons\n", pts.size());
+    checkHR(folderView->SelectAndPositionItems((UINT)pts.size(),
+        (PCITEMID_CHILD *)ids.data(), pts.data(), SVSI_POSITIONITEM));
+    for (auto &id : ids)
+        CoTaskMemFree(id);
+}
+
 void FolderWindow::onDestroy() {
     if (shellView) {
         if (auto bag = getPropBag()) {
             // view settings are only written when shell view is destroyed
             CComVariant visitedVar(true);
             checkHR(bag->Write(PROP_VISITED, &visitedVar));
+            saveViewState(bag);
         }
         CComQIPtr<IShellFolderView> sfv(shellView);
         if (sfv) {
@@ -793,6 +878,7 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
         VARIANT var = {VT_BOOL};
         if (SUCCEEDED(bag->Read(PROP_VISITED, &var, nullptr)))
             visited = !!var.boolVal;
+        // can't load icon pos yet, view state not known
     }
     if (!visited) {
         CComQIPtr<IFolderView2> folderView(view);
@@ -805,7 +891,17 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
 
 STDMETHODIMP FolderWindow::MessageSFVCB(UINT msg, WPARAM wParam, LPARAM lParam) {
     if (msg == 17) { // refresh
-        firstODDispInfo = false;
+        if (auto bag = getPropBag()) {
+            if (wParam) // pre refresh
+                saveViewState(bag);
+            else
+                loadViewState(bag);
+        }
+    } else if (msg == SFVM_DIDDRAGDROP) {
+        iconPosChanged = true;
+    } else if (msg == SFVM_FSNOTIFY) {
+        if (lParam & (SHCNE_CREATE | SHCNE_MKDIR))
+            iconPosChanged = true;
     }
     if (prevCB)
         return prevCB->MessageSFVCB(msg, wParam, lParam);
