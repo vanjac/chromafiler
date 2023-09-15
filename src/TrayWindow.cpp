@@ -178,13 +178,12 @@ const wchar_t * TrayWindow::propBagName() const {
 
 void TrayWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     checkHR(folderView->SetViewModeAndIconSize(FVM_ICON, SHELL_SMALL_ICON));
-    checkHR(folderView->SetCurrentFolderFlags(FWF_AUTOARRANGE, FWF_AUTOARRANGE));
 }
 
 FOLDERSETTINGS TrayWindow::folderSettings() const {
     FOLDERSETTINGS settings = {};
     settings.ViewMode = FVM_ICON;
-    settings.fFlags = FWF_NOWEBVIEW | FWF_NOCOLUMNHEADER | FWF_DESKTOP;
+    settings.fFlags = FWF_NOWEBVIEW | FWF_NOCOLUMNHEADER | FWF_DESKTOP | FWF_AUTOARRANGE;
     return settings;
 }
 
