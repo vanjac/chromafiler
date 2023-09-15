@@ -43,14 +43,14 @@ const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
 static CComPtr<IShellItem> controlPanelItem;
 static CComHeapPtr<ITEMID_CHILD> hiddenItemIDs[_countof(HIDDEN_ITEM_PARSE_NAMES)];
 
-static bool useCustomIconPersistence() {
+bool FolderWindow::useCustomIconPersistence() {
     // shell view icon persistence stopped working in some version of Windows 10,
     // probably related to changes with desktop icons.
     // TODO: find which version broke this. somewhere between 1703 and 1809?
     return IsWindows10OrGreater();
 }
 
-static bool spatialView(CComPtr<IFolderView> folderView) {
+bool FolderWindow::spatialView(CComPtr<IFolderView> folderView) {
     UINT viewMode;
     return folderView->GetAutoArrange() == S_FALSE
         && checkHR(folderView->GetCurrentViewMode(&viewMode))
