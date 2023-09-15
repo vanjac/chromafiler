@@ -20,6 +20,7 @@ SIZE scaleDPI(SIZE size);
 POINT scaleDPI(POINT p);
 int invScaleDPI(int px);
 SIZE invScaleDPI(SIZE size);
+POINT invScaleDPI(POINT p);
 POINT pointMulDiv(POINT p, int num, int denom);
 SIZE sizeMulDiv(SIZE s, int num, int denom);
 

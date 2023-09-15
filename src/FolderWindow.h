@@ -142,7 +142,7 @@ private:
     void saveViewState(CComPtr<IPropertyBag> bag);
     bool writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
     void loadViewState(CComPtr<IPropertyBag> bag);
-    void readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
+    bool readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
 
     void selectionChanged();
     void updateSelection();
@@ -162,6 +162,7 @@ private:
     CComPtr<IShellItem> selected; // links are not resolved unlike child->item
 
     bool iconPosChanged = false;
+    bool scrollChanged = false;
 
     // jank flags
     bool selectionDirty = false;

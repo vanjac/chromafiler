@@ -21,6 +21,7 @@ const wchar_t FOLDER_WINDOW_CLASS[] = L"ChromaFile Folder";
 
 const wchar_t PROP_VISITED[] = L"Visited";
 const wchar_t PROP_ICON_POS[] = L"IconPos";
+const wchar_t PROP_SCROLL[] = L"Scroll";
 
 const EXPLORER_BROWSER_OPTIONS BROWSER_OPTIONS = EBO_NOBORDER | EBO_NOTRAVELLOG;
 
@@ -294,6 +295,8 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
             if (window->hasStatusText())
                 window->updateStatus();
             return res;
+        } else if (nmHdr->code == LVN_ENDSCROLL) {
+            window->scrollChanged = true;
         }
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
@@ -301,8 +304,8 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
 
 void FolderWindow::saveViewState(CComPtr<IPropertyBag> bag) {
     CComPtr<IFolderView> folderView;
-    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
-        if (iconPosChanged && useCustomIconPersistence() && spatialView(folderView)) {
+    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))) && spatialView(folderView)) {
+        if (iconPosChanged && useCustomIconPersistence()) {
             CComPtr<IStream> stream;
             stream.Attach(SHCreateMemStream(nullptr, 0));
             if (stream) {
@@ -311,6 +314,15 @@ void FolderWindow::saveViewState(CComPtr<IPropertyBag> bag) {
                     checkHR(bag->Write(PROP_ICON_POS, &streamVar));
                     iconPosChanged = false;
                 }
+            }
+        }
+        if (scrollChanged && listView) {
+            POINT pos;
+            if (ListView_GetOrigin(listView, &pos)) {
+                CComVariant scrollVar((unsigned long)
+                    MAKELONG(invScaleDPI(pos.x), invScaleDPI(pos.y)));
+                checkHR(bag->Write(PROP_SCROLL, &scrollVar));
+                scrollChanged = false;
             }
         }
     }
@@ -336,20 +348,31 @@ bool FolderWindow::writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<I
 
 void FolderWindow::loadViewState(CComPtr<IPropertyBag> bag) {
     CComPtr<IFolderView> folderView;
-    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
-        if (useCustomIconPersistence() && spatialView(folderView)) {
+    if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))) && spatialView(folderView)) {
+        if (useCustomIconPersistence()) {
             VARIANT streamVar = {VT_UNKNOWN};
             if (SUCCEEDED(bag->Read(PROP_ICON_POS, &streamVar, nullptr))) {
                 CComQIPtr<IStream> stream(streamVar.punkVal);
                 streamVar.punkVal->Release();
-                if (stream)
+                if (stream) {
                     readIconPositions(folderView, stream);
+                    iconPosChanged = false;
+                }
+            }
+        }
+        if (listView) {
+            CComVariant scrollVar = {VT_UI4};
+            if (SUCCEEDED(bag->Read(PROP_SCROLL, &scrollVar, nullptr))) {
+                POINT origin = {}, pos = scaleDPI(pointFromLParam(scrollVar.ulVal));
+                ListView_GetOrigin(listView, &origin);
+                ListView_Scroll(listView, pos.x - origin.x, pos.y - origin.y);
+                scrollChanged = false;
             }
         }
     }
 }
 
-void FolderWindow::readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream) {
+bool FolderWindow::readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream) {
     // https://devblogs.microsoft.com/oldnewthing/20130318-00/?p=4933
     std::vector<PITEMID_CHILD> ids;
     std::vector<POINT> pts;
@@ -361,10 +384,11 @@ void FolderWindow::readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IS
         pts.push_back(scaleDPI(nextPt));
     }
     debugPrintf(L"Positioning %zd icons\n", pts.size());
-    checkHR(folderView->SelectAndPositionItems((UINT)pts.size(),
+    bool result = checkHR(folderView->SelectAndPositionItems((UINT)pts.size(),
         (PCITEMID_CHILD *)ids.data(), pts.data(), SVSI_POSITIONITEM));
     for (auto &id : ids)
         CoTaskMemFree(id);
+    return result;
 }
 
 void FolderWindow::onDestroy() {
@@ -897,7 +921,7 @@ STDMETHODIMP FolderWindow::MessageSFVCB(UINT msg, WPARAM wParam, LPARAM lParam) 
             else
                 loadViewState(bag);
         }
-    } else if (msg == SFVM_DIDDRAGDROP) {
+    } else if (msg == SFVM_DIDDRAGDROP) { // sent to source, not target!
         iconPosChanged = true;
     } else if (msg == SFVM_FSNOTIFY) {
         if (lParam & (SHCNE_CREATE | SHCNE_MKDIR))

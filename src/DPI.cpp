@@ -49,6 +49,10 @@ SIZE invScaleDPI(SIZE size) {
     return {invScaleDPI(size.cx), invScaleDPI(size.cy)};
 }
 
+POINT invScaleDPI(POINT p) {
+    return {invScaleDPI(p.x), invScaleDPI(p.y)};
+}
+
 POINT pointMulDiv(POINT p, int num, int denom) {
     return {MulDiv(p.x, num, denom), MulDiv(p.y, num, denom)};
 }
