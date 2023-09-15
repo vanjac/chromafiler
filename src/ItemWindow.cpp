@@ -4,6 +4,7 @@
 #include "GeomUtils.h"
 #include "GDIUtils.h"
 #include "WinUtils.h"
+#include "ShellUtils.h"
 #include "Settings.h"
 #include "DPI.h"
 #include "UIStrings.h"
@@ -2027,13 +2028,18 @@ void ItemWindow::completeRename() {
     CComPtr<IFileOperation> operation;
     if (!checkHR(operation.CoCreateInstance(__uuidof(FileOperation))))
         return;
-    // TODO: FOFX_ADDUNDORECORD requires Windows 8
     checkHR(operation->SetOperationFlags(
         IsWindows8OrGreater() ? FOFX_ADDUNDORECORD : FOF_ALLOWUNDO));
-    // TODO use sink to get resulting item
-    if (!checkHR(operation->RenameItem(item, newName, nullptr)))
+    NewItemSink eventSink;
+    if (!checkHR(operation->RenameItem(item, newName, &eventSink)))
         return;
+    unregisterShellNotify();
     checkHR(operation->PerformOperations());
+    if (eventSink.newItem) {
+        itemMoved(eventSink.newItem); // will call registerShellNotify()
+    } else {
+        registerShellNotify();
+    }
 }
 
 void ItemWindow::cancelRename() {
