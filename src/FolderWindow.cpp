@@ -187,8 +187,7 @@ void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
     checkHR(folderView->SetCurrentFolderFlags(FWF_AUTOARRANGE, FWF_AUTOARRANGE));
     CComQIPtr<IColumnManager> columnMgr(folderView);
     if (columnMgr) {
-        PROPERTYKEY keys[] = {PKEY_ItemNameDisplay};
-        columnMgr->SetColumns(keys, _countof(keys));
+        columnMgr->SetColumns(&PKEY_ItemNameDisplay, 1);
     }
 }
 

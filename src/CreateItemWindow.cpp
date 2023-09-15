@@ -148,20 +148,20 @@ void debugDisplayNames(HWND hwnd, CComPtr<IShellItem> item) {
     CComHeapPtr<wchar_t> names[_countof(nameTypes)];
     for (int i = 0; i < _countof(names); i++)
         checkHR(item->GetDisplayName(nameTypes[i], &names[i]));
-    static PROPERTYKEY pkeys[] = {
+    static const PROPERTYKEY *pkeys[] = {
         // https://learn.microsoft.com/en-us/windows/win32/properties/core-bumper
-        PKEY_ItemName, PKEY_ItemNameDisplay,
-        PKEY_ItemNameDisplayWithoutExtension,
-        PKEY_ItemPathDisplay, PKEY_ItemType,
-        PKEY_FileName, PKEY_FileExtension,
+        &PKEY_ItemName, &PKEY_ItemNameDisplay,
+        &PKEY_ItemNameDisplayWithoutExtension,
+        &PKEY_ItemPathDisplay, &PKEY_ItemType,
+        &PKEY_FileName, &PKEY_FileExtension,
         // https://learn.microsoft.com/en-us/windows/win32/properties/shell-bumper
-        PKEY_NamespaceCLSID,
+        &PKEY_NamespaceCLSID,
     };
     CComHeapPtr<wchar_t> props[_countof(pkeys)];
     CComQIPtr<IShellItem2> item2(item);
     if (item2) {
         for (int i = 0; i < _countof(pkeys); i++)
-            checkHR(item2->GetString(pkeys[i], &props[i]));
+            checkHR(item2->GetString(*pkeys[i], &props[i]));
     }
     showDebugMessage(hwnd, L"Item Display Names", L""
         "Normal Display:\t\t%1\r\n"             "Parent Relative:\t\t%2\r\n"
