@@ -64,21 +64,21 @@ static CComPtr<IShellWindows> shellWindows;
 
 HACCEL ItemWindow::accelTable;
 
-bool highContrastEnabled() {
+static bool highContrastEnabled() {
     HIGHCONTRAST highContrast = {sizeof(highContrast)};
     checkLE(SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, &highContrast, 0));
     return highContrast.dwFlags & HCF_HIGHCONTRASTON;
 }
 
-int windowResizeMargin() {
+static int windowResizeMargin() {
     return IsThemeActive() ? WIN10_CXSIZEFRAME : GetSystemMetrics(SM_CXSIZEFRAME);
 }
 
-int captionTopMargin() {
+static int captionTopMargin() {
     return compositionEnabled ? COMP_CAPTION_VMARGIN : 0;
 }
 
-int windowBorderSize() {
+static int windowBorderSize() {
     if (!IsWindows10OrGreater())
         return windowResizeMargin();
     if (highContrastEnabled()) {
@@ -2000,7 +2000,7 @@ STDMETHODIMP ItemWindow::GiveFeedback(DWORD) {
 
 /* IDropTarget */
 
-DWORD getDropEffect(DWORD keyState) {
+static DWORD getDropEffect(DWORD keyState) {
     bool ctrl = (keyState & MK_CONTROL), shift = (keyState & MK_SHIFT), alt = (keyState & MK_ALT);
     if ((ctrl && shift && !alt) || (!ctrl && !shift && alt))
         return DROPEFFECT_LINK;

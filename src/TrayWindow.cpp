@@ -35,7 +35,7 @@ inline bool IsWindows11OrGreater() {
         VER_MAJORVERSION | VER_MINORVERSION | VER_BUILDNUMBER, conditionMask);
 }
 
-void snapAxis(LONG value, LONG edge, LONG *snapOffset, LONG *snapDist) {
+static void snapAxis(LONG value, LONG edge, LONG *snapOffset, LONG *snapDist) {
     if (abs(value - edge) <= *snapDist) {
         *snapDist = abs(value - edge);
         *snapOffset = edge - value;
@@ -72,7 +72,7 @@ void TrayWindow::resetTrayPosition() {
     checkLE(SendNotifyMessage(HWND_BROADCAST, resetPositionMessage, 0, 0));
 }
 
-RECT getTaskbarRect() {
+static RECT getTaskbarRect() {
     APPBARDATA abData {sizeof(abData)};
     SHAppBarMessage(ABM_GETTASKBARPOS, &abData);
     return abData.rc; // TODO this is incorrect if DPI changes while app is running
@@ -242,7 +242,7 @@ bool TrayWindow::handleTopLevelMessage(MSG *msg) {
     return FolderWindow::handleTopLevelMessage(msg);
 }
 
-void snapWindowPosition(HWND hwnd, RECT *rect) {
+static void snapWindowPosition(HWND hwnd, RECT *rect) {
     HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitorInfo = {sizeof(monitorInfo)};
     GetMonitorInfo(curMonitor, &monitorInfo);

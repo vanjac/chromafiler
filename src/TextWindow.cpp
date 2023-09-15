@@ -126,7 +126,7 @@ void TextWindow::onCreate() {
     loadThread->start();
 }
 
-void applyEditFont(HWND edit, HFONT font) {
+static void applyEditFont(HWND edit, HFONT font) {
     if (edit && font) {
         SendMessage(edit, WM_SETFONT, (WPARAM)font, FALSE);
         Edit_SetTabStops(edit, 1, tempPtr(4 * settings::getTextTabWidth()));
@@ -253,7 +253,7 @@ bool TextWindow::handleTopLevelMessage(MSG *msg) {
     return ItemWindow::handleTopLevelMessage(msg);
 }
 
-const wchar_t * undoNameToString(UNDONAMEID id) {
+static const wchar_t * undoNameToString(UNDONAMEID id) {
     if (id > UID_AUTOTABLE)
         id = UID_UNKNOWN;
     return getString(id + IDS_TEXT_UNDO_UNKNOWN);
@@ -917,7 +917,7 @@ void TextWindow::LoadThread::run() {
     ReleaseSRWLockExclusive(&stopLock);
 }
 
-int scrollAccumLines(int *scrollAccum) {
+static int scrollAccumLines(int *scrollAccum) {
     UINT linesPerClick = 3;
     checkLE(SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &linesPerClick, 0));
     float lineDelta = (float)WHEEL_DELTA / linesPerClick;
