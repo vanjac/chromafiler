@@ -138,22 +138,46 @@ bool isCFWindow(HWND hwnd) {
 
 
 void debugDisplayNames(HWND hwnd, CComPtr<IShellItem> item) {
-    static SIGDN nameTypes[] = {SIGDN_NORMALDISPLAY, SIGDN_PARENTRELATIVE,
+    static SIGDN nameTypes[] = {
+        SIGDN_NORMALDISPLAY, SIGDN_PARENTRELATIVE,
         SIGDN_PARENTRELATIVEEDITING, SIGDN_PARENTRELATIVEFORUI,
         SIGDN_PARENTRELATIVEFORADDRESSBAR, SIGDN_FILESYSPATH,
         SIGDN_DESKTOPABSOLUTEEDITING, SIGDN_DESKTOPABSOLUTEPARSING,
-        SIGDN_PARENTRELATIVEPARSING, SIGDN_URL};
+        SIGDN_PARENTRELATIVEPARSING, SIGDN_URL
+    };
     CComHeapPtr<wchar_t> names[_countof(nameTypes)];
     for (int i = 0; i < _countof(names); i++)
         checkHR(item->GetDisplayName(nameTypes[i], &names[i]));
+    static PROPERTYKEY pkeys[] = {
+        // https://learn.microsoft.com/en-us/windows/win32/properties/core-bumper
+        PKEY_ItemName, PKEY_ItemNameDisplay,
+        PKEY_ItemNameDisplayWithoutExtension,
+        PKEY_ItemPathDisplay, PKEY_ItemType,
+        PKEY_FileName, PKEY_FileExtension,
+        // https://learn.microsoft.com/en-us/windows/win32/properties/shell-bumper
+        PKEY_NamespaceCLSID,
+    };
+    CComHeapPtr<wchar_t> props[_countof(pkeys)];
+    CComQIPtr<IShellItem2> item2(item);
+    if (item2) {
+        for (int i = 0; i < _countof(pkeys); i++)
+            checkHR(item2->GetString(pkeys[i], &props[i]));
+    }
     showDebugMessage(hwnd, L"Item Display Names", L""
         "Normal Display:\t\t%1\r\n"             "Parent Relative:\t\t%2\r\n"
         "Parent Relative Editing:\t%3\r\n"      "Parent Relative UI (Win8):\t%4\r\n"
         "Parent Relative Address Bar:\t%5\r\n"  "File System Path:\t\t%6\r\n"
         "Desktop Absolute Editing:\t%7\r\n"     "Desktop Absolute Parsing:\t%8\r\n"
-        "Parent Relative Parsing:\t%9\r\n"      "URL:\t\t\t%10",
+        "Parent Relative Parsing:\t%9\r\n"      "URL:\t\t\t%10\r\n"
+        "System.ItemName:\t\t%11\r\n"           "System.ItemNameDisplay:\t%12\r\n"
+        "System.ItemNameDisplayWithoutExtension: %13\r\n"
+        "System.ItemPathDisplay:\t%14\r\n"      "System.ItemType:\t\t%15\r\n"
+        "System.FileName:\t\t%16\r\n"           "System.FileExtension:\t%17\r\n"
+        "System.NamespaceCLSID:\t%18",
         &*names[0], &*names[1], &*names[2], &*names[3], &*names[4], &*names[5],
-        &*names[6], &*names[7], &*names[8], &*names[9]);
+        &*names[6], &*names[7], &*names[8], &*names[9],
+        &*props[0], &*props[1], &*props[2], &*props[3], &*props[4], &*props[5],
+        &*props[6], &*props[7]);
 }
 
 } // namespace
