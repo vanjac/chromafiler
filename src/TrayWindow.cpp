@@ -208,6 +208,13 @@ void TrayWindow::onCreate() {
 
     checkLE(RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C'));
 
+    if (HMENU systemMenu = GetSystemMenu(hwnd, FALSE)) {
+        AppendMenu(systemMenu, MF_SEPARATOR, 0, nullptr);
+        HMENU common = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_ITEM_MENU));
+        Shell_MergeMenus(systemMenu, common, (UINT)-1, 0, 0xFFFF, MM_ADDSEPARATOR);
+        checkLE(DestroyMenu(common));
+    }
+
     FolderWindow::onCreate();
 }
 
@@ -345,6 +352,12 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             snapWindowPosition(hwnd, desiredRect);
             break; // pass to ItemWindow
         }
+        case WM_SYSCOMMAND:
+            if (wParam < 0xF000) {
+                SendMessage(hwnd, WM_COMMAND, wParam, 0);
+                return 0;
+            }
+            break;
     }
     if (resetPositionMessage && message == resetPositionMessage) {
         setRect(requestedRect(nullptr));
