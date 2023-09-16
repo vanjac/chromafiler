@@ -58,6 +58,7 @@ static local_wstr_ptr iconResource;
 static HANDLE symbolFontHandle = nullptr;
 static HFONT captionFont = nullptr, statusFont = nullptr;
 static HFONT symbolFont = nullptr;
+static HCURSOR rightSideCursor = nullptr;
 
 static BOOL compositionEnabled = FALSE;
 
@@ -152,6 +153,8 @@ void ItemWindow::init() {
             symbolFont = CreateFontIndirect(&SYMBOL_LOGFONT);
         }
     }
+
+    rightSideCursor = LoadCursor(hInstance, MAKEINTRESOURCE(IDC_RIGHT_SIDE));
 
     accelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDR_ITEM_ACCEL));
 
@@ -530,6 +533,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 return defHitTest;
             return hitTestNCA(pointFromLParam(lParam));
         }
+        case WM_SETCURSOR:
+            if (LOWORD(lParam) == HTRIGHT && HIWORD(lParam) != 0 && child && stickToChild()) {
+                SetCursor(rightSideCursor);
+                return TRUE;
+            }
+            break;
         case WM_PAINT: {
             PAINTSTRUCT paint;
             BeginPaint(hwnd, &paint);

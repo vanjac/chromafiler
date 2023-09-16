@@ -62,6 +62,8 @@
 #define MDL2_SAVE                   L"\uE74E"
 #define MDL2_DELETE                 L"\uE74D"
 
+#define IDC_RIGHT_SIDE  150
+
 #define IDS_SETTINGS_CAPTION    200
 #define IDS_MENU_COMMAND        201
 #define IDS_REFRESH_COMMAND     202

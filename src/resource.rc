@@ -28,6 +28,7 @@ IDR_RT_MANIFEST1 RT_MANIFEST "res\\ChromaFiler.exe.manifest"
 
 IDR_APP_ICON    ICON    "res\\folder.ico"
 
+IDC_RIGHT_SIDE  CURSOR  "res\\adwaita\\right_side.cur"
 IDR_ICON_FONT   FONT    "res\\SegMDL2-subset.ttf"
 
 IDR_ITEM_ACCEL  ACCELERATORS {
@@ -190,6 +191,15 @@ The source code is available at https://github.com/vanjac/chromafiler\r\n\
 \r\n\
 If you enjoy ChromaFiler, please consider donating to support its development. Click the Donate button above.\r\n\
 \r\n\
+This software uses materials from the following sources:\r\n\
+- Adwaita Icon Theme\r\n\
+\tGNOME Project\r\n\
+\tLicensed under GNU LGPL v3\r\n\
+\thttps://gitlab.gnome.org/GNOME/adwaita-icon-theme\r\n\
+- Material Design Icons\r\n\
+\tPictogrammers\r\n\
+\tLicensed under Apache License 2.0\r\n\
+\thttps://pictogrammers.com/library/mdi/\r\n\
 "
 }
 
