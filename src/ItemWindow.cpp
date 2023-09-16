@@ -579,6 +579,12 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 !sizeEqual(rectSize(windowRect(hwnd)), lastSize));
             return 0;
         }
+        case WM_WINDOWPOSCHANGED: {
+            WINDOWPOS *winPos = (WINDOWPOS *)lParam;
+            if ((winPos->flags & (SWP_NOMOVE | SWP_NOSIZE)) != (SWP_NOMOVE | SWP_NOSIZE))
+                windowRectChanged();
+            break; // pass to DefWindowProc
+        }
         case WM_MOVING: {
             // https://www.drdobbs.com/make-it-snappy/184416407
             RECT *desiredRect = (RECT *)lParam;
@@ -598,9 +604,6 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             // required for WM_ENTERSIZEMOVE to behave correctly
             return TRUE;
         }
-        case WM_MOVE:
-            windowRectChanged();
-            return 0;
         case WM_SIZING:
             if (parent && parent->stickToChild()) {
                 RECT *desiredRect = (RECT *)lParam;
@@ -1204,7 +1207,6 @@ void ItemWindow::onActivate(WORD state, HWND) {
 }
 
 void ItemWindow::onSize(SIZE size) {
-    windowRectChanged();
     autoSizeProxy(size.cx);
 
     int toolbarLeft = size.cx;
