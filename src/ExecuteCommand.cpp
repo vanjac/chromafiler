@@ -2,6 +2,7 @@
 #include "main.h"
 #include "CreateItemWindow.h"
 #include "TextWindow.h"
+#include "Update.h"
 #include <ExDisp.h>
 
 namespace chromafiler {
@@ -100,6 +101,7 @@ STDMETHODIMP CFExecute::Execute() {
             openItem(item);
             item = nullptr;
         }
+        autoUpdateCheck();
         return S_OK;
     }
     return hr;
