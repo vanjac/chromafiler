@@ -99,7 +99,9 @@ protected:
     void activate();
     void setRect(RECT rect);
     void setPos(POINT pos);
+    void setSize(SIZE size);
     void move(int x, int y);
+    void adjustSize(int *x, int *y);
     virtual RECT windowBody();
 
     // message callbacks

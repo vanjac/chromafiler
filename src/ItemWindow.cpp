@@ -404,9 +404,21 @@ void ItemWindow::setPos(POINT pos) {
     SetWindowPos(hwnd, nullptr, pos.x, pos.y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
+void ItemWindow::setSize(SIZE size) {
+    SetWindowPos(hwnd, nullptr, 0, 0, size.cx, size.cy, SWP_NOZORDER | SWP_NOMOVE | SWP_NOACTIVATE);
+}
+
 void ItemWindow::move(int x, int y) {
     RECT rect = windowRect(hwnd);
     setPos({rect.left + x, rect.top + y});
+}
+
+void ItemWindow::adjustSize(int *x, int *y) {
+    SIZE size = rectSize(windowRect(hwnd));
+    setSize({size.cx + *x, size.cy + *y});
+    SIZE newSize = rectSize(windowRect(hwnd));
+    *x = newSize.cx - size.cx;
+    *y = newSize.cy - size.cy;
 }
 
 RECT ItemWindow::windowBody() {
@@ -594,16 +606,17 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 RECT *desiredRect = (RECT *)lParam;
                 RECT curRect = windowRect(hwnd);
                 // constrain top-left corner
-                int moveX = 0, moveY = 0;
-                if (wParam == WMSZ_LEFT || wParam == WMSZ_TOPLEFT || wParam == WMSZ_BOTTOMLEFT)
-                    moveX = desiredRect->left - curRect.left;
-                if (wParam == WMSZ_TOP || wParam == WMSZ_TOPLEFT || wParam == WMSZ_TOPRIGHT)
-                    moveY = desiredRect->top - curRect.top;
-                if (moveX != 0 || moveY != 0) {
+                if (wParam == WMSZ_TOP || wParam == WMSZ_TOPLEFT || wParam == WMSZ_TOPRIGHT) {
+                    int moveY = desiredRect->top - curRect.top;
                     auto topParent = parent;
                     while (topParent->parent && topParent->parent->stickToChild())
                         topParent = topParent->parent;
-                    topParent->move(moveX, moveY);
+                    topParent->move(0, moveY);
+                }
+                if (wParam == WMSZ_LEFT || wParam == WMSZ_TOPLEFT || wParam == WMSZ_BOTTOMLEFT) {
+                    int sizeX = desiredRect->left - curRect.left, sizeY = 0;
+                    parent->adjustSize(&sizeX, &sizeY);
+                    desiredRect->left = curRect.left + sizeX;
                 }
             }
             return TRUE;
