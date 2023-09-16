@@ -377,21 +377,17 @@ void FolderWindow::loadViewState(CComPtr<IPropertyBag> bag) {
 
 bool FolderWindow::readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream) {
     // https://devblogs.microsoft.com/oldnewthing/20130318-00/?p=4933
-    std::vector<PITEMID_CHILD> ids;
-    std::vector<POINT> pts;
-    PITEMID_CHILD nextID;
-    POINT nextPt;
-    while (SUCCEEDED(IStream_ReadPidl(stream, &nextID))
-            && SUCCEEDED(IStream_Read(stream, &nextPt, sizeof(nextPt)))) {
-        ids.push_back(nextID);
-        pts.push_back(scaleDPI(nextPt));
+    CComHeapPtr<ITEMID_CHILD> idList;
+    POINT pos;
+    while (SUCCEEDED(IStream_ReadPidl(stream, &idList))
+            && SUCCEEDED(IStream_Read(stream, &pos, sizeof(pos)))) {
+        pos = scaleDPI(pos);
+        checkHR(folderView->SelectAndPositionItems(1, (PCITEMID_CHILD *)&idList.m_pData,
+            &pos, SVSI_NOSTATECHANGE));
+        idList.Free();
     }
-    debugPrintf(L"Positioning %zd icons\n", pts.size());
-    bool result = checkHR(folderView->SelectAndPositionItems((UINT)pts.size(),
-        (PCITEMID_CHILD *)ids.data(), pts.data(), SVSI_POSITIONITEM));
-    for (auto &id : ids)
-        CoTaskMemFree(id);
-    return result;
+    // TODO: auto-position the remaining items to avoid overlap
+    return true;
 }
 
 void FolderWindow::onDestroy() {
