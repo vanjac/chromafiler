@@ -80,18 +80,24 @@ static int captionTopMargin() {
     return compositionEnabled ? COMP_CAPTION_VMARGIN : 0;
 }
 
-static int windowBorderSize() {
-    if (!IsWindows10OrGreater())
-        return windowResizeMargin();
-    if (highContrastEnabled()) {
-        return WIN10_CXSIZEFRAME;
-    } else {
-        return 0; // TODO should be more space on Windows 11
+static bool invisibleBorders() {
+    return compositionEnabled && IsWindows10OrGreater() && !highContrastEnabled();
+}
+
+static int invisibleBorderSize(HWND hwnd, int dpi) {
+    if (invisibleBorders()) {
+        // https://stackoverflow.com/q/34139450/11525734
+        RECT wndRect = windowRect(hwnd);
+        RECT frame;
+        if (checkHR(DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS,
+                &frame, sizeof(frame))))
+            return MulDiv(frame.left, systemDPI, dpi) - wndRect.left + 1;
     }
+    return 0;
 }
 
 int ItemWindow::cascadeSize() {
-    return CAPTION_HEIGHT + windowBorderSize();
+    return CAPTION_HEIGHT + (invisibleBorders() ? 0 : windowResizeMargin());
 }
 
 void ItemWindow::init() {
@@ -1554,23 +1560,26 @@ SIZE ItemWindow::requestedChildSize() {
 }
 
 POINT ItemWindow::childPos(SIZE size) {
+    HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    int curMonitorDPI = monitorDPI(curMonitor);
+
     // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
     // GetWindowRect includes the resize margin!
     RECT rect = windowRect(hwnd);
-    POINT pos = {rect.left + clientSize(hwnd).cx + windowBorderSize() * 2, rect.top};
+    POINT pos = {rect.right - invisibleBorderSize(hwnd, curMonitorDPI) * 2, rect.top};
 
-    HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
     RECT childRect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
     HMONITOR childMonitor = MonitorFromRect(&childRect, MONITOR_DEFAULTTONEAREST);
-    return pointMulDiv(pos, monitorDPI(curMonitor), monitorDPI(childMonitor));
+    return pointMulDiv(pos, curMonitorDPI, monitorDPI(childMonitor));
 }
 
 POINT ItemWindow::parentPos(SIZE size) {
-    RECT rect = windowRect(hwnd);
-    LONG margin = screenToClient(hwnd, {rect.left, 0}).x; // determine size of resize margin
-    POINT pos = {rect.left - margin * 2 - windowBorderSize() * 2 - size.cx, rect.top};
-
     HMONITOR curMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+    int curMonitorDPI = monitorDPI(curMonitor);
+
+    RECT rect = windowRect(hwnd);
+    POINT pos = {rect.left - size.cx + invisibleBorderSize(hwnd, curMonitorDPI) * 2, rect.top};
+
     MONITORINFO monitorInfo = {sizeof(monitorInfo)};
     GetMonitorInfo(curMonitor, &monitorInfo);
     if (pos.x < monitorInfo.rcWork.left)
