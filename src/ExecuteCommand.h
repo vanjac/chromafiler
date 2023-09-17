@@ -5,6 +5,7 @@
 #include "ShObjIdl.h"
 #include "WinUtils.h"
 #include <atlbase.h>
+#include <ExDisp.h>
 
 namespace chromafiler {
 
@@ -38,7 +39,7 @@ public:
     STDMETHODIMP Execute() override;
 
 private:
-    void openItem(CComPtr<IShellItem> item);
+    void openItem(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows);
 
     CComPtr<IShellItemArray> itemArray;
     HMONITOR monitor = nullptr;

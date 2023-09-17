@@ -3,11 +3,8 @@
 #include "CreateItemWindow.h"
 #include "TextWindow.h"
 #include "Update.h"
-#include <ExDisp.h>
 
 namespace chromafiler {
-
-static CComPtr<IShellWindows> shellWindows;
 
 CFExecute::CFExecute() {
     lockProcess();
@@ -84,13 +81,15 @@ STDMETHODIMP CFExecute::SetShowWindow(int show) {
 
 STDMETHODIMP CFExecute::Execute() {
     debugPrintf(L"Invoked with DelegateExecute\n");
+    CComPtr<IShellWindows> shellWindows;
+    checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows));
     if (!itemArray) {
         if (!workingDir)
             return E_UNEXPECTED;
         // this happens when invoked on background
         CComPtr<IShellItem> item;
         if (checkHR(SHCreateItemFromParsingName(workingDir.get(), nullptr, IID_PPV_ARGS(&item))))
-            openItem(item);
+            openItem(item, shellWindows);
         return S_OK;
     }
     HRESULT hr;
@@ -98,7 +97,7 @@ STDMETHODIMP CFExecute::Execute() {
     if (checkHR(hr = itemArray->EnumItems(&enumItems))) {
         CComPtr<IShellItem> item;
         while (enumItems->Next(1, &item, nullptr) == S_OK) {
-            openItem(item);
+            openItem(item, shellWindows);
             item = nullptr;
         }
         autoUpdateCheck();
@@ -107,12 +106,10 @@ STDMETHODIMP CFExecute::Execute() {
     return hr;
 }
 
-void CFExecute::openItem(CComPtr<IShellItem> item) {
+void CFExecute::openItem(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows) {
     item = resolveLink(item);
 
     // find existing window
-    if (!shellWindows)
-        shellWindows.CoCreateInstance(CLSID_ShellWindows);
     if (shellWindows) {
         CComQIPtr<IPersistIDList> persistIDList(item);
         if (persistIDList) {

@@ -62,8 +62,6 @@ static HCURSOR rightSideCursor = nullptr;
 
 static BOOL compositionEnabled = FALSE;
 
-static CComPtr<IShellWindows> shellWindows;
-
 HACCEL ItemWindow::accelTable;
 
 static bool highContrastEnabled() {
@@ -1637,7 +1635,8 @@ void ItemWindow::onViewReady() {
     if (shellWindowCookie) {
         // onItemChanged was called
         CComQIPtr<IPersistIDList> persistIDList(item);
-        if (persistIDList && shellWindows) {
+        CComPtr<IShellWindows> shellWindows;
+        if (persistIDList && checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows))) {
             CComVariant pidlVar(persistIDList);
             checkHR(shellWindows->OnNavigate(shellWindowCookie, &pidlVar));
         }
@@ -1652,9 +1651,8 @@ void ItemWindow::registerShellWindow() {
     if (shellWindowCookie)
         return;
     CComQIPtr<IPersistIDList> persistIDList(item);
-    if (!shellWindows)
-        shellWindows.CoCreateInstance(CLSID_ShellWindows);
-    if (persistIDList && shellWindows) {
+    CComPtr<IShellWindows> shellWindows;
+    if (persistIDList && checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows))) {
         CComVariant empty, pidlVar(persistIDList);
         checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
             SWC_BROWSER, &shellWindowCookie));
@@ -1665,7 +1663,8 @@ void ItemWindow::registerShellWindow() {
 
 void ItemWindow::unregisterShellWindow() {
     if (shellWindowCookie) {
-        if (shellWindows)
+        CComPtr<IShellWindows> shellWindows;
+        if (checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows)))
             checkHR(shellWindows->Revoke(shellWindowCookie));
         shellWindowCookie = 0;
     }
