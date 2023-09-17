@@ -8,6 +8,7 @@
 #include "Settings.h"
 #include "DPI.h"
 #include "UIStrings.h"
+#include "Update.h"
 #include <windowsx.h>
 #include <shlobj.h>
 #include <dwmapi.h>
@@ -1389,6 +1390,8 @@ void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
         limitChainWindowRect(&rect);
     // will flush message queue
     child->create(rect, SW_SHOWNOACTIVATE);
+    if (paletteWindow())
+        autoUpdateCheck();
 }
 
 void ItemWindow::closeChild() {
