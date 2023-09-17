@@ -814,17 +814,6 @@ void ItemWindow::onCreate() {
         toolInfo.uId = (UINT_PTR)proxyToolbar;
         toolInfo.lpszText = title;
         SendMessage(proxyTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
-
-        // will be positioned in beginRename
-        renameBox = checkLE(CreateWindow(L"EDIT", nullptr,
-            WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
-            0, 0, 0, 0,
-            hwnd, nullptr, instance, nullptr));
-        // support ctrl+backspace
-        checkHR(SHAutoComplete(renameBox, SHACF_AUTOAPPEND_FORCE_OFF|SHACF_AUTOSUGGEST_FORCE_OFF));
-        SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
-        if (captionFont)
-            SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
     } // if (useCustomFrame())
 
     if (useCustomFrame() && settings::getStatusTextEnabled()) {
@@ -1136,7 +1125,7 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         }
         return CDRF_DODEFAULT;
     } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == NM_LDOWN) {
-        if (IsWindowVisible(renameBox))
+        if (renameBox && IsWindowVisible(renameBox))
             return FALSE; // don't steal focus
         NMMOUSE *mouse = (NMMOUSE *)nmHdr;
         POINT screenPos = clientToScreen(proxyToolbar, mouse->pt);
@@ -1163,7 +1152,7 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         return FALSE;
     } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == NM_CLICK) {
         // actually a double-click, since we captured the mouse in the NM_LDOWN handler (???)
-        if (IsWindowVisible(renameBox))
+        if (renameBox && IsWindowVisible(renameBox))
             return FALSE;
         else if (GetKeyState(VK_MENU) < 0)
             openProxyProperties();
@@ -1899,7 +1888,7 @@ void ItemWindow::openProxyContextMenu() {
     HMENU popupMenu = CreatePopupMenu();
     if (!popupMenu)
         return;
-    UINT contextFlags = CMF_ITEMMENU | (renameBox ? CMF_CANRENAME : 0);
+    UINT contextFlags = CMF_ITEMMENU | (useCustomFrame() ? CMF_CANRENAME : 0);
     if (GetKeyState(VK_SHIFT) < 0)
         contextFlags |= CMF_EXTENDEDVERBS;
     if (!checkHR(contextMenu->QueryContextMenu(popupMenu, 0, IDM_SHELL_FIRST, IDM_SHELL_LAST,
@@ -1995,8 +1984,19 @@ void ItemWindow::proxyDrag(POINT offset) {
 }
 
 void ItemWindow::beginRename() {
-    if (!renameBox)
-        return;
+    if (!renameBox) {
+        if (!useCustomFrame())
+            return;
+        // create rename box
+        renameBox = checkLE(CreateWindow(L"EDIT", nullptr, WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
+            0, 0, 0, 0, hwnd, nullptr, GetModuleHandle(nullptr), nullptr));
+        // support ctrl+backspace
+        checkHR(SHAutoComplete(renameBox, SHACF_AUTOAPPEND_FORCE_OFF|SHACF_AUTOSUGGEST_FORCE_OFF));
+        SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
+        if (captionFont)
+            SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
+    }
+
     // update rename box rect
     int leftMargin = LOWORD(SendMessage(renameBox, EM_GETMARGINS, 0, 0));
     RECT textRect = titleRect();
