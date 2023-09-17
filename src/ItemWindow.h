@@ -214,7 +214,6 @@ private:
     HWND statusText = nullptr, statusTooltip = nullptr, cmdToolbar = nullptr;
     HIMAGELIST imageList = nullptr;
     CComPtr<IDropTarget> itemDropTarget;
-    CComPtr<IDropTargetHelper> dropTargetHelper;
     long shellWindowCookie = 0;
     ULONG shellNotifyID = 0;
 

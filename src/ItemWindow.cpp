@@ -62,6 +62,8 @@ static HCURSOR rightSideCursor = nullptr;
 
 static BOOL compositionEnabled = FALSE;
 
+static CComPtr<IDropTargetHelper> dropTargetHelper;
+
 HACCEL ItemWindow::accelTable;
 
 static bool highContrastEnabled() {
@@ -798,7 +800,6 @@ void ItemWindow::onCreate() {
 
         // will succeed for folders and EXEs, and fail for regular files
         item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
-        checkHR(dropTargetHelper.CoCreateInstance(CLSID_DragDropHelper));
 
         proxyTooltip = checkLE(CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
             WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
@@ -2128,6 +2129,8 @@ STDMETHODIMP ItemWindow::DragEnter(IDataObject *dataObject, DWORD keyState, POIN
             return E_FAIL;
     }
     POINT point {pt.x, pt.y};
+    if (!dropTargetHelper)
+        checkHR(dropTargetHelper.CoCreateInstance(CLSID_DragDropHelper));
     if (dropTargetHelper)
         checkHR(dropTargetHelper->DragEnter(hwnd, dataObject, &point, *effect));
     return S_OK;
