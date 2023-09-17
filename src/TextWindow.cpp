@@ -33,12 +33,10 @@ static CComVariant MATCH_NEWLINE(L"\n");
 static wchar_t textExePath[MAX_PATH];
 static HACCEL textAccelTable;
 static UINT updateSettingsMessage, findReplaceMessage;
+static HMODULE hMsftedit = nullptr;
 
 void TextWindow::init() {
     RegisterClass(tempPtr(createWindowClass(TEXT_WINDOW_CLASS)));
-    // http://www.jose.it-berater.org/richedit/rich_edit_control.htm
-    // https://devblogs.microsoft.com/math-in-office/richedit-hot-keys/
-    checkLE(LoadLibrary(L"Msftedit.dll"));
 
     textAccelTable = LoadAccelerators(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_ACCEL));
 
@@ -111,6 +109,11 @@ void TextWindow::updateAllSettings() {
 
 void TextWindow::onCreate() {
     ItemWindow::onCreate();
+
+    // http://www.jose.it-berater.org/richedit/rich_edit_control.htm
+    // https://devblogs.microsoft.com/math-in-office/richedit-hot-keys/
+    if (!hMsftedit)
+        hMsftedit = checkLE(LoadLibrary(L"Msftedit.dll"));
 
     logFont = settings::getTextFont();
     updateFont();
