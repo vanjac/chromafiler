@@ -162,6 +162,7 @@ LaunchType createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand
         wchar_t *arg = argv[i];
         if (lstrcmpi(arg, L"/tray") == 0) {
             type = LAUNCH_TRAY;
+            scratch = false;
         } else if (lstrcmpi(arg, L"/scratch") == 0) { // deprecated
             type = LAUNCH_TEXT;
             scratch = true;
