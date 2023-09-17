@@ -116,6 +116,7 @@ void CFExecute::openItem(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellW
             CComVariant empty, pidlVar(persistIDList);
             long lWnd;
             CComPtr<IDispatch> dispatch; // ignored
+            // TODO: check all windows? special case for text?
             HRESULT hr = shellWindows->FindWindowSW(
                 &pidlVar, &empty, SWC_BROWSER, &lWnd, 0, &dispatch); // don't require dispatch!
             checkHR(hr);

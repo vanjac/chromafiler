@@ -799,6 +799,7 @@ void ItemWindow::onCreate() {
             SWP_NOZORDER | SWP_NOACTIVATE);
 
         // will succeed for folders and EXEs, and fail for regular files
+        // TODO: delay load?
         item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
 
         proxyTooltip = checkLE(CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
