@@ -590,7 +590,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         }
         case WM_WINDOWPOSCHANGED: {
             WINDOWPOS *winPos = (WINDOWPOS *)lParam;
-            if ((winPos->flags & (SWP_NOMOVE | SWP_NOSIZE)) != (SWP_NOMOVE | SWP_NOSIZE))
+            const auto checkFlags = SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED;
+            if ((winPos->flags & checkFlags) != checkFlags)
                 windowRectChanged();
             break; // pass to DefWindowProc
         }
