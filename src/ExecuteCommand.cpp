@@ -109,29 +109,8 @@ STDMETHODIMP CFExecute::Execute() {
 void CFExecute::openItem(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows) {
     item = resolveLink(item);
 
-    // find existing window
-    if (shellWindows) {
-        CComQIPtr<IPersistIDList> persistIDList(item);
-        if (persistIDList) {
-            CComVariant empty, pidlVar(persistIDList);
-            long lWnd;
-            CComPtr<IDispatch> dispatch; // ignored
-            // TODO: check all windows? special case for text?
-            HRESULT hr = shellWindows->FindWindowSW(
-                &pidlVar, &empty, SWC_BROWSER, &lWnd, 0, &dispatch); // don't require dispatch!
-            checkHR(hr);
-            if (hr == S_OK) {
-                HWND hwnd = (HWND)LongToHandle(lWnd);
-                if (isCFWindow(hwnd)) {
-                    debugPrintf(L"Found already-open window\n");
-                    SetForegroundWindow(hwnd);
-                    ShowWindow(hwnd, showCommand);
-                    ItemWindow::flashWindow(hwnd);
-                    return;
-                }
-            }
-        }
-    }
+    if (shellWindows && showItemWindow(item, shellWindows, showCommand))
+        return;
 
     CComPtr<ItemWindow> window;
     if (text) {

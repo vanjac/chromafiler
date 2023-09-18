@@ -26,7 +26,7 @@ using namespace chromafiler;
 
 const wchar_t SHELL_PREFIX[] = L"shell:";
 
-enum LaunchType {LAUNCH_FAIL, LAUNCH_HEADLESS, LAUNCH_AUTO, LAUNCH_TRAY, LAUNCH_TEXT};
+enum LaunchType {LAUNCH_FAIL, LAUNCH_HEADLESS, LAUNCH_AUTO, LAUNCH_FOUND, LAUNCH_TRAY, LAUNCH_TEXT};
 
 #ifdef CHROMAFILER_DEBUG
 int main(int, char**) {
@@ -87,7 +87,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
     LaunchType type = createWindowFromCommandLine(argc, argv, showCommand);
     LocalFree(argv);
-    if (type == LAUNCH_FAIL)
+    if (type == LAUNCH_FAIL || type == LAUNCH_FOUND)
         return 0;
 
     CFExecuteFactory executeFactory;
@@ -211,6 +211,13 @@ LaunchType createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand
         startItem = createScratchFile(startItem);
     if (!startItem)
         return LAUNCH_FAIL;
+    
+    if (!scratch && type != LAUNCH_TRAY) {
+        CComPtr<IShellWindows> shellWindows;
+        shellWindows.CoCreateInstance(CLSID_ShellWindows);
+        if (shellWindows && showItemWindow(startItem, shellWindows, showCommand))
+            return LAUNCH_FOUND;
+    }
 
     CComPtr<ItemWindow> initialWindow;
     if (type == LAUNCH_TRAY) {

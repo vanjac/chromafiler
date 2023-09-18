@@ -21,6 +21,7 @@ const CLSID TXT_PREVIEWER_CLSID =
     {0x1531d583, 0x8375, 0x4d3f, {0xb5, 0xfb, 0xd2, 0x3b, 0xbd, 0x16, 0x9f, 0x22}};
 
 bool previewHandlerCLSID(wchar_t *type, CLSID *previewID);
+bool isCFWindow(HWND hwnd);
 
 CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item) {
     CComPtr<ItemWindow> window;
@@ -64,6 +65,30 @@ bool previewHandlerCLSID(wchar_t *type, CLSID *previewID) {
         return false;
     debugPrintf(L"Found preview handler for %s: %s\n", type, resultGUID);
     return checkHR(CLSIDFromString(resultGUID, previewID));
+}
+
+bool showItemWindow(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows, int showCmd) {
+    CComQIPtr<IPersistIDList> persistIDList(item);
+    if (!persistIDList)
+        return false;
+    CComVariant empty, pidlVar(persistIDList);
+    long lWnd;
+    CComPtr<IDispatch> dispatch; // ignored
+    // TODO: check all windows? special case for text?
+    HRESULT hr = shellWindows->FindWindowSW(
+        &pidlVar, &empty, SWC_BROWSER, &lWnd, 0, &dispatch); // don't require dispatch!
+    checkHR(hr);
+    if (hr == S_OK) {
+        HWND hwnd = (HWND)LongToHandle(lWnd);
+        if (isCFWindow(hwnd)) {
+            debugPrintf(L"Found already-open window\n");
+            SetForegroundWindow(hwnd);
+            ShowWindow(hwnd, showCmd);
+            ItemWindow::flashWindow(hwnd);
+            return true;
+        }
+    }
+    return false;
 }
 
 CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem) {
