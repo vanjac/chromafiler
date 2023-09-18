@@ -85,14 +85,15 @@ static bool invisibleBorders() {
     return compositionEnabled && IsWindows10OrGreater() && !highContrastEnabled();
 }
 
-static int invisibleBorderSize(HWND hwnd, int dpi) {
+static int invisibleBorderDoubleSize(HWND hwnd, int dpi) {
     if (invisibleBorders()) {
         // https://stackoverflow.com/q/34139450/11525734
         RECT wndRect = windowRect(hwnd);
         RECT frame;
         if (checkHR(DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS,
                 &frame, sizeof(frame))))
-            return MulDiv(frame.left, systemDPI, dpi) - wndRect.left + 1;
+            return (MulDiv(frame.left, systemDPI, dpi) - wndRect.left)
+                + (wndRect.right - MulDiv(frame.right, systemDPI, dpi)) + 2;
     }
     return 0;
 }
@@ -1569,7 +1570,7 @@ POINT ItemWindow::childPos(SIZE size) {
     // https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowrect
     // GetWindowRect includes the resize margin!
     RECT rect = windowRect(hwnd);
-    POINT pos = {rect.right - invisibleBorderSize(hwnd, curMonitorDPI) * 2, rect.top};
+    POINT pos = {rect.right - invisibleBorderDoubleSize(hwnd, curMonitorDPI), rect.top};
 
     RECT childRect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
     HMONITOR childMonitor = MonitorFromRect(&childRect, MONITOR_DEFAULTTONEAREST);
@@ -1581,7 +1582,7 @@ POINT ItemWindow::parentPos(SIZE size) {
     int curMonitorDPI = monitorDPI(curMonitor);
 
     RECT rect = windowRect(hwnd);
-    POINT pos = {rect.left - size.cx + invisibleBorderSize(hwnd, curMonitorDPI) * 2, rect.top};
+    POINT pos = {rect.left - size.cx + invisibleBorderDoubleSize(hwnd, curMonitorDPI), rect.top};
 
     MONITORINFO monitorInfo = {sizeof(monitorInfo)};
     GetMonitorInfo(curMonitor, &monitorInfo);
