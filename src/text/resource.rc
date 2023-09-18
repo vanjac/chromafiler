@@ -1,1 +1,27 @@
+#include <windows.h>
+#include "..\resource.h"
+
+LANGUAGE LANG_ENGLISH, SUBLANG_DEFAULT
+
 101    ICON    "..\\res\\text.ico"
+
+1 VERSIONINFO
+    FILEVERSION     CHROMAFILER_VERSION
+    PRODUCTVERSION  CHROMAFILER_VERSION
+    FILEOS          VOS_NT_WINDOWS32
+    FILETYPE        VFT_APP
+{
+    BLOCK "StringFileInfo" {
+        BLOCK "040904B0" {
+            VALUE "CompanyName", "chroma zone\0"
+            VALUE "FileDescription", "ChromaText\0"
+            VALUE "FileVersion", CHROMAFILER_VERSION_STRING
+            VALUE "LegalCopyright", "Copyright (c) J. van't Hoog\0"
+            VALUE "ProductName", "ChromaFiler\0"
+            VALUE "ProductVersion", CHROMAFILER_VERSION_STRING
+        }
+    }
+    BLOCK "VarFileInfo" {
+        VALUE "Translation", 0x0409, 0x04B0
+    }
+}
