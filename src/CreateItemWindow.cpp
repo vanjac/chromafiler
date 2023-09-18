@@ -20,7 +20,7 @@ const wchar_t IPreviewHandlerIID[] = L"{8895b1c6-b41f-4c1c-a562-0d564250836f}";
 const CLSID TXT_PREVIEWER_CLSID =
     {0x1531d583, 0x8375, 0x4d3f, {0xb5, 0xfb, 0xd2, 0x3b, 0xbd, 0x16, 0x9f, 0x22}};
 
-bool previewHandlerCLSID(wchar_t *ext, CLSID *previewID);
+bool previewHandlerCLSID(wchar_t *type, CLSID *previewID);
 
 CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item) {
     CComPtr<ItemWindow> window;
@@ -32,24 +32,15 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
 
     bool previewsEnabled = settings::getPreviewsEnabled();
     bool textEditorEnabled = settings::getTextEditorEnabled();
-    CComHeapPtr<wchar_t> parentRelAddr;
-    // SIGDN_PARENTRELATIVEFORADDRESSBAR will always have the extension
-    // TODO: use IShellItem2::GetString instead?
-    if ((previewsEnabled || textEditorEnabled)
-            && checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEFORADDRESSBAR, &parentRelAddr))) {
-        if (wchar_t *ext = PathFindExtension(parentRelAddr)) {
+    if (previewsEnabled || textEditorEnabled) {
+        CComQIPtr<IShellItem2> item2(item);
+        CComHeapPtr<wchar_t> type;
+        if (item2 && SUCCEEDED(item2->GetString(PKEY_ItemType, &type))) {
             CLSID previewID;
-            if (ext[0] == 0) {
-                if (textEditorEnabled) {
-                    CComQIPtr<IShellItem2> item2(item);
-                    CComHeapPtr<wchar_t> str;
-                    if (item2 && SUCCEEDED(item2->GetString(PKEY_ItemType, &str))
-                            && lstrcmp(str, L".") == 0) {
-                        window.Attach(new TextWindow(parent, item));
-                        return window;
-                    }
-                }
-            } else if (previewHandlerCLSID(ext, &previewID)) {
+            if (textEditorEnabled && lstrcmp(type, L".") == 0) { // no extension
+                window.Attach(new TextWindow(parent, item));
+                return window;
+            } else if (previewHandlerCLSID(type, &previewID)) {
                 if (textEditorEnabled && previewID == TXT_PREVIEWER_CLSID) {
                     window.Attach(new TextWindow(parent, item));
                     return window;
@@ -64,14 +55,14 @@ CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellI
     return window;
 }
 
-bool previewHandlerCLSID(wchar_t *ext, CLSID *previewID) {
+bool previewHandlerCLSID(wchar_t *type, CLSID *previewID) {
     // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-1-ui-assoc/
     wchar_t resultGUID[64];
     DWORD resultLen = _countof(resultGUID);
     if (FAILED(AssocQueryString(ASSOCF_INIT_DEFAULTTOSTAR | ASSOCF_NOTRUNCATE,
-            ASSOCSTR_SHELLEXTENSION, ext, IPreviewHandlerIID, resultGUID, &resultLen)))
+            ASSOCSTR_SHELLEXTENSION, type, IPreviewHandlerIID, resultGUID, &resultLen)))
         return false;
-    debugPrintf(L"Found preview handler for %s: %s\n", ext, resultGUID);
+    debugPrintf(L"Found preview handler for %s: %s\n", type, resultGUID);
     return checkHR(CLSIDFromString(resultGUID, previewID));
 }
 
