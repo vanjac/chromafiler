@@ -1999,7 +1999,11 @@ void ItemWindow::proxyDrag(POINT offset) {
     draggingObject = false;
 }
 
-void ItemWindow::beginRename() {
+void ItemWindow::beginRename() {    
+    CComHeapPtr<wchar_t> editingName;
+    if (!checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEEDITING, &editingName)))
+        return;
+
     if (!renameBox) {
         if (!useCustomFrame())
             return;
@@ -2025,12 +2029,12 @@ void ItemWindow::beginRename() {
     renamePos = clientToScreen(hwnd, renamePos);
     MoveWindow(renameBox, renamePos.x, renamePos.y, renameWidth, renameHeight, FALSE);
 
-    SendMessage(renameBox, WM_SETTEXT, 0, (LPARAM)&*title);
-    wchar_t *ext = PathFindExtension(title);
-    if (ext == title) { // files that start with a dot
+    SendMessage(renameBox, WM_SETTEXT, 0, (LPARAM)&*editingName);
+    wchar_t *ext = PathFindExtension(editingName);
+    if (ext == editingName) { // files that start with a dot
         Edit_SetSel(renameBox, 0, -1);
     } else {
-        Edit_SetSel(renameBox, 0, ext - title);
+        Edit_SetSel(renameBox, 0, ext - editingName);
     }
     ShowWindow(renameBox, SW_SHOW);
     EnableWindow(proxyToolbar, FALSE);
@@ -2041,7 +2045,11 @@ void ItemWindow::completeRename() {
     SendMessage(renameBox, WM_GETTEXT, _countof(newName), (LPARAM)newName);
     cancelRename();
 
-    if (lstrcmp(newName, title) == 0)
+    CComHeapPtr<wchar_t> editingName;
+    if (!checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEEDITING, &editingName)))
+        return;
+
+    if (lstrcmp(newName, editingName) == 0)
         return; // names are identical, which would cause an unnecessary error message
     if (PathCleanupSpec(nullptr, newName) & (PCS_REPLACEDCHAR | PCS_REMOVEDCHAR)) {
         enableChain(false);
@@ -2051,16 +2059,19 @@ void ItemWindow::completeRename() {
         return;
     }
 
-    CComHeapPtr<wchar_t> fileName;
-    // SIGDN_PARENTRELATIVEFORADDRESSBAR will always have the extension even if hidden in options
-    // TODO: is this guaranteed?
-    if (checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEFORADDRESSBAR, &fileName))) {
-        int fileNameLen = lstrlen(fileName);
-        int titleLen = lstrlen(title);
-        if (fileNameLen > titleLen) { // if extensions are hidden in File Explorer Options
-            debugPrintf(L"Appending extension %s\n", fileName + titleLen);
-            if (!checkHR(StringCchCat(newName, _countof(newName), fileName + titleLen)))
-                return;
+    SHELLFLAGSTATE shFlags = {};
+    SHGetSettings(&shFlags, SSF_SHOWEXTENSIONS);
+    if (!shFlags.fShowExtensions) {
+        CComQIPtr<IShellItem2> item2(item);
+        CComHeapPtr<wchar_t> display, ext;
+        if (item2 && checkHR(item2->GetString(PKEY_ItemNameDisplay, &display)) && display
+                && checkHR(item2->GetString(PKEY_FileExtension, &ext)) && ext) {
+            if (lstrcmpi(display, editingName) != 0) {
+                // extension was probably hidden (TODO: jank!)
+                debugPrintf(L"Appending extension %s\n", &*ext);
+                if (!checkHR(StringCchCat(newName, _countof(newName), ext)))
+                    return;
+            }
         }
     }
 
