@@ -769,11 +769,11 @@ STDMETHODIMP FolderWindow::QueryInterface(REFIID id, void **obj) {
         QITABENT(FolderWindow, IWebBrowserApp),
         {},
     };
-    if (id == __uuidof(IFolderFilter) && prevCB)
-        return prevCB->QueryInterface(id, obj);
     HRESULT hr = QISearch(this, interfaces, id, obj);
     if (SUCCEEDED(hr))
         return hr;
+    if (id == __uuidof(IFolderFilter) && prevCB)
+        return prevCB->QueryInterface(id, obj);
     return ItemWindow::QueryInterface(id, obj);
 }
 
