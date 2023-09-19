@@ -202,19 +202,28 @@ Section "Add to Open With menu" SecProgID
 	; hack for ArsClip (TODO: add to all users?)
 	WriteRegStr HKCU "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
 	; clean up old icon (removed v0.7.0)
-	DeleteRegValue SHCTX "Software\Classes\Applications\ChromaFiler.exe\DefaultIcon" ""
+	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaFiler.exe\DefaultIcon"
 
 	${If} ${SectionIsSelected} ${SecText}
+		; Application
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe" "FriendlyAppName" "ChromaText"
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe" "AppUserModelID" "chroma.text"
-		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
+		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe" "NoOpenWith" ""
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe\shell\open\command" "" '"$INSTDIR\ChromaText.exe" "%1"'
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe\shell\open\command" "DelegateExecute" "${EXECUTE_GUID}"
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe\shell\open" "CFType" "text"
+		; ProgID
+		WriteRegStr SHCTX "Software\Classes\Chroma.Text" "" "ChromaText"
+		WriteRegStr SHCTX "Software\Classes\Chroma.Text" "AppUserModelID" "chroma.text"
+		WriteRegStr SHCTX "Software\Classes\Chroma.Text\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
+		WriteRegStr SHCTX "Software\Classes\Chroma.Text\shell\open\command" "" '"$INSTDIR\ChromaText.exe" "%1"'
+		WriteRegStr SHCTX "Software\Classes\Chroma.Text\shell\open\command" "DelegateExecute" "${EXECUTE_GUID}"
+		WriteRegStr SHCTX "Software\Classes\Chroma.Text\shell\open" "CFType" "text"
+		WriteRegStr SHCTX "Software\Classes\*\OpenWithProgids" "Chroma.Text" ""
 		; preview handler
-		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe\shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}" "" "{1531d583-8375-4d3f-b5fb-d23bbd169f22}"
+		WriteRegStr SHCTX "Software\Classes\Chroma.Text\shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}" "" "{1531d583-8375-4d3f-b5fb-d23bbd169f22}"
 		; hack
-		WriteRegStr HKCU "Software\Classes\Applications\ChromaText.exe\shell\open\command" "" '"$INSTDIR\ChromaText.exe" "%1"'
+		WriteRegStr HKCU "Software\Classes\Chroma.Text\shell\open\command" "" '"$INSTDIR\ChromaText.exe" "%1"'
 	${EndIf}
 SectionEnd
 
@@ -278,6 +287,8 @@ Section "un.Uninstall"
 	DeleteRegKey SHCTX Software\ChromaFiler
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaFiler.exe"
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaText.exe"
+	DeleteRegKey SHCTX "Software\Classes\Chroma.Text"
+	DeleteRegValue SHCTX "Software\Classes\*\OpenWithProgids" "Chroma.Text"
 	DeleteRegKey SHCTX Software\Classes\Directory\shell\chromafiler
 	DeleteRegKey SHCTX Software\Classes\Directory\Background\shell\chromafiler
 	DeleteRegKey SHCTX Software\Classes\CompressedFolder\shell\chromafiler
@@ -297,7 +308,7 @@ SectionEnd
 Function un.CleanupCurrentUser
 	DeleteRegKey HKCU "Software\ChromaFiler"
 	DeleteRegKey HKCU "Software\Classes\Applications\ChromaFiler.exe"
-	DeleteRegKey HKCU "Software\Classes\Applications\ChromaText.exe"
+	DeleteRegKey HKCU "Software\Classes\Chroma.Text"
 	DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
 	; clear shell defaults if set to chromafiler
@@ -316,7 +327,7 @@ Function un.CleanupUser
 	Pop $0
 	DeleteRegKey HKU "$0\Software\ChromaFiler"
 	DeleteRegKey HKU "$0\Software\Classes\Applications\ChromaFiler.exe"
-	DeleteRegKey HKU "$0\Software\Classes\Applications\ChromaText.exe"
+	DeleteRegKey HKU "$0\Software\Classes\Chroma.Text"
 	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
 	; clear shell defaults if set to chromafiler
