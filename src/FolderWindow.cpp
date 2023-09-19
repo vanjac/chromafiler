@@ -444,11 +444,10 @@ LRESULT FolderWindow::onDropdown(int command, POINT pos) {
 void FolderWindow::onActivate(WORD state, HWND prevWindow) {
     ItemWindow::onActivate(state, prevWindow);
     if (state != WA_INACTIVE) {
-        if (shellView) {
-            // override behavior causing sort columns to be focused when shift is held
-            activateOnShiftRelease = GetKeyState(VK_SHIFT) < 0;
+        // override behavior causing sort columns to be focused when shift is held
+        activateOnShiftRelease = GetKeyState(VK_SHIFT) < 0;
+        if (shellView)
             checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
-        }
         if (updateSelectionOnActivate) {
             updateSelection();
             updateSelectionOnActivate = false;
