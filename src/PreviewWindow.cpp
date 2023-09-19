@@ -3,28 +3,15 @@
 #include "WinUtils.h"
 #include <windowsx.h>
 #include <shlobj.h>
-#include <unordered_map>
-
-// operator== is implemented for GUIDs in guiddef.h
-template<>
-struct std::hash<CLSID> {
-    std::size_t operator() (const CLSID &key) const {
-        // https://stackoverflow.com/a/263416
-        size_t hash = 17;
-        for (int i = 0; i < 4; i++) {
-            uint32_t dword = ((uint32_t *)&key)[i];
-            hash = hash * 23 + std::hash<uint32_t>()(dword);
-        }
-        return hash;
-    }
-};
-
-// https://geelaw.blog/entries/ipreviewhandlerframe-wpf-2-interop/
 
 namespace chromafiler {
 
+// https://geelaw.blog/entries/ipreviewhandlerframe-wpf-2-interop/
+
 const wchar_t PREVIEW_WINDOW_CLASS[] = L"ChromaFile Preview";
 const wchar_t PREVIEW_CONTAINER_CLASS[] = L"ChromaFile Preview Container";
+
+const int FACTORY_CACHE_SIZE = 4;
 
 enum WorkerUserMessage {
     // WPARAM: 0, LPARAM: InitPreviewRequest (calls free!)
@@ -33,9 +20,15 @@ enum WorkerUserMessage {
     MSG_RELEASE_PREVIEW
 };
 
+struct FactoryCacheEntry {
+    CLSID clsid = {};
+    CComPtr<IClassFactory> factory;
+};
+
 HANDLE PreviewWindow::initPreviewThread = nullptr;
 // used by worker thread:
-static std::unordered_map<CLSID, CComPtr<IClassFactory>> previewFactoryCache;
+static FactoryCacheEntry factoryCache[FACTORY_CACHE_SIZE] = {};
+static int factoryCacheIndex = 0;
 
 void PreviewWindow::init() {
     RegisterClass(tempPtr(createWindowClass(PREVIEW_WINDOW_CLASS)));
@@ -56,7 +49,8 @@ void PreviewWindow::uninit() {
         WaitForSingleObject(initPreviewThread, INFINITE);
         checkLE(CloseHandle(initPreviewThread));
     }
-    previewFactoryCache.clear();
+    for (auto &entry : factoryCache)
+        entry.factory.Release();
 }
 
 PreviewWindow::PreviewWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, CLSID previewID)
@@ -244,23 +238,27 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
         return;
     request->itemIDList.Free();
 
-    CComPtr<IClassFactory> factory;
-    auto it = previewFactoryCache.find(request->previewID);
-    if (it != previewFactoryCache.end()) {
-        debugPrintf(L"Reusing already-loaded factory\n");
-        factory = it->second;
-    } else {
-        if (!checkHR(CoGetClassObject(request->previewID, CLSCTX_LOCAL_SERVER, nullptr,
-                IID_PPV_ARGS(&factory)))) {
-            return;
-        }
-        // https://stackoverflow.com/a/5002596/11525734
-        previewFactoryCache[request->previewID] = factory;
-    }
-
     CComPtr<IPreviewHandler> preview;
-    if (!checkHR(factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview))))
-        return;
+    for (auto &entry : factoryCache) {
+        if (entry.clsid == request->previewID) {
+            debugPrintf(L"Found cached factory\n");
+            if (!checkHR(entry.factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview)))) {
+                entry.clsid = {};
+                entry.factory = nullptr;
+            }
+        }
+    }
+    if (!preview) {
+        CComPtr<IClassFactory> factory;
+        if (!checkHR(CoGetClassObject(request->previewID, CLSCTX_LOCAL_SERVER, nullptr,
+                IID_PPV_ARGS(&factory))))
+            return;
+        if (!checkHR(factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview))))
+            return;
+        // https://stackoverflow.com/a/5002596/11525734
+        factoryCache[factoryCacheIndex] = {request->previewID, factory};
+        factoryCacheIndex = (factoryCacheIndex + 1) % FACTORY_CACHE_SIZE;
+    }
 
     if (WaitForSingleObject(request->cancelEvent, 0) == WAIT_OBJECT_0)
         return; // early exit
