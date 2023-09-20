@@ -88,8 +88,10 @@ STDMETHODIMP CFExecute::Execute() {
             return E_UNEXPECTED;
         // this happens when invoked on background
         CComPtr<IShellItem> item;
-        if (checkHR(SHCreateItemFromParsingName(workingDir.get(), nullptr, IID_PPV_ARGS(&item))))
+        if (checkHR(SHCreateItemFromParsingName(workingDir.get(), nullptr, IID_PPV_ARGS(&item)))) {
             openItem(item, shellWindows);
+            autoUpdateCheck();
+        }
         return S_OK;
     }
     HRESULT hr;
