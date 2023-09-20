@@ -1538,19 +1538,26 @@ RECT ItemWindow::requestedRect(HMONITOR preferMonitor) {
             }
         }
     }
-    if (!preferMonitor)
-        return RECT{CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
+    RECT rect;
+    if (!preferMonitor) {
+        rect = RECT{CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT + size.cx, CW_USEDEFAULT + size.cy};
+    } else {
+        // find a good position for the window on the preferred monitor
+        // https://devblogs.microsoft.com/oldnewthing/20131122-00/?p=2593
+        HINSTANCE inst = GetModuleHandle(nullptr);
+        HWND owner = checkLE(CreateWindow(TESTPOS_CLASS, nullptr, WS_OVERLAPPED,
+            monitorInfo.rcWork.left, monitorInfo.rcWork.top, 1, 1, nullptr, nullptr, inst, 0));
+        HWND defWnd = checkLE(CreateWindow(TESTPOS_CLASS, nullptr, WS_OVERLAPPED,
+            CW_USEDEFAULT, CW_USEDEFAULT, size.cx, size.cy, owner, nullptr, inst, 0));
+        rect = windowRect(defWnd);
+        checkLE(DestroyWindow(owner));
+    }
 
-    // find a good position for the window on the preferred monitor
-    // https://devblogs.microsoft.com/oldnewthing/20131122-00/?p=2593
-    HINSTANCE inst = GetModuleHandle(nullptr);
-    HWND owner = checkLE(CreateWindow(TESTPOS_CLASS, nullptr, WS_OVERLAPPED,
-        monitorInfo.rcWork.left, monitorInfo.rcWork.top, 1, 1, nullptr, nullptr, inst, 0));
-    HWND defWnd = checkLE(CreateWindow(TESTPOS_CLASS, nullptr, WS_OVERLAPPED,
-        CW_USEDEFAULT, CW_USEDEFAULT, size.cx, size.cy, owner, nullptr, inst, 0));
-    RECT defRect = windowRect(defWnd);
-    checkLE(DestroyWindow(owner));
-    return defRect;
+    if (auto bag = getPropBag()) {
+        CComVariant posVar((unsigned long)MAKELONG(invScaleDPI(rect.left), invScaleDPI(rect.top)));
+        checkHR(bag->Write(PROP_POS, &posVar));
+    }
+    return rect;
 }
 
 SIZE ItemWindow::requestedChildSize() {
