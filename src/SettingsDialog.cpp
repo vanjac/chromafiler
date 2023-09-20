@@ -68,7 +68,7 @@ LRESULT CALLBACK pathCBProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 void setupPathCB(HWND hwnd, const wchar_t *path) {
     checkHR(SHAutoComplete((HWND)SendMessage(hwnd, CBEM_GETEDITCONTROL, 0, 0), SHACF_FILESYS_DIRS));
     SetWindowSubclass(hwnd, pathCBProc, 0, 0);
-    DragAcceptFiles(hwnd, TRUE);
+    DragAcceptFiles(hwnd, TRUE); // TODO: this doesn't work between processes!
     setCBPath(hwnd, path);
 }
 
