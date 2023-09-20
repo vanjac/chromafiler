@@ -305,7 +305,7 @@ bool PreviewWindow::initPreviewWithItem(CComPtr<IPreviewHandler> preview,
     if (checkHR(item->BindToHandler(context, BHID_Stream, IID_PPV_ARGS(&stream)))) {
         CComQIPtr<IInitializeWithStream> streamInit(preview);
         if (streamInit) {
-            if (SUCCEEDED(streamInit->Initialize(stream, STGM_READ))) {
+            if (checkHR(streamInit->Initialize(stream, STGM_READ))) {
                 debugPrintf(L"Init with stream\n");
                 return true;
             }
@@ -314,7 +314,7 @@ bool PreviewWindow::initPreviewWithItem(CComPtr<IPreviewHandler> preview,
 
     CComQIPtr<IInitializeWithItem> itemInit(preview);
     if (itemInit) {
-        if (SUCCEEDED(itemInit->Initialize(item, STGM_READ))) {
+        if (checkHR(itemInit->Initialize(item, STGM_READ))) {
             debugPrintf(L"Init with item\n");
             return true;
         }
