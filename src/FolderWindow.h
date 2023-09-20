@@ -127,7 +127,7 @@ protected:
 
     void onChildDetached() override;
 
-    IDispatch * getDispatch() override;
+    IDispatch * getShellViewDispatch() override;
     void onItemChanged() override;
     void refresh() override;
 

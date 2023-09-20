@@ -899,7 +899,7 @@ void ItemWindow::onCreate() {
         SendMessage(parentToolbar, TB_SETBUTTONSIZE, 0, MAKELPARAM(width, height));
     }
 
-    if (!getDispatch())
+    if (!getShellViewDispatch())
         onViewReady();
 }
 
@@ -1639,7 +1639,7 @@ void ItemWindow::removeChainPreview() {
     }
 }
 
-IDispatch * ItemWindow::getDispatch() {
+IDispatch * ItemWindow::getShellViewDispatch() {
     return nullptr;
 }
 
@@ -1668,7 +1668,7 @@ void ItemWindow::registerShellWindow() {
         CComVariant empty, pidlVar(persistIDList);
         checkHR(shellWindows->RegisterPending(GetCurrentThreadId(), &pidlVar, &empty,
             SWC_BROWSER, &shellWindowCookie));
-        checkHR(shellWindows->Register(getDispatch(), HandleToLong(hwnd),
+        checkHR(shellWindows->Register(getShellViewDispatch(), HandleToLong(hwnd),
             SWC_BROWSER, &shellWindowCookie));
     }
 }
@@ -1783,7 +1783,7 @@ void ItemWindow::onItemChanged() {
     resetViewState(); // TODO: transfer settings from old bag?
     unregisterShellNotify();
     registerShellNotify();
-    if (!getDispatch())
+    if (!getShellViewDispatch())
         onViewReady();
 }
 

@@ -561,7 +561,7 @@ void FolderWindow::onChildDetached() {
     clearSelection();
 }
 
-IDispatch * FolderWindow::getDispatch() {
+IDispatch * FolderWindow::getShellViewDispatch() {
     return this;
 }
 

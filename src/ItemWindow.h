@@ -136,7 +136,7 @@ protected:
     POINT parentPos(SIZE size);
     void enableChain(bool enabled);
 
-    virtual IDispatch * getDispatch();
+    virtual IDispatch * getShellViewDispatch();
     void onViewReady();
     virtual void onItemChanged();
     virtual void refresh();
