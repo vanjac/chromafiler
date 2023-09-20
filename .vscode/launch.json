@@ -13,7 +13,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}\\build",
             "environment": [],
-            "console": "externalTerminal"
+            "console": "integratedTerminal"
         },
         {
             "name": "Tray",
@@ -24,7 +24,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}\\build",
             "environment": [],
-            "console": "externalTerminal"
+            "console": "integratedTerminal"
         },
         {
             "name": "Text",
@@ -35,7 +35,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}\\build",
             "environment": [],
-            "console": "externalTerminal"
+            "console": "integratedTerminal"
         },
         {
             "name": "Local Server",
@@ -46,7 +46,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}\\build",
             "environment": [],
-            "console": "externalTerminal"
+            "console": "integratedTerminal"
         },
         {
             "name": "Explorer",
@@ -57,7 +57,7 @@
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}\\build",
             "environment": [],
-            "console": "externalTerminal"
+            "console": "integratedTerminal"
         },
 
     ]
