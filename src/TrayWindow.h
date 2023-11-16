@@ -29,7 +29,7 @@ protected:
         MSG_LAST
     };
     enum TimerID {
-        TIMER_MAKE_TOPMOST = 1,
+        TIMER_MAKE_TOPMOST = FolderWindow::TIMER_LAST,
         TIMER_LAST
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;

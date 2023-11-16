@@ -242,8 +242,7 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
         LRESULT res = DefSubclassProc(hwnd, message, wParam, lParam);
         window->handlingRButtonDown = false;
         if (window->selectedWhileHandlingRButtonDown) {
-            window->selectionDirty = true;
-            PostMessage(window->hwnd, MSG_SELECTION_CHANGED, 0, 0);
+            window->scheduleUpdateSelection();
             window->selectedWhileHandlingRButtonDown = false;
         }
         return res;
@@ -477,9 +476,8 @@ void FolderWindow::selectionChanged() {
             // eg. when a file is deleted from a folder
             // Note: this also happens when certain operations create a progress window
             updateSelectionOnActivate = true;
-        } else if (!selectionDirty) {
-            selectionDirty = true;
-            PostMessage(hwnd, MSG_SELECTION_CHANGED, 0, 0);
+        } else {
+            scheduleUpdateSelection();
         }
     } else if (hasStatusText()) {
         updateStatus(); // make sure parent shows 1 selected
@@ -487,10 +485,19 @@ void FolderWindow::selectionChanged() {
     ignoreInitialSelection = false;
 }
 
+void FolderWindow::scheduleUpdateSelection() {
+    checkLE(SetTimer(hwnd, TIMER_UPDATE_SELECTION, settings::getOpenSelectionTime(), nullptr));
+}
+
 LRESULT FolderWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
-    if (message == MSG_SELECTION_CHANGED) {
-        selectionDirty = false;
-        updateSelection();
+    switch (message) {
+        case WM_TIMER:
+            if (wParam == TIMER_UPDATE_SELECTION) {
+                KillTimer(hwnd, TIMER_UPDATE_SELECTION);
+                updateSelection();
+                return 0;
+            }
+            break;
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
 }
@@ -803,14 +810,18 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
 
 // called when double-clicking a file
 STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
-    if (selected && settings::getDeselectOnOpen() && GetKeyState(VK_MENU) >= 0) {
-        // single selection
-        selected = nullptr; // prevent recursion
+    if (!invokingDefaultVerb && GetKeyState(VK_MENU) >= 0 && settings::getDeselectOnOpen()) {
         CComQIPtr<IFolderView2> folderView(view);
-        if (folderView)
-            folderView->InvokeVerbOnSelection(nullptr);
-        clearSelection();
-        return S_OK;
+        int numSelected;
+        if (folderView && checkHR(folderView->ItemCount(SVGIO_SELECTION, &numSelected))
+                && numSelected == 1) {
+            invokingDefaultVerb = true; // prevent recursion
+            if (folderView)
+                folderView->InvokeVerbOnSelection(nullptr);
+            invokingDefaultVerb = false;
+            clearSelection();
+            return S_OK;
+        }
     }
     return S_FALSE; // perform default action
 }

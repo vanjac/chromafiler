@@ -94,10 +94,9 @@ public:
     STDMETHODIMP put_FullScreen(VARIANT_BOOL) override;
 
 protected:
-    enum UserMessage {
-        // WPARAM: 0, LPARAM: 0
-        MSG_SELECTION_CHANGED = ItemWindow::MSG_LAST,
-        MSG_LAST
+    enum TimerID {
+        TIMER_UPDATE_SELECTION = 1,
+        TIMER_LAST
     };
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
@@ -149,6 +148,7 @@ private:
     bool readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
 
     void selectionChanged();
+    void scheduleUpdateSelection();
     void updateSelection();
     void clearSelection();
     void updateStatus();
@@ -169,7 +169,6 @@ private:
     bool scrollChanged = false;
 
     // jank flags
-    bool selectionDirty = false;
     bool ignoreInitialSelection = false;
     bool updateSelectionOnActivate = false;
     bool activateOnShiftRelease = false;
@@ -178,6 +177,7 @@ private:
     bool handlingSetColumnWidth = false;
     bool handlingRButtonDown = false;
     bool selectedWhileHandlingRButtonDown = false;
+    bool invokingDefaultVerb = false;
 
     DWORD clickTime = 0;
     POINT clickPos;

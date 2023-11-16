@@ -24,6 +24,7 @@ const SIZE      DEFAULT_FOLDER_WINDOW_SIZE  = {210, 435};
 const bool      DEFAULT_STATUS_TEXT_ENABLED = true;
 const bool      DEFAULT_TOOLBAR_ENABLED     = true;
 const bool      DEFAULT_PREVIEWS_ENABLED    = true;
+const UINT      DEFAULT_OPEN_SELECTION_TIME = 100;
 const bool      DEFAULT_DESELECT_ON_OPEN    = true;
 const bool      DEFAULT_TEXT_EDITOR_ENABLED = true;
 const LOGFONT   DEFAULT_TEXT_FONT           = {
@@ -73,6 +74,8 @@ void setToolbarEnabled(bool value);
 bool getPreviewsEnabled();
 void setPreviewsEnabled(bool value);
 
+UINT getOpenSelectionTime(); // milliseconds
+void setOpenSelectionTime(UINT value); // TODO: add to Settings
 bool getDeselectOnOpen();
 void setDeselectOnOpen(bool value); // TODO: add to Settings
 
