@@ -91,6 +91,7 @@ protected:
 
     CComPtr<IPropertyBag> getPropBag();
     virtual void resetPropBag(CComPtr<IPropertyBag> bag);
+    virtual void writeAllViewState(CComPtr<IPropertyBag> bag);
 
     bool isScratch();
     void onModify();

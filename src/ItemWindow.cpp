@@ -98,6 +98,18 @@ static int invisibleBorderDoubleSize(HWND hwnd, int dpi) {
     return 0;
 }
 
+static void writeScaledPos(CComPtr<IPropertyBag> bag, const wchar_t *prop, RECT rect) {
+    // unlike the tray we don't store the DPI along with unscaled positions
+    // because we don't need to be pixel-perfect
+    CComVariant posVar((unsigned long)MAKELONG(invScaleDPI(rect.left), invScaleDPI(rect.top)));
+    checkHR(bag->Write(prop, &posVar));
+}
+
+static void writeScaledSize(CComPtr<IPropertyBag> bag, const wchar_t *prop, SIZE size) {
+    CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
+    checkHR(bag->Write(prop, &sizeVar));
+}
+
 int ItemWindow::cascadeSize() {
     return CAPTION_HEIGHT + (invisibleBorders() ? 0 : windowResizeMargin());
 }
@@ -326,9 +338,18 @@ void ItemWindow::resetViewState() {
 
 void ItemWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
     CComVariant empty;
-    checkHR(bag->Write(PROP_SIZE, &empty));
     checkHR(bag->Write(PROP_POS, &empty));
+    checkHR(bag->Write(PROP_SIZE, &empty));
     checkHR(bag->Write(PROP_CHILD_SIZE, &empty));
+}
+
+void ItemWindow::writeAllViewState(CComPtr<IPropertyBag> bag) {
+    RECT rect = windowRect(hwnd);
+    writeScaledPos(bag, PROP_POS, rect);
+    writeScaledSize(bag, PROP_SIZE, rectSize(rect));
+    // TODO: copy stored child size instead of this
+    if (child && child->persistSizeInParent())
+        writeScaledSize(bag, PROP_CHILD_SIZE, rectSize(windowRect(child->hwnd)));
 }
 
 bool ItemWindow::isScratch() {
@@ -1295,16 +1316,12 @@ void ItemWindow::onExitSizeMove(bool, bool sized) {
         SIZE size = rectSize(rect);
         if (parent && persistSizeInParent())
             parent->onChildResized(size);
-        CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
         if (auto bag = getPropBag())
-            checkHR(bag->Write(PROP_SIZE, &sizeVar));
+            writeScaledSize(bag, PROP_SIZE, size);
     }
     if (!parent) {
-        // unlike the tray we don't store the DPI along with the unscaled position
-        // because we don't need to be pixel-perfect
-        CComVariant posVar((unsigned long)MAKELONG(invScaleDPI(rect.left), invScaleDPI(rect.top)));
         if (auto bag = getPropBag())
-            checkHR(bag->Write(PROP_POS, &posVar));
+            writeScaledPos(bag, PROP_POS, rect);
     }
 }
 
@@ -1471,10 +1488,8 @@ void ItemWindow::detachFromParent(bool closeParent) {
     }
     activate(); // bring this chain to front
 
-    SIZE size = rectSize(windowRect(hwnd));
-    CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
     if (auto bag = getPropBag())
-        checkHR(bag->Write(PROP_SIZE, &sizeVar));
+        writeScaledSize(bag, PROP_SIZE, rectSize(windowRect(hwnd)));
 
     SHAddToRecentDocs(SHARD_APPIDINFO, tempPtr(SHARDAPPIDINFO{item, appUserModelID()}));
 }
@@ -1482,9 +1497,8 @@ void ItemWindow::detachFromParent(bool closeParent) {
 void ItemWindow::onChildDetached() {}
 
 void ItemWindow::onChildResized(SIZE size) {
-    CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
     if (auto bag = getPropBag())
-        checkHR(bag->Write(PROP_CHILD_SIZE, &sizeVar));
+        writeScaledSize(bag, PROP_CHILD_SIZE, size);
 }
 
 void ItemWindow::detachAndMove(bool closeParent) {
@@ -1559,10 +1573,8 @@ RECT ItemWindow::requestedRect(HMONITOR preferMonitor) {
         checkLE(DestroyWindow(owner));
     }
 
-    if (auto bag = getPropBag()) {
-        CComVariant posVar((unsigned long)MAKELONG(invScaleDPI(rect.left), invScaleDPI(rect.top)));
-        checkHR(bag->Write(PROP_POS, &posVar));
-    }
+    if (auto bag = getPropBag())
+        writeScaledPos(bag, PROP_POS, rect);
     return rect;
 }
 
@@ -1786,7 +1798,8 @@ void ItemWindow::onItemChanged() {
         item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
     }
     propBag = nullptr;
-    resetViewState(); // TODO: transfer settings from old bag?
+    if (auto bag = getPropBag())
+        writeAllViewState(bag);
     unregisterShellNotify();
     registerShellNotify();
     if (!getShellViewDispatch())

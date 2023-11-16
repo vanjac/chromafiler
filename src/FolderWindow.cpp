@@ -99,6 +99,15 @@ void FolderWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
     ItemWindow::resetPropBag(bag);
     CComVariant visitedVar(false);
     checkHR(bag->Write(PROP_VISITED, &visitedVar));
+    CComVariant empty;
+    checkHR(bag->Write(PROP_ICON_POS, &empty));
+    checkHR(bag->Write(PROP_SCROLL, &empty));
+}
+
+void FolderWindow::writeAllViewState(CComPtr<IPropertyBag> bag) {
+    ItemWindow::writeAllViewState(bag);
+    scrollChanged = true;
+    saveViewState(bag);
 }
 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
@@ -304,6 +313,58 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 
+void FolderWindow::getViewState(CComPtr<IFolderView2> folderView, ViewState *state) {
+    checkHR(folderView->GetViewModeAndIconSize(&state->viewMode, &state->iconSize));
+    checkHR(folderView->GetCurrentFolderFlags(&state->flags));
+
+    CComQIPtr<IColumnManager> columnMgr(folderView);
+    if (columnMgr && checkHR(columnMgr->GetColumnCount(CM_ENUM_VISIBLE, &state->numColumns))) {
+        state->columns = std::unique_ptr<PROPERTYKEY[]>(new PROPERTYKEY[state->numColumns]);
+        state->columnWidths = std::unique_ptr<UINT[]>(new UINT[state->numColumns]);
+        checkHR(columnMgr->GetColumns(CM_ENUM_VISIBLE, state->columns.get(), state->numColumns));
+        for (UINT i = 0; i < state->numColumns; i++) {
+            CM_COLUMNINFO info = {sizeof(info), CM_MASK_WIDTH};
+            checkHR(columnMgr->GetColumnInfo(state->columns[i], &info));
+            state->columnWidths[i] = info.uWidth;
+        }
+    }
+
+    if (checkHR(folderView->GetSortColumnCount(&state->numSortColumns))) {
+        state->sortColumns = std::unique_ptr<SORTCOLUMN[]>(new SORTCOLUMN[state->numSortColumns]);
+        checkHR(folderView->GetSortColumns(state->sortColumns.get(), state->numSortColumns));
+    }
+
+    checkHR(folderView->GetGroupBy(&state->groupBy, &state->groupAscending));
+
+    if (checkHR(folderView->ItemCount(SVGIO_ALLVIEW, &state->numItems))) {
+        state->itemIds = std::unique_ptr<CComHeapPtr<ITEMID_CHILD>[]>(
+            new CComHeapPtr<ITEMID_CHILD>[state->numItems]);
+        state->itemPositions = std::unique_ptr<POINT[]>(new POINT[state->numItems]);
+        for (int i = 0; i < state->numItems; i++) {
+            checkHR(folderView->Item(i, &state->itemIds[i]));
+            checkHR(folderView->GetItemPosition(state->itemIds[i], &state->itemPositions[i]));
+        }
+    }
+}
+
+void FolderWindow::setViewState(CComPtr<IFolderView2> folderView, const ViewState &state) {
+    checkHR(folderView->SetViewModeAndIconSize(state.viewMode, state.iconSize));
+    checkHR(folderView->SetCurrentFolderFlags(FWF_AUTOARRANGE | FWF_SNAPTOGRID, state.flags));
+    CComQIPtr<IColumnManager> columnMgr(folderView);
+    if (columnMgr) {
+        checkHR(columnMgr->SetColumns(state.columns.get(), state.numColumns));
+        for (UINT i = 0; i < state.numColumns; i++) {
+            CM_COLUMNINFO info = {sizeof(info), CM_MASK_WIDTH};
+            info.uWidth = state.columnWidths[i];
+            checkHR(columnMgr->SetColumnInfo(state.columns[i], &info));
+        }
+    }
+    checkHR(folderView->SetSortColumns(state.sortColumns.get(), state.numSortColumns));
+    checkHR(folderView->SetGroupBy(state.groupBy, state.groupAscending));
+    checkHR(folderView->SelectAndPositionItems(state.numItems,
+        (PCITEMID_CHILD *)state.itemIds.get(), state.itemPositions.get(), SVSI_NOSTATECHANGE));
+}
+
 void FolderWindow::saveViewState(CComPtr<IPropertyBag> bag) {
     CComPtr<IFolderView> folderView;
     if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))) && spatialView(folderView)) {
@@ -448,7 +509,7 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
         if (shellView)
             checkHR(shellView->UIActivate(SVUIA_ACTIVATE_FOCUS));
         if (updateSelectionOnActivate) {
-            updateSelection();
+            updateSelection(); // no delay
             updateSelectionOnActivate = false;
         }
     }
@@ -575,6 +636,12 @@ IDispatch * FolderWindow::getShellViewDispatch() {
 void FolderWindow::onItemChanged() {
     ItemWindow::onItemChanged();
     if (browser) {
+        CComPtr<IFolderView2> folderView;
+        if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
+            storedViewState = std::make_unique<ViewState>();
+            getViewState(folderView, storedViewState.get());
+        }
+
         CComQIPtr<IShellFolderView> sfv(shellView);
         if (sfv) {
             CComPtr<IShellFolderViewCB> oldCB;
@@ -903,17 +970,25 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
         checkHR(sfv->SetCallback(this, &prevCB));
     }
 
-    bool visited = false; // folder has been visited before
-    if (auto bag = getPropBag()) {
-        VARIANT var = {VT_BOOL};
-        if (SUCCEEDED(bag->Read(PROP_VISITED, &var, nullptr)))
-            visited = !!var.boolVal;
-        // can't load icon pos yet, view state not known
-    }
-    if (!visited) {
-        CComQIPtr<IFolderView2> folderView(view);
-        if (folderView)
-            initDefaultView(folderView);
+    CComQIPtr<IFolderView2> folderView(view);
+    if (folderView) {
+        if (storedViewState) {
+            setViewState(folderView, *storedViewState);
+            storedViewState = nullptr;
+            CComVariant visitedVar(true);
+            if (auto bag = getPropBag())
+                checkHR(bag->Write(PROP_VISITED, &visitedVar));
+        } else {
+            bool visited = false; // folder has been visited before
+            if (auto bag = getPropBag()) {
+                VARIANT var = {VT_BOOL};
+                if (SUCCEEDED(bag->Read(PROP_VISITED, &var, nullptr)))
+                    visited = !!var.boolVal;
+                // can't load icon pos yet, view state not known
+            }
+            if (!visited)
+                initDefaultView(folderView);
+        }
     }
 
     return S_OK;

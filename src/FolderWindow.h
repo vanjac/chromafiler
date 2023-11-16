@@ -2,6 +2,7 @@
 #include <common.h>
 
 #include "ItemWindow.h"
+#include <memory>
 #include <ExDisp.h>
 #include <shlobj_core.h>
 
@@ -108,6 +109,7 @@ protected:
     bool isFolder() const override;
 
     void resetPropBag(CComPtr<IPropertyBag> bag) override;
+    void writeAllViewState(CComPtr<IPropertyBag> bag) override;
 
     virtual FOLDERSETTINGS folderSettings() const;
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
@@ -134,6 +136,26 @@ protected:
     CComPtr<IShellView> shellView;
 
 private:
+    struct ViewState {
+        FOLDERVIEWMODE viewMode = {};
+        DWORD flags = 0;
+        int iconSize = 0;
+
+        UINT numColumns = 0;
+        std::unique_ptr<PROPERTYKEY[]> columns;
+        std::unique_ptr<UINT[]> columnWidths;
+
+        int numSortColumns = 0;
+        std::unique_ptr<SORTCOLUMN[]> sortColumns;
+
+        PROPERTYKEY groupBy = {};
+        BOOL groupAscending = false;
+
+        int numItems = 0;
+        std::unique_ptr<CComHeapPtr<ITEMID_CHILD>[]> itemIds;
+        std::unique_ptr<POINT[]> itemPositions;
+    };
+
     const wchar_t * className() const override;
 
     void listViewCreated();
@@ -141,6 +163,9 @@ private:
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
     static LRESULT CALLBACK listViewOwnerProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
+
+    static void getViewState(CComPtr<IFolderView2> folderView, ViewState *state);
+    static void setViewState(CComPtr<IFolderView2> folderView, const ViewState &state);
 
     void saveViewState(CComPtr<IPropertyBag> bag);
     bool writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
@@ -181,6 +206,8 @@ private:
 
     DWORD clickTime = 0;
     POINT clickPos;
+
+    std::unique_ptr<ViewState> storedViewState;
 };
 
 } // namespace

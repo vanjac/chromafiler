@@ -37,6 +37,7 @@ protected:
     void updateWindowPropStore(CComPtr<IPropertyStore> propStore) override;
 
     void resetPropBag(CComPtr<IPropertyBag> bag) override;
+    void writeAllViewState(CComPtr<IPropertyBag> bag) override;
 
     void onCreate() override;
     bool onCloseRequest() override;

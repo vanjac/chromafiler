@@ -102,6 +102,12 @@ void TextWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
     checkHR(bag->Write(PROP_WORD_WRAP, &empty));
 }
 
+void TextWindow::writeAllViewState(CComPtr<IPropertyBag> bag) {
+    ItemWindow::writeAllViewState(bag);
+    CComVariant wordWrapVar(isWordWrap());
+    checkHR(bag->Write(PROP_WORD_WRAP, &wordWrapVar));
+}
+
 void TextWindow::updateAllSettings() {
     // https://stackoverflow.com/q/15987051
     checkLE(SendNotifyMessage(HWND_BROADCAST, updateSettingsMessage, 0, 0));
