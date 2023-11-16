@@ -16,6 +16,7 @@ const DWORD     DEFAULT_LAST_OPENED_VERSION = 0;
 const bool      DEFAULT_UPDATE_CHECK_ENABLED= false;
 const LONGLONG  DEFAULT_LAST_UPDATE_CHECK   = 0;
 const LONGLONG  DEFAULT_UPDATE_CHECK_RATE   = 10000000LL * 60 * 60 * 24 * 7; // 1 week
+const bool      DEFAULT_ADMIN_WARNING       = true;
 const wchar_t   DEFAULT_STARTING_FOLDER[]   = L"shell:Desktop";
 const wchar_t   DEFAULT_SCRATCH_FOLDER[]    = L"shell:Desktop";
 const wchar_t   DEFAULT_SCRATCH_FILE_NAME[] = L"scratch.txt";
@@ -53,6 +54,9 @@ LONGLONG getLastUpdateCheck();
 void setLastUpdateCheck(LONGLONG value);
 LONGLONG getUpdateCheckRate();
 void setUpdateCheckRate(LONGLONG value); // TODO: add to Settings
+
+bool getAdminWarning();
+void setAdminWarning(bool value);
 
 wstr_ptr getStartingFolder();
 void setStartingFolder(wchar_t *value);

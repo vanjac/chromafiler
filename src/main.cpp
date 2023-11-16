@@ -72,21 +72,23 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     controls.dwICC = ICC_STANDARD_CLASSES | ICC_BAR_CLASSES | ICC_USEREX_CLASSES;
     InitCommonControlsEx(&controls);
 
-    TOKEN_ELEVATION elevation = {};
-    HANDLE procToken;
-    if (checkLE(OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &procToken))) {
-        DWORD size = sizeof(elevation);
-        checkLE(GetTokenInformation(procToken, TokenElevation,
-            &elevation, sizeof(elevation), &size));
-        CloseHandle(procToken);
-    }
-    if (elevation.TokenIsElevated) {
-        int button = 0;
-        checkHR(TaskDialog(nullptr, nullptr, MAKEINTRESOURCE(IDS_APP_NAME), nullptr,
-            MAKEINTRESOURCE(IDS_ADMIN_WARNING), TDCBF_YES_BUTTON | TDCBF_NO_BUTTON, TD_WARNING_ICON,
-            &button));
-        if (button != IDYES)
-            return 0;
+    if (settings::getAdminWarning()) {
+        TOKEN_ELEVATION elevation = {};
+        HANDLE procToken;
+        if (checkLE(OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &procToken))) {
+            DWORD size = sizeof(elevation);
+            checkLE(GetTokenInformation(procToken, TokenElevation,
+                &elevation, sizeof(elevation), &size));
+            CloseHandle(procToken);
+        }
+        if (elevation.TokenIsElevated) {
+            int button = 0;
+            checkHR(TaskDialog(nullptr, nullptr, MAKEINTRESOURCE(IDS_APP_NAME), nullptr,
+                MAKEINTRESOURCE(IDS_ADMIN_WARNING), TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
+                TD_WARNING_ICON, &button));
+            if (button != IDYES)
+                return 0;
+        }
     }
 
     initDPI();
