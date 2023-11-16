@@ -415,6 +415,7 @@ bool TextWindow::onCommand(WORD command) {
             logFont.lfHeight = settings::DEFAULT_TEXT_FONT.lfHeight;
             updateFont();
             settings::setTextFont(logFont);
+            return true;
     }
     return ItemWindow::onCommand(command);
 }
