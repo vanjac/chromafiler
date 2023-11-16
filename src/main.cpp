@@ -340,7 +340,7 @@ namespace chromafiler {
     // main.h
     CComPtr<ItemWindow> activeWindow;
 #ifdef CHROMAFILER_MEMLEAKS
-    long MEMLEAK_COUNT;
+    long MEMLEAK_COUNT = 0;
 #endif
 
     static long lockCount = 0;
