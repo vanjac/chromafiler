@@ -240,7 +240,7 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
 
     CComPtr<IPreviewHandler> preview;
     for (auto &entry : factoryCache) {
-        if (entry.clsid == request->previewID) {
+        if (entry.clsid == request->previewID && entry.factory) {
             debugPrintf(L"Found cached factory\n");
             if (!checkHR(entry.factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview)))) {
                 entry.clsid = {};
