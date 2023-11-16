@@ -1985,10 +1985,8 @@ void ItemWindow::proxyDrag(POINT offset) {
     if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&dataObject))))
         return;
     CComPtr<IDragSourceHelper> dragHelper;
-    // TODO could this reuse the existing helper?
-    if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper))) {
+    if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper)))
         dragHelper->InitializeFromWindow(proxyToolbar, &offset, dataObject);
-    }
 
     DWORD okEffects = DROPEFFECT_COPY | DROPEFFECT_LINK | DROPEFFECT_MOVE;
     DWORD effect;
