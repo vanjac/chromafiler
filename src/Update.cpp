@@ -146,12 +146,12 @@ DWORD checkUpdate(UpdateInfo *info) {
     if (error)
         return error;
     debugPrintf(L"Downloaded content: %S\n", data.data());
-    if (memcmp(data.data(), "CFUP", 4)) {
-        debugPrintf(L"Update data is missing prefix!\n");
-        return (DWORD)E_FAIL;
-    }
     if (dataSize < 31) {
         debugPrintf(L"Update data is too small!\n");
+        return (DWORD)E_FAIL;
+    }
+    if (memcmp(data.data(), "CFUP", 4)) {
+        debugPrintf(L"Update data is missing prefix!\n");
         return (DWORD)E_FAIL;
     }
     char hexString[11] = "0x";
