@@ -81,7 +81,7 @@
 #define IDS_BROWSER_RESET       214
 #define IDS_REQUIRE_CONTEXT     215
 #define IDS_BROWSER_SET_CONFIRM 216
-#define IDS_WELCOME_CAPTION     217
+#define IDS_APP_NAME            217
 #define IDS_WELCOME_HEADER      218
 #define IDS_WELCOME_BODY        219
 #define IDS_WELCOME_TUTORIAL    220
@@ -115,6 +115,7 @@
 #define IDS_FOLDER_ERROR        248
 #define IDS_TEXT_LOADING        249
 #define IDS_INVALID_CHARS       250
+#define IDS_ADMIN_WARNING       251
 
 // corresponds to UNDONAMEID
 #define IDS_TEXT_UNDO_UNKNOWN   300

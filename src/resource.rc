@@ -105,6 +105,8 @@ IDR_TEXT_MENU   MENU {
 }
 
 STRINGTABLE {
+    IDS_APP_NAME,           "ChromaFiler"
+
     IDS_UNKNOWN_ERROR,      "Unknown error"
     IDS_ERROR_CAPTION,      "Error"
     IDS_CANT_FIND_ITEM,     "Unable to find item at path: %1"
@@ -174,13 +176,14 @@ STRINGTABLE {
     IDS_REQUIRE_CONTEXT,    "ChromaFiler must be installed with the Folder Context Menu enabled to be able to change the default browser."
     IDS_BROWSER_SET_CONFIRM,"This will replace Windows File Explorer as the default program for opening all folders."
 
-    IDS_WELCOME_CAPTION,    "ChromaFiler"
     IDS_WELCOME_HEADER,     "Welcome"
     IDS_WELCOME_BODY,       "This appears to be your first time using ChromaFiler."
     IDS_WELCOME_TUTORIAL,   "&Read Tutorial\nRecommended for first-time users"
     IDS_WELCOME_TRAY,       "&Enable Tray\nFloating toolbar with quick access to folders"
     IDS_WELCOME_BROWSER,    "&Make default file browser\nReplace File Explorer as your default browser"
     IDS_WELCOME_UPDATE,     "Check for &updates weekly"
+
+    IDS_ADMIN_WARNING,      "You are attempting to run ChromaFiler as Administrator. This is not recommended!\n\nContinue anyway?"
 
     IDS_LEGAL_INFO,         "\
 Copyright (c) 2023 J. van't Hoog\r\n\
