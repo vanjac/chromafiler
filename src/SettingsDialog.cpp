@@ -92,6 +92,9 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
             SIZE itemWindowSize = settings::getItemWindowSize();
             SetDlgItemInt(hwnd, IDC_ITEM_WINDOW_WIDTH, itemWindowSize.cx, TRUE);
             SetDlgItemInt(hwnd, IDC_ITEM_WINDOW_HEIGHT, itemWindowSize.cy, TRUE);
+            SetDlgItemInt(hwnd, IDC_SELECTION_DELAY, settings::getOpenSelectionTime(), FALSE);
+            SendDlgItemMessage(hwnd, IDC_SELECTION_DELAY_UD, UDM_SETRANGE32,
+                USER_TIMER_MINIMUM, 999);
             CheckDlgButton(hwnd, IDC_STATUS_TEXT_ENABLED,
                 settings::getStatusTextEnabled() ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hwnd, IDC_TOOLBAR_ENABLED,
@@ -124,6 +127,9 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                     if (success)
                         settings::setItemWindowSize(size);
                 }
+                int selectionDelay = GetDlgItemInt(hwnd, IDC_SELECTION_DELAY, &success, FALSE);
+                if (success)
+                    settings::setOpenSelectionTime(selectionDelay);
                 settings::setStatusTextEnabled(!!IsDlgButtonChecked(hwnd, IDC_STATUS_TEXT_ENABLED));
                 settings::setToolbarEnabled(!!IsDlgButtonChecked(hwnd, IDC_TOOLBAR_ENABLED));
                 settings::setPreviewsEnabled(!!IsDlgButtonChecked(hwnd, IDC_PREVIEWS_ENABLED));

@@ -13,6 +13,8 @@
 #define IDC_TOOLBAR_ENABLED         1008
 #define IDC_PREVIEWS_ENABLED        1009
 #define IDC_EXPLORER_SETTINGS       1010
+#define IDC_SELECTION_DELAY         1011
+#define IDC_SELECTION_DELAY_UD      1012
 
 #define IDD_SETTINGS_TRAY           105
 #define IDC_TRAY_ENABLED            1101
