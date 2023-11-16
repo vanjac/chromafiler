@@ -1470,6 +1470,12 @@ void ItemWindow::detachFromParent(bool closeParent) {
         rootParent->activate(); // no window is focused by default
     }
     activate(); // bring this chain to front
+
+    SIZE size = rectSize(windowRect(hwnd));
+    CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
+    if (auto bag = getPropBag())
+        checkHR(bag->Write(PROP_SIZE, &sizeVar));
+
     SHAddToRecentDocs(SHARD_APPIDINFO, tempPtr(SHARDAPPIDINFO{item, appUserModelID()}));
 }
 
