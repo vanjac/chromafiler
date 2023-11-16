@@ -403,7 +403,7 @@ void FolderWindow::onDestroy() {
             checkHR(sfv->SetCallback(prevCB, &oldCB));
             prevCB = nullptr;
         }
-    } else {
+    } else if (browser) {
         // prevent view settings from being trashed before navigation complete
         checkHR(browser->SetPropertyBag(L""));
     }
