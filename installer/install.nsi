@@ -60,6 +60,7 @@ Page Custom LockedListShow
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_COMPONENTS
 UninstPage Custom un.LockedListShow
 !insertmacro MUI_UNPAGE_INSTFILES
 
@@ -70,6 +71,7 @@ LangString DESC_SecText ${LANG_ENGLISH} "Integrated Notepad-like text editor."
 LangString DESC_SecStart ${LANG_ENGLISH} "Add a shortcut to the Start Menu to launch $(^Name)."
 LangString DESC_SecProgID ${LANG_ENGLISH} "Add an entry to the 'Open with' menu for all file types. (Does not change the default app for any file type.)"
 LangString DESC_SecContext ${LANG_ENGLISH} "Add 'Open in $(^Name)' command when right-clicking a folder. Required to set default file browser."
+LangString DESC_SecRemoveSettings ${LANG_ENGLISH} "If unchecked, settings will be restored the next time you install ChromaFiler."
 LangString LOCKED_LIST_TITLE ${LANG_ENGLISH} "Close Programs"
 LangString LOCKED_LIST_SUBTITLE ${LANG_ENGLISH} "Make sure all $(^Name) windows are closed before continuing (including the tray)."
 
@@ -279,12 +281,13 @@ Function OpenTray
 	Exec '"$WINDIR\explorer.exe" "$TEMP\ChromaFilerTray.lnk"'
 FunctionEnd
 
-Section "un.Uninstall"
+Section "un.Uninstall ChromaFiler"
+	SectionIn RO
+
 	Delete $INSTDIR\*.exe
 	Delete $INSTDIR\LICENSE.txt
 	RMDir $INSTDIR
 	DeleteRegKey SHCTX "${REG_UNINST_KEY}"
-	DeleteRegKey SHCTX Software\ChromaFiler
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaFiler.exe"
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaText.exe"
 	DeleteRegKey SHCTX "Software\Classes\Chroma.Text"
@@ -305,8 +308,13 @@ Section "un.Uninstall"
 	${EndIf}
 SectionEnd
 
-Function un.CleanupCurrentUser
+Section "un.Remove all settings" SecRemoveSettings
+	DeleteRegKey SHCTX Software\ChromaFiler
 	DeleteRegKey HKCU "Software\ChromaFiler"
+	; Other users' settings will not be erased
+SectionEnd
+
+Function un.CleanupCurrentUser
 	DeleteRegKey HKCU "Software\Classes\Applications\ChromaFiler.exe"
 	DeleteRegKey HKCU "Software\Classes\Chroma.Text"
 	DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
@@ -325,7 +333,6 @@ FunctionEnd
 
 Function un.CleanupUser
 	Pop $0
-	DeleteRegKey HKU "$0\Software\ChromaFiler"
 	DeleteRegKey HKU "$0\Software\Classes\Applications\ChromaFiler.exe"
 	DeleteRegKey HKU "$0\Software\Classes\Chroma.Text"
 	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
@@ -349,3 +356,7 @@ FunctionEnd
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecProgID} $(DESC_SecProgID)
 	!insertmacro MUI_DESCRIPTION_TEXT ${SecContext} $(DESC_SecContext)
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
+
+!insertmacro MUI_UNFUNCTION_DESCRIPTION_BEGIN
+	!insertmacro MUI_DESCRIPTION_TEXT ${SecRemoveSettings} $(DESC_SecRemoveSettings)
+!insertmacro MUI_UNFUNCTION_DESCRIPTION_END
