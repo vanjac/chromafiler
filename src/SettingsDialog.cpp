@@ -309,6 +309,8 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 TrayWindow::findTray() ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(hwnd, IDC_OPEN_TRAY_ON_STARTUP,
                 settings::getTrayOpenOnStartup() ? BST_CHECKED : BST_UNCHECKED);
+            CheckDlgButton(hwnd, IDC_TRAY_HOTKEY,
+                settings::getTrayHotKeyEnabled() ? BST_CHECKED : BST_UNCHECKED);
             for (int i = 0; i < _countof(SPECIAL_PATHS); i++) {
                 COMBOBOXEXITEM item = {CBEIF_TEXT, -1, (wchar_t *)SPECIAL_PATHS[i]};
                 SendDlgItemMessage(hwnd, IDC_TRAY_FOLDER_PATH, CBEM_INSERTITEM, 0, (LPARAM)&item);
@@ -335,6 +337,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             } else if (notif->code == PSN_APPLY) {
                 settings::setTrayOpenOnStartup(
                     !!IsDlgButtonChecked(hwnd, IDC_OPEN_TRAY_ON_STARTUP));
+                settings::setTrayHotKeyEnabled(!!IsDlgButtonChecked(hwnd, IDC_TRAY_HOTKEY));
                 wchar_t trayFolder[MAX_PATH];
                 if (GetDlgItemText(hwnd, IDC_TRAY_FOLDER_PATH, trayFolder, _countof(trayFolder)))
                     settings::setTrayFolder(trayFolder);
@@ -344,6 +347,7 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     settings::setTrayDirection(TRAY_DOWN);
                 else if (IsDlgButtonChecked(hwnd, IDC_TRAY_DIR_RIGHT))
                     settings::setTrayDirection(TRAY_RIGHT);
+                TrayWindow::updateAllSettings();
                 SetWindowLongPtr(hwnd, DWLP_MSGRESULT, PSNRET_NOERROR);
                 return TRUE;
             } else if (notif->code == PSN_HELP) {
@@ -382,7 +386,8 @@ INT_PTR CALLBACK trayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             } else if (LOWORD(wParam) == IDC_TRAY_FOLDER_PATH && pathCBChanged(wParam, lParam)) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);
                 return TRUE;
-            } else if (HIWORD(wParam) == BN_CLICKED && (LOWORD(wParam) == IDC_OPEN_TRAY_ON_STARTUP
+            } else if (HIWORD(wParam) == BN_CLICKED &&
+                    (LOWORD(wParam) == IDC_OPEN_TRAY_ON_STARTUP || LOWORD(wParam) == IDC_TRAY_HOTKEY
                     || LOWORD(wParam) == IDC_TRAY_DIR_ABOVE || LOWORD(wParam) == IDC_TRAY_DIR_BELOW
                     || LOWORD(wParam) == IDC_TRAY_DIR_RIGHT)) {
                 PropSheet_Changed(GetParent(hwnd), hwnd);

@@ -12,6 +12,7 @@ public:
 
     static HWND findTray();
     static void resetTrayPosition();
+    static void updateAllSettings();
 
     TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
 
@@ -57,6 +58,7 @@ protected:
 private:
     const wchar_t * className() const override;
 
+    void updateSettings();
     void fixListViewColors();
 
     void forceTopmost();

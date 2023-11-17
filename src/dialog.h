@@ -25,6 +25,7 @@
 #define IDC_TRAY_DIR_BELOW          1106
 #define IDC_TRAY_DIR_RIGHT          1107
 #define IDC_RESET_TRAY_POSITION     1108
+#define IDC_TRAY_HOTKEY             1109
 
 #define IDD_SETTINGS_TEXT           109
 #define IDC_TEXT_EDITOR_ENABLED     1201

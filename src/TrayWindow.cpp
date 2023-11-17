@@ -19,7 +19,7 @@ static int CLOSE_BOX_MARGIN = 4;
 static int DEFAULT_DIMEN = 400;
 static SIZE MIN_TRAY_SIZE = {28, 28};
 
-static UINT resetPositionMessage, taskbarCreatedMessage;
+static UINT resetPositionMessage, updateSettingsMessage, taskbarCreatedMessage;
 
 // https://walbourn.github.io/windows-sdk-for-windows-11/
 inline bool IsWindows11OrGreater() {
@@ -54,6 +54,7 @@ void TrayWindow::init() {
     MIN_TRAY_SIZE = scaleDPI(MIN_TRAY_SIZE);
 
     resetPositionMessage = checkLE(RegisterWindowMessage(L"chromafiler_TrayResetPosition"));
+    updateSettingsMessage = checkLE(RegisterWindowMessage(L"chromafiler_TrayUpdateSettings"));
     taskbarCreatedMessage = checkLE(RegisterWindowMessage(L"TaskbarCreated"));
 }
 
@@ -70,6 +71,10 @@ HWND TrayWindow::findTray() {
 
 void TrayWindow::resetTrayPosition() {
     checkLE(SendNotifyMessage(HWND_BROADCAST, resetPositionMessage, 0, 0));
+}
+
+void TrayWindow::updateAllSettings() {
+    checkLE(SendNotifyMessage(HWND_BROADCAST, updateSettingsMessage, 0, 0));
 }
 
 static RECT getTaskbarRect() {
@@ -206,7 +211,7 @@ void TrayWindow::onCreate() {
     abData.uCallbackMessage = MSG_APPBAR_CALLBACK;
     SHAppBarMessage(ABM_NEW, &abData);
 
-    checkLE(RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C'));
+    updateSettings();
 
     if (HMENU systemMenu = GetSystemMenu(hwnd, FALSE)) {
         AppendMenu(systemMenu, MF_SEPARATOR, 0, nullptr);
@@ -218,13 +223,18 @@ void TrayWindow::onCreate() {
     FolderWindow::onCreate();
 }
 
+void TrayWindow::updateSettings() {
+    if (settings::getTrayHotKeyEnabled())
+        checkLE(RegisterHotKey(hwnd, HOTKEY_FOCUS_TRAY, MOD_WIN | MOD_ALT, 'C'));
+}
+
 void TrayWindow::onDestroy() {
     FolderWindow::onDestroy();
 
     APPBARDATA abData = {sizeof(abData), hwnd};
     SHAppBarMessage(ABM_REMOVE, &abData);
 
-    checkLE(UnregisterHotKey(hwnd, HOTKEY_FOCUS_TRAY));
+    UnregisterHotKey(hwnd, HOTKEY_FOCUS_TRAY);
 }
 
 void TrayWindow::onSize(SIZE size) {
@@ -362,6 +372,9 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
     if (resetPositionMessage && message == resetPositionMessage) {
         setRect(requestedRect(nullptr));
         return 0;
+    } else if (updateSettingsMessage && message == updateSettingsMessage) {
+        UnregisterHotKey(hwnd, HOTKEY_FOCUS_TRAY);
+        updateSettings();
     } else if (taskbarCreatedMessage && message == taskbarCreatedMessage) {
         // https://learn.microsoft.com/en-us/windows/win32/shell/taskbar#taskbar-creation-notification
         // called when shell restarts or when DPI changes

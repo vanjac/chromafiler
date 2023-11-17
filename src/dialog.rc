@@ -24,7 +24,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0
   CONTROL "", IDC_ITEM_WINDOW_WIDTH, "Edit", ES_NUMBER|WS_BORDER|WS_TABSTOP, 63, 77, 21, 14
   CONTROL "x", -1, "Static", SS_CENTER|WS_GROUP, 84, 80, 14, 8
   CONTROL "", IDC_ITEM_WINDOW_HEIGHT, "Edit", ES_NUMBER|WS_BORDER|WS_TABSTOP, 98, 77, 21, 14
-  CONTROL "Open selection delay:", -1, "Static", WS_GROUP, 133, 52, 91, 8
+  CONTROL "Open selection &delay:", -1, "Static", WS_GROUP, 133, 52, 91, 8
   CONTROL "Edit", IDC_SELECTION_DELAY, "Edit", ES_NUMBER|WS_BORDER|WS_TABSTOP, 133, 63, 28, 14
   CONTROL "", IDC_SELECTION_DELAY_UD, "msctls_updown32", UDS_AUTOBUDDY|UDS_SETBUDDYINT|UDS_ARROWKEYS, 161, 63, 14, 14
   CONTROL "milliseconds", -1, "Static", WS_GROUP, 175, 66, 40, 8
@@ -45,17 +45,18 @@ FONT 8, "MS Shell Dlg", 400, 0, 0
 {
   CONTROL "Show &tray", IDC_TRAY_ENABLED, "Button", BS_AUTOCHECKBOX|WS_TABSTOP, 7, 7, 105, 14
   CONTROL "Open tray on &startup", IDC_OPEN_TRAY_ON_STARTUP, "Button", BS_AUTOCHECKBOX|WS_TABSTOP, 119, 7, 105, 14
-  CONTROL "Tray &folder", -1, "Button", BS_GROUPBOX, 7, 28, 217, 35
-  CONTROL "", IDC_TRAY_FOLDER_PATH, "ComboBoxEx32", CBS_DROPDOWN|WS_TABSTOP|0x00000040, 14, 42, 140, 300
-  CONTROL "&Browse...", IDC_TRAY_FOLDER_BROWSE, "Button", WS_TABSTOP, 161, 42, 56, 14
-  CONTROL "Tray direction", -1, "Button", BS_GROUPBOX, 7, 70, 217, 35
-  CONTROL "Open items...", -1, "Static", WS_GROUP, 14, 87, 56, 8
-  CONTROL "Abo&ve", IDC_TRAY_DIR_ABOVE, "Button", BS_AUTORADIOBUTTON, 70, 84, 42, 14
-  CONTROL "Belo&w", IDC_TRAY_DIR_BELOW, "Button", BS_AUTORADIOBUTTON, 112, 84, 42, 14
-  CONTROL "&Right", IDC_TRAY_DIR_RIGHT, "Button", BS_AUTORADIOBUTTON, 154, 84, 42, 14
-  CONTROL 32516, -1, "Static", SS_ICON, 14, 114, 0, 0
-  CONTROL "Drag the upper-left corner of the tray to move. Drag the lower-right corner to resize.", -1, "Static", WS_GROUP, 42, 115, 175, 16
-  CONTROL "R&eset tray position", IDC_RESET_TRAY_POSITION, "Button", WS_TABSTOP, 42, 140, 70, 14
+  CONTROL "Enable Win+Alt+C &hotkey to focus tray", IDC_TRAY_HOTKEY, "Button", BS_AUTOCHECKBOX|WS_TABSTOP, 7, 21, 217, 14
+  CONTROL "Tray &folder", -1, "Button", BS_GROUPBOX, 7, 42, 217, 35
+  CONTROL "", IDC_TRAY_FOLDER_PATH, "ComboBoxEx32", CBS_DROPDOWN|WS_TABSTOP|0x00000040, 14, 56, 140, 300
+  CONTROL "&Browse...", IDC_TRAY_FOLDER_BROWSE, "Button", WS_TABSTOP, 161, 56, 56, 14
+  CONTROL "Tray direction", -1, "Button", BS_GROUPBOX, 7, 84, 217, 35
+  CONTROL "Open items...", -1, "Static", WS_GROUP, 14, 101, 56, 8
+  CONTROL "Abo&ve", IDC_TRAY_DIR_ABOVE, "Button", BS_AUTORADIOBUTTON, 70, 98, 42, 14
+  CONTROL "Belo&w", IDC_TRAY_DIR_BELOW, "Button", BS_AUTORADIOBUTTON, 112, 98, 42, 14
+  CONTROL "&Right", IDC_TRAY_DIR_RIGHT, "Button", BS_AUTORADIOBUTTON, 154, 98, 42, 14
+  CONTROL 32516, -1, "Static", SS_ICON, 14, 128, 0, 0
+  CONTROL "Drag the upper-left corner of the tray to move. Drag the lower-right corner to resize.", -1, "Static", WS_GROUP, 42, 129, 175, 16
+  CONTROL "R&eset tray position", IDC_RESET_TRAY_POSITION, "Button", WS_TABSTOP, 42, 154, 70, 14
 }
 
 IDD_SETTINGS_TEXT DIALOGEX DISCARDABLE 0, 0, 231, 217

@@ -45,6 +45,7 @@ const int       DEFAULT_TRAY_DPI            = 96;
 const POINT     DEFAULT_TRAY_POSITION       = {CW_USEDEFAULT, CW_USEDEFAULT};
 const SIZE      DEFAULT_TRAY_SIZE           = {CW_USEDEFAULT, CW_USEDEFAULT};
 const TrayDirection DEFAULT_TRAY_DIRECTION  = TRAY_UP;
+const bool      DEFAULT_TRAY_HOTKEY_ENABLED = true;
 
 DWORD getLastOpenedVersion();
 void setLastOpenedVersion(DWORD value);
@@ -116,6 +117,8 @@ SIZE getTraySize(); // using TrayDPI
 void setTraySize(SIZE value);
 TrayDirection getTrayDirection();
 void setTrayDirection(TrayDirection value);
+bool getTrayHotKeyEnabled();
+void setTrayHotKeyEnabled(bool value);
 
 bool supportsDefaultBrowser();
 void setDefaultBrowser(bool value);
