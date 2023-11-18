@@ -10,12 +10,14 @@
 namespace chromafiler {
 
 // https://devblogs.microsoft.com/oldnewthing/20100312-01/?p=14623
+// https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
+// https://devblogs.microsoft.com/oldnewthing/20100528-01/?p=13883
 
 // {87612720-a94e-4fd3-a1f6-b78d7768424f}
 const CLSID CLSID_CFExecute =
     {0x87612720, 0xa94e, 0x4fd3, {0xa1, 0xf6, 0xb7, 0x8d, 0x77, 0x68, 0x42, 0x4f}};
-class CFExecute : public IUnknownImpl,
-        public IExecuteCommand, public IInitializeCommand, public IObjectWithSelection {
+class CFExecute : public IUnknownImpl, public IInitializeCommand,
+        public IObjectWithSelection, public IExecuteCommand, public IDropTarget {
 public:
     CFExecute();
     ~CFExecute();
@@ -37,11 +39,18 @@ public:
     STDMETHODIMP SetNoShowUI(BOOL) override;
     STDMETHODIMP SetDirectory(const wchar_t *path) override;
     STDMETHODIMP Execute() override;
+    // IDropTarget
+    STDMETHODIMP DragEnter(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect)
+        override;
+    STDMETHODIMP DragOver(DWORD keyState, POINTL pt, DWORD *effect) override;
+    STDMETHODIMP DragLeave() override;
+    STDMETHODIMP Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) override;
 
 private:
+    HRESULT openArray(CComPtr<IShellItemArray> array);
     void openItem(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows);
 
-    CComPtr<IShellItemArray> itemArray;
+    CComPtr<IShellItemArray> selection;
     HMONITOR monitor = nullptr;
     int showCommand = SW_SHOWNORMAL;
     wstr_ptr workingDir;

@@ -102,6 +102,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     // https://docs.microsoft.com/en-us/windows/win32/shell/appids
     checkHR(SetCurrentProcessExplicitAppUserModelID(APP_ID));
 
+    debugPrintf(L"%s\n", GetCommandLine());
     int argc;
     wchar_t **argv = CommandLineToArgvW(GetCommandLine(), &argc);
     LaunchType type = createWindowFromCommandLine(argc, argv, showCommand);

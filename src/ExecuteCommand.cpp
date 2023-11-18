@@ -19,9 +19,10 @@ STDMETHODIMP_(ULONG) CFExecute::Release() { return IUnknownImpl::Release(); }
 
 STDMETHODIMP CFExecute::QueryInterface(REFIID id, void **obj) {
     static const QITAB interfaces[] = {
-        QITABENT(CFExecute, IExecuteCommand),
         QITABENT(CFExecute, IInitializeCommand),
         QITABENT(CFExecute, IObjectWithSelection),
+        QITABENT(CFExecute, IExecuteCommand),
+        QITABENT(CFExecute, IDropTarget),
         {},
     };
     HRESULT hr = QISearch(this, interfaces, id, obj);
@@ -45,13 +46,13 @@ STDMETHODIMP CFExecute::Initialize(PCWSTR, IPropertyBag *bag) {
 /* IObjectWithSelection */
 
 STDMETHODIMP CFExecute::SetSelection(IShellItemArray *array) {
-    itemArray = array;
+    selection = array;
     return S_OK;
 }
 
 STDMETHODIMP CFExecute::GetSelection(REFIID id, void **obj) {
-    if (itemArray)
-        return itemArray->QueryInterface(id, obj);
+    if (selection)
+        return selection->QueryInterface(id, obj);
     *obj = nullptr;
     return E_NOINTERFACE;
 }
@@ -81,31 +82,70 @@ STDMETHODIMP CFExecute::SetShowWindow(int show) {
 
 STDMETHODIMP CFExecute::Execute() {
     debugPrintf(L"Invoked with DelegateExecute\n");
-    CComPtr<IShellWindows> shellWindows;
-    checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows));
-    if (!itemArray) {
+    if (!selection) {
         if (!workingDir)
             return E_UNEXPECTED;
         // this happens when invoked on background
         CComPtr<IShellItem> item;
         if (checkHR(SHCreateItemFromParsingName(workingDir.get(), nullptr, IID_PPV_ARGS(&item)))) {
+            CComPtr<IShellWindows> shellWindows;
+            checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows));
             openItem(item, shellWindows);
-            autoUpdateCheck();
         }
-        return S_OK;
+    } else {
+        HRESULT hr;
+        if (FAILED(hr = openArray(selection))) return hr;
     }
+    autoUpdateCheck();
+    return S_OK;
+}
+
+/* IDropTarget */
+
+STDMETHODIMP CFExecute::DragEnter(IDataObject *, DWORD, POINTL, DWORD *effect) {
+    *effect &= DROPEFFECT_LINK;
+    return S_OK;
+}
+
+STDMETHODIMP CFExecute::DragOver(DWORD, POINTL, DWORD *effect) {
+    *effect &= DROPEFFECT_LINK;
+    return S_OK;
+}
+
+STDMETHODIMP CFExecute::DragLeave() {
+    return S_OK;
+}
+
+STDMETHODIMP CFExecute::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) {
+    debugPrintf(L"Invoked with DropTarget\n");
+    // https://devblogs.microsoft.com/oldnewthing/20130204-00/?p=5363
+    SetKeyState(keyState);
+    SetPosition({pt.x, pt.y});
+    HRESULT hr;
+    CComPtr<IShellItemArray> itemArray;
+    if (!checkHR(hr = SHCreateShellItemArrayFromDataObject(dataObject, IID_PPV_ARGS(&itemArray))))
+        return hr;
+    if (FAILED(hr = openArray(itemArray)))
+        return hr;
+    *effect &= DROPEFFECT_LINK;
+    autoUpdateCheck();
+    return S_OK;
+}
+
+HRESULT CFExecute::openArray(CComPtr<IShellItemArray> array) {
+    CComPtr<IShellWindows> shellWindows;
+    checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows));
+
     HRESULT hr;
     CComPtr<IEnumShellItems> enumItems;
-    if (checkHR(hr = itemArray->EnumItems(&enumItems))) {
-        CComPtr<IShellItem> item;
-        while (enumItems->Next(1, &item, nullptr) == S_OK) {
-            openItem(item, shellWindows);
-            item = nullptr;
-        }
-        autoUpdateCheck();
-        return S_OK;
+    if (!checkHR(hr = array->EnumItems(&enumItems)))
+        return hr;
+    CComPtr<IShellItem> item;
+    while (enumItems->Next(1, &item, nullptr) == S_OK) {
+        openItem(item, shellWindows);
+        item = nullptr;
     }
-    return hr;
+    return S_OK;
 }
 
 void CFExecute::openItem(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows) {
