@@ -38,6 +38,8 @@ const wchar_t * const HIDDEN_ITEM_PARSE_NAMES[] = {
     L"::{1CF1260C-4DD0-4EBB-811F-33C572699FDE}", // Music
     L"::{3ADD1653-EB32-4CB0-BBD7-DFA0ABB5ACCA}", // Pictures
     L"::{A0953C92-50DC-43BF-BE83-3742FED03C9C}", // Videos
+    // added in build 22621.2715
+    L"::{E88865EA-0E1C-4E20-9AA6-EDCD0212C87C}", // Gallery
     // special items that are NOT hidden: user folder, This PC, Network, Recycle Bin, Linux
 };
 static CComPtr<IShellItem> controlPanelItem;
