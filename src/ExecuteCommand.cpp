@@ -8,8 +8,9 @@ namespace chromafiler {
 
 CFExecute::CFExecute(bool text) : text(text) {
     lockProcess();
-    if (text)
+    if (text) {
         debugPrintf(L"Invoked for ChromaText\n");
+    }
 }
 
 CFExecute::~CFExecute() {

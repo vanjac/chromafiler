@@ -310,6 +310,11 @@ Section "un.Uninstall ChromaFiler"
 	Delete $SMPROGRAMS\ChromaFiler.lnk
 	Delete $SMPROGRAMS\ChromaText.lnk
 
+	; Clean up hacks
+	DeleteRegKey HKCU "Software\Classes\Applications\ChromaFiler.exe"
+	DeleteRegKey HKCU "Software\Classes\Chroma.Text"
+
+	; Clean up settings written by ChromaFiler (could be under multiple users)
 	${If} $MultiUser.InstallMode == "CurrentUser"
 		Call un.CleanupCurrentUser
 	${Else}
@@ -324,8 +329,6 @@ Section "un.Remove all settings" SecRemoveSettings
 SectionEnd
 
 Function un.CleanupCurrentUser
-	DeleteRegKey HKCU "Software\Classes\Applications\ChromaFiler.exe"
-	DeleteRegKey HKCU "Software\Classes\Chroma.Text"
 	DeleteRegValue HKCU "SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
 	; clear shell defaults if set to chromafiler
@@ -342,8 +345,6 @@ FunctionEnd
 
 Function un.CleanupUser
 	Pop $0
-	DeleteRegKey HKU "$0\Software\Classes\Applications\ChromaFiler.exe"
-	DeleteRegKey HKU "$0\Software\Classes\Chroma.Text"
 	DeleteRegValue HKU "$0\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "ChromaFiler"
 
 	; clear shell defaults if set to chromafiler
