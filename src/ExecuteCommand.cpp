@@ -6,8 +6,10 @@
 
 namespace chromafiler {
 
-CFExecute::CFExecute() {
+CFExecute::CFExecute(bool text) : text(text) {
     lockProcess();
+    if (text)
+        debugPrintf(L"Invoked for ChromaText\n");
 }
 
 CFExecute::~CFExecute() {
@@ -19,7 +21,6 @@ STDMETHODIMP_(ULONG) CFExecute::Release() { return IUnknownImpl::Release(); }
 
 STDMETHODIMP CFExecute::QueryInterface(REFIID id, void **obj) {
     static const QITAB interfaces[] = {
-        QITABENT(CFExecute, IInitializeCommand),
         QITABENT(CFExecute, IObjectWithSelection),
         QITABENT(CFExecute, IExecuteCommand),
         QITABENT(CFExecute, IDropTarget),
@@ -29,18 +30,6 @@ STDMETHODIMP CFExecute::QueryInterface(REFIID id, void **obj) {
     if (SUCCEEDED(hr))
         return hr;
     return IUnknownImpl::QueryInterface(id, obj);
-}
-
-/* IInitializeCommand */
-
-STDMETHODIMP CFExecute::Initialize(PCWSTR, IPropertyBag *bag) {
-    VARIANT typeVar = {VT_BSTR};
-    if (SUCCEEDED(bag->Read(L"CFType", &typeVar, nullptr))) {
-        if (lstrcmpi(typeVar.bstrVal, L"text") == 0)
-            text = true;
-        VariantClear(&typeVar);
-    }
-    return S_OK;
 }
 
 /* IObjectWithSelection */
@@ -168,6 +157,8 @@ void CFExecute::openItem(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellW
 
 /* Factory */
 
+CFExecuteFactory::CFExecuteFactory(bool text) : text(text) {}
+
 STDMETHODIMP_(ULONG) CFExecuteFactory::AddRef() {
     return 2;
 }
@@ -188,7 +179,7 @@ STDMETHODIMP CFExecuteFactory::CreateInstance(IUnknown *outer, REFIID id, void *
     *obj = nullptr;
     if (outer)
         return CLASS_E_NOAGGREGATION;
-    CFExecute *ext = new CFExecute();
+    CFExecute *ext = new CFExecute(text);
     HRESULT hr = ext->QueryInterface(id, obj);
     ext->Release();
     return hr;

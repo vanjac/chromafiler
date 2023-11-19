@@ -27,8 +27,10 @@ SetCompressor LZMA
 
 !define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\ChromaFiler"
 !define REG_APPPATH_KEY "Software\Microsoft\Windows\CurrentVersion\App Paths\ChromaFiler.exe"
+!define REG_TEXT_APPPATH_KEY "Software\Microsoft\Windows\CurrentVersion\App Paths\ChromaText.exe"
 !define CONTEXT_MENU_TEXT "Open in ChromaFiler"
 !define EXECUTE_GUID "{87612720-a94e-4fd3-a1f6-b78d7768424f}"
+!define EXECUTE_TEXT_GUID "{14c46e3b-9015-4bbb-9f1f-9178a94f856f}"
 
 !define MUI_ICON "..\src\res\folder.ico"
 !define MUI_COMPONENTSPAGE_SMALLDESC
@@ -181,6 +183,12 @@ SectionEnd
 
 Section "ChromaText (text editor)" SecText
 	File ..\build\ChromaText.exe
+
+	WriteRegStr SHCTX "${REG_TEXT_APPPATH_KEY}" "" "$INSTDIR\ChromaText.exe"
+	WriteRegStr SHCTX "${REG_TEXT_APPPATH_KEY}" "DropTarget" "${EXECUTE_TEXT_GUID}"
+
+	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_TEXT_GUID}" "" "ChromaText"
+	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_TEXT_GUID}\LocalServer32" "" "$INSTDIR\ChromaFiler.exe"
 SectionEnd
 
 Section "Start Menu shortcut" SecStart
@@ -214,15 +222,13 @@ Section "Add to Open With menu" SecProgID
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe" "AppUserModelID" "chroma.text"
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe" "NoOpenWith" ""
 		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe\shell\open\command" "" '"$INSTDIR\ChromaText.exe" "%1"'
-		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe\shell\open\command" "DelegateExecute" "${EXECUTE_GUID}"
-		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe\shell\open" "CFType" "text"
+		WriteRegStr SHCTX "Software\Classes\Applications\ChromaText.exe\shell\open\command" "DelegateExecute" "${EXECUTE_TEXT_GUID}"
 		; ProgID
 		WriteRegStr SHCTX "Software\Classes\Chroma.Text" "" "ChromaText"
 		WriteRegStr SHCTX "Software\Classes\Chroma.Text" "AppUserModelID" "chroma.text"
 		WriteRegStr SHCTX "Software\Classes\Chroma.Text\DefaultIcon" "" "C:\Windows\System32\imageres.dll,-102"
 		WriteRegStr SHCTX "Software\Classes\Chroma.Text\shell\open\command" "" '"$INSTDIR\ChromaText.exe" "%1"'
-		WriteRegStr SHCTX "Software\Classes\Chroma.Text\shell\open\command" "DelegateExecute" "${EXECUTE_GUID}"
-		WriteRegStr SHCTX "Software\Classes\Chroma.Text\shell\open" "CFType" "text"
+		WriteRegStr SHCTX "Software\Classes\Chroma.Text\shell\open\command" "DelegateExecute" "${EXECUTE_TEXT_GUID}"
 		WriteRegStr SHCTX "Software\Classes\*\OpenWithProgids" "Chroma.Text" ""
 		; preview handler
 		WriteRegStr SHCTX "Software\Classes\Chroma.Text\shellex\{8895b1c6-b41f-4c1c-a562-0d564250836f}" "" "{1531d583-8375-4d3f-b5fb-d23bbd169f22}"
@@ -289,6 +295,7 @@ Section "un.Uninstall ChromaFiler"
 	RMDir $INSTDIR
 	DeleteRegKey SHCTX "${REG_UNINST_KEY}"
 	DeleteRegKey SHCTX "${REG_APPPATH_KEY}"
+	DeleteRegKey SHCTX "${REG_TEXT_APPPATH_KEY}"
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaFiler.exe"
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaText.exe"
 	DeleteRegKey SHCTX "Software\Classes\Chroma.Text"
@@ -298,6 +305,7 @@ Section "un.Uninstall ChromaFiler"
 	DeleteRegKey SHCTX Software\Classes\CompressedFolder\shell\chromafiler
 	DeleteRegKey SHCTX Software\Classes\Drive\shell\chromafiler
 	DeleteRegKey SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}"
+	DeleteRegKey SHCTX "Software\Classes\CLSID\${EXECUTE_TEXT_GUID}"
 
 	Delete $SMPROGRAMS\ChromaFiler.lnk
 	Delete $SMPROGRAMS\ChromaText.lnk

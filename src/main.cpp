@@ -110,7 +110,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     if (type == LAUNCH_FAIL || type == LAUNCH_FOUND)
         return 0;
 
-    CFExecuteFactory executeFactory;
+    CFExecuteFactory executeFactory(false), executeTextFactory(true);
     HRESULT regHR = E_FAIL;
     DWORD regCookie = 0;
     if (type == LAUNCH_TRAY) {
@@ -119,6 +119,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     } else {
         // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
         regHR = CoRegisterClassObject(CLSID_CFExecute, &executeFactory,
+            CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie);
+        regHR = CoRegisterClassObject(CLSID_CFExecuteText, &executeTextFactory,
             CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie);
         checkHR(regHR);
     }
