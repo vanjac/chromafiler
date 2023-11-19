@@ -169,6 +169,13 @@ Section "ChromaFiler" SecBase
 	; previous installers didn't initialize PLUGINSDIR correctly
 	Delete $INSTDIR\LockedList64.dll
 	Delete $INSTDIR\LockedList.dll
+
+	; https://learn.microsoft.com/en-us/windows/win32/shell/app-registration
+	WriteRegStr SHCTX "${REG_APPPATH_KEY}" "" "$INSTDIR\ChromaFiler.exe"
+	WriteRegStr SHCTX "${REG_APPPATH_KEY}" "DropTarget" "${EXECUTE_GUID}"
+
+	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}" "" "ChromaFiler"
+	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}\LocalServer32" "" "$INSTDIR\ChromaFiler.exe"
 SectionEnd
 
 Section "ChromaText (text editor)" SecText
@@ -189,14 +196,8 @@ Function CreateChromaTextShortcut
 	!insertmacro ShortcutSetToastProperties "$SMPROGRAMS\ChromaText.lnk" "{bcf1926f-5819-497a-93b6-dc2b165ddd9c}" "chroma.text"
 FunctionEnd
 
-Function RegisterExecuteCommand
-	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}" "" "ChromaFiler"
-	WriteRegStr SHCTX "Software\Classes\CLSID\${EXECUTE_GUID}\LocalServer32" "" "$INSTDIR\ChromaFiler.exe"
-FunctionEnd
-
 Section "Add to Open With menu" SecProgID
 	; https://learn.microsoft.com/en-us/windows/win32/shell/customizing-file-types-bumper
-	Call RegisterExecuteCommand
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe" "FriendlyAppName" "ChromaFiler Preview"
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe" "AppUserModelID" "chroma.file"
 	WriteRegStr SHCTX "Software\Classes\Applications\ChromaFiler.exe\shell\open\command" "" '"$INSTDIR\ChromaFiler.exe" "%1"'
@@ -242,8 +243,6 @@ Section "Add to folder context menu" SecContext
 	StrCmp $default_browser "" 0 +2
 		WriteRegStr SHCTX "Software\Classes\Drive\Shell" "" "none"
 
-	Call RegisterExecuteCommand
-
 	WriteRegStr SHCTX Software\Classes\Directory\shell\chromafiler "" "${CONTEXT_MENU_TEXT}"
 	WriteRegStr SHCTX Software\Classes\Directory\Background\shell\chromafiler "" "${CONTEXT_MENU_TEXT}"
 	WriteRegStr SHCTX Software\Classes\CompressedFolder\shell\chromafiler "" "${CONTEXT_MENU_TEXT}"
@@ -288,6 +287,7 @@ Section "un.Uninstall ChromaFiler"
 	Delete $INSTDIR\LICENSE.txt
 	RMDir $INSTDIR
 	DeleteRegKey SHCTX "${REG_UNINST_KEY}"
+	DeleteRegKey SHCTX "${REG_APPPATH_KEY}"
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaFiler.exe"
 	DeleteRegKey SHCTX "Software\Classes\Applications\ChromaText.exe"
 	DeleteRegKey SHCTX "Software\Classes\Chroma.Text"
