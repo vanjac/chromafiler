@@ -26,6 +26,7 @@ SetCompressor LZMA
 !include "nsis-shortcut-properties\shortcut-properties.nsh"
 
 !define REG_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\ChromaFiler"
+!define REG_APPPATH_KEY "Software\Microsoft\Windows\CurrentVersion\App Paths\ChromaFiler.exe"
 !define CONTEXT_MENU_TEXT "Open in ChromaFiler"
 !define EXECUTE_GUID "{87612720-a94e-4fd3-a1f6-b78d7768424f}"
 
