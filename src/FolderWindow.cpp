@@ -525,9 +525,13 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
 
 void FolderWindow::onSize(SIZE size) {
     ItemWindow::onSize(size);
-
-    if (browser)
-        checkHR(browser->SetRect(nullptr, windowBody()));
+    if (browser) {
+        RECT rect = windowBody();
+        checkHR(browser->SetRect(nullptr, rect));
+        CComQIPtr<IFolderView2> folderView(shellView);
+        if (folderView)
+            folderView->SetRedraw(true); // Windows 11 has so many cool bugs
+    }
 }
 
 void FolderWindow::selectionChanged() {
