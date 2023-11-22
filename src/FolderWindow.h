@@ -141,7 +141,7 @@ protected:
     CComPtr<IShellView> shellView;
 
 private:
-    struct ViewState {
+    struct ShellViewState {
         FOLDERVIEWMODE viewMode = {};
         DWORD flags = 0;
         int iconSize = 0;
@@ -169,8 +169,8 @@ private:
     static LRESULT CALLBACK listViewOwnerProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
-    static void getViewState(CComPtr<IFolderView2> folderView, ViewState *state);
-    static void setViewState(CComPtr<IFolderView2> folderView, const ViewState &state);
+    static void getViewState(CComPtr<IFolderView2> folderView, ShellViewState *state);
+    static void setViewState(CComPtr<IFolderView2> folderView, const ShellViewState &state);
 
     bool writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
     void loadViewState(CComPtr<IPropertyBag> bag);
@@ -208,7 +208,7 @@ private:
     DWORD clickTime = 0;
     POINT clickPos;
 
-    std::unique_ptr<ViewState> storedViewState;
+    std::unique_ptr<ShellViewState> storedViewState;
 };
 
 } // namespace

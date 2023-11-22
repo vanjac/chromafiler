@@ -297,7 +297,7 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 
-void FolderWindow::getViewState(CComPtr<IFolderView2> folderView, ViewState *state) {
+void FolderWindow::getViewState(CComPtr<IFolderView2> folderView, ShellViewState *state) {
     checkHR(folderView->GetViewModeAndIconSize(&state->viewMode, &state->iconSize));
     checkHR(folderView->GetCurrentFolderFlags(&state->flags));
 
@@ -331,7 +331,7 @@ void FolderWindow::getViewState(CComPtr<IFolderView2> folderView, ViewState *sta
     }
 }
 
-void FolderWindow::setViewState(CComPtr<IFolderView2> folderView, const ViewState &state) {
+void FolderWindow::setViewState(CComPtr<IFolderView2> folderView, const ShellViewState &state) {
     checkHR(folderView->SetViewModeAndIconSize(state.viewMode, state.iconSize));
     checkHR(folderView->SetCurrentFolderFlags(FWF_AUTOARRANGE | FWF_SNAPTOGRID, state.flags));
     CComQIPtr<IColumnManager> columnMgr(folderView);
@@ -615,7 +615,7 @@ void FolderWindow::onItemChanged() {
     if (browser) {
         CComPtr<IFolderView2> folderView;
         if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView)))) {
-            storedViewState = std::make_unique<ViewState>();
+            storedViewState = std::make_unique<ShellViewState>();
             getViewState(folderView, storedViewState.get());
         }
 
