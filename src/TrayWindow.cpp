@@ -245,16 +245,6 @@ void TrayWindow::onSize(SIZE size) {
         SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
-void TrayWindow::onExitSizeMove(bool moved, bool sized) {
-    FolderWindow::onExitSizeMove(moved, sized);
-
-    // save window position
-    RECT rect = windowRect(hwnd);
-    settings::setTrayPosition({rect.left, rect.top});
-    settings::setTraySize(rectSize(rect));
-    settings::setTrayDPI(systemDPI);
-}
-
 bool TrayWindow::handleTopLevelMessage(MSG *msg) {
     if (msg->message == WM_SYSKEYDOWN && msg->wParam == VK_F4)
         return true; // block Alt-F4
@@ -353,6 +343,14 @@ LRESULT TrayWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             RECT curRect = windowRect(hwnd);
             movePos = {curRect.left, curRect.top};
             break; // pass to ItemWindow
+        }
+        case WM_EXITSIZEMOVE: {
+            // save window position
+            RECT rect = windowRect(hwnd);
+            settings::setTrayPosition({rect.left, rect.top});
+            settings::setTraySize(rectSize(rect));
+            settings::setTrayDPI(systemDPI);
+            return 0;
         }
         case WM_MOVING: {
             RECT *desiredRect = (RECT *)lParam;

@@ -96,16 +96,19 @@ void TextWindow::updateWindowPropStore(CComPtr<IPropertyStore> propStore) {
     propStoreWriteString(propStore, PKEY_AppUserModel_RelaunchIconResource, iconResource.get());
 }
 
-void TextWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
-    ItemWindow::resetPropBag(bag);
+void TextWindow::clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+    ItemWindow::clearViewState(bag, mask);
     CComVariant empty;
-    checkHR(bag->Write(PROP_WORD_WRAP, &empty));
+    if (mask & (1 << STATE_WORD_WRAP))
+        checkHR(bag->Write(PROP_WORD_WRAP, &empty));
 }
 
-void TextWindow::writeAllViewState(CComPtr<IPropertyBag> bag) {
-    ItemWindow::writeAllViewState(bag);
-    CComVariant wordWrapVar(isWordWrap());
-    checkHR(bag->Write(PROP_WORD_WRAP, &wordWrapVar));
+void TextWindow::writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+    ItemWindow::writeViewState(bag, mask);
+    if (mask & (1 << STATE_WORD_WRAP)) {
+        CComVariant wordWrapVar(isWordWrap());
+        checkHR(bag->Write(PROP_WORD_WRAP, &wordWrapVar));
+    }
 }
 
 void TextWindow::updateAllSettings() {
@@ -406,9 +409,7 @@ bool TextWindow::onCommand(WORD command) {
             bool wordWrap = !isWordWrap();
             setWordWrap(wordWrap);
             settings::setTextWrap(wordWrap);
-            CComVariant wordWrapVar(wordWrap);
-            if (auto bag = getPropBag())
-                checkHR(bag->Write(PROP_WORD_WRAP, &wordWrapVar));
+            viewStateDirty(1 << STATE_WORD_WRAP);
             return true;
         }
         case IDM_ZOOM_IN:

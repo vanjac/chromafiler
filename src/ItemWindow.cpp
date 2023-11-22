@@ -98,18 +98,6 @@ static int invisibleBorderDoubleSize(HWND hwnd, int dpi) {
     return 0;
 }
 
-static void writeScaledPos(CComPtr<IPropertyBag> bag, const wchar_t *prop, RECT rect) {
-    // unlike the tray we don't store the DPI along with unscaled positions
-    // because we don't need to be pixel-perfect
-    CComVariant posVar((unsigned long)MAKELONG(invScaleDPI(rect.left), invScaleDPI(rect.top)));
-    checkHR(bag->Write(prop, &posVar));
-}
-
-static void writeScaledSize(CComPtr<IPropertyBag> bag, const wchar_t *prop, SIZE size) {
-    CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
-    checkHR(bag->Write(prop, &sizeVar));
-}
-
 int ItemWindow::cascadeSize() {
     return CAPTION_HEIGHT + (invisibleBorders() ? 0 : windowResizeMargin());
 }
@@ -331,25 +319,63 @@ CComPtr<IPropertyBag> ItemWindow::getPropBag() {
     return propBag;
 }
 
-void ItemWindow::resetViewState() {
+void ItemWindow::resetViewState(uint32_t mask) {
     if (auto bag = getPropBag())
-        resetPropBag(bag);
+        clearViewState(bag, mask);
 }
 
-void ItemWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
+void ItemWindow::resetViewState() {
+    resetViewState(~0u);
+}
+
+void ItemWindow::persistViewState() {
+    if (dirtyViewState) {
+        debugPrintf(L"Persist view state %x\n", dirtyViewState);
+        if (auto bag = getPropBag())
+            writeViewState(bag, dirtyViewState);
+    }
+}
+
+void ItemWindow::clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+    viewStateClean(mask);
+
     CComVariant empty;
-    checkHR(bag->Write(PROP_POS, &empty));
-    checkHR(bag->Write(PROP_SIZE, &empty));
-    checkHR(bag->Write(PROP_CHILD_SIZE, &empty));
+    if (mask & (1 << STATE_POS))
+        checkHR(bag->Write(PROP_POS, &empty));
+    if (mask & (1 << STATE_SIZE))
+        checkHR(bag->Write(PROP_SIZE, &empty));
+    if (mask & (1 << STATE_CHILD_SIZE))
+        checkHR(bag->Write(PROP_CHILD_SIZE, &empty));
 }
 
-void ItemWindow::writeAllViewState(CComPtr<IPropertyBag> bag) {
+void ItemWindow::writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+    viewStateClean(mask);
+
     RECT rect = windowRect(hwnd);
-    writeScaledPos(bag, PROP_POS, rect);
-    writeScaledSize(bag, PROP_SIZE, rectSize(rect));
-    // TODO: copy stored child size instead of this
-    if (child && child->persistSizeInParent())
-        writeScaledSize(bag, PROP_CHILD_SIZE, rectSize(windowRect(child->hwnd)));
+    if (mask & (1 << STATE_POS)) {
+        // unlike the tray we don't store the DPI along with unscaled positions
+        // because we don't need to be pixel-perfect
+        CComVariant posVar((unsigned long)MAKELONG(invScaleDPI(rect.left), invScaleDPI(rect.top)));
+        checkHR(bag->Write(PROP_POS, &posVar));
+    }
+    if (mask & (1 << STATE_SIZE)) {
+        SIZE size = rectSize(rect);
+        CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
+        checkHR(bag->Write(PROP_SIZE, &sizeVar));
+    }
+    if (mask & (1 << STATE_CHILD_SIZE)) {
+        CComVariant sizeVar((unsigned long)MAKELONG(
+            invScaleDPI(childSize.cx), invScaleDPI(childSize.cy)));
+        checkHR(bag->Write(PROP_CHILD_SIZE, &sizeVar));
+    }
+}
+
+void ItemWindow::viewStateDirty(uint32_t mask) {
+    dirtyViewState |= mask;
+}
+
+void ItemWindow::viewStateClean(uint32_t mask) {
+    dirtyViewState &= ~mask;
 }
 
 bool ItemWindow::isScratch() {
@@ -607,16 +633,9 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             SetBkColor(hdc, GetSysColor(colorI));
             return colorI + 1;
         }
-        case WM_ENTERSIZEMOVE: {
+        case WM_ENTERSIZEMOVE:
             moveAccum = {0, 0};
-            lastSize = rectSize(windowRect(hwnd));
             return 0;
-        }
-        case WM_EXITSIZEMOVE: {
-            onExitSizeMove(!pointEqual(moveAccum, {0, 0}),
-                !sizeEqual(rectSize(windowRect(hwnd)), lastSize));
-            return 0;
-        }
         case WM_WINDOWPOSCHANGED: {
             WINDOWPOS *winPos = (WINDOWPOS *)lParam;
             const auto checkFlags = SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED;
@@ -639,13 +658,15 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 } else {
                     *desiredRect = curRect;
                 }
+            } else {
+                viewStateDirty(1 << STATE_POS);
             }
             // required for WM_ENTERSIZEMOVE to behave correctly
             return TRUE;
         }
-        case WM_SIZING:
+        case WM_SIZING: {
+            RECT *desiredRect = (RECT *)lParam;
             if (parent && parent->stickToChild()) {
-                RECT *desiredRect = (RECT *)lParam;
                 RECT curRect = windowRect(hwnd);
                 // constrain top-left corner
                 if (wParam == WMSZ_TOP || wParam == WMSZ_TOPLEFT || wParam == WMSZ_TOPRIGHT) {
@@ -661,7 +682,11 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                     desiredRect->left = curRect.left + sizeX;
                 }
             }
+            if (parent && persistSizeInParent())
+                parent->onChildResized(rectSize(*desiredRect));
+            viewStateDirty(1 << STATE_SIZE);
             return TRUE;
+        }
         case WM_SIZE: {
             onSize(sizeFromLParam(lParam));
             return 0;
@@ -995,6 +1020,8 @@ bool ItemWindow::onCloseRequest() {
 
 void ItemWindow::onDestroy() {
     debugPrintf(L"Close %s\n", &*title);
+    persistViewState();
+
     clearParent();
     if (child)
         child->close(); // recursive
@@ -1310,21 +1337,6 @@ void ItemWindow::windowRectChanged() {
     }
 }
 
-void ItemWindow::onExitSizeMove(bool, bool sized) {
-    RECT rect = windowRect(hwnd);
-    if (sized) {
-        SIZE size = rectSize(rect);
-        if (parent && persistSizeInParent())
-            parent->onChildResized(size);
-        if (auto bag = getPropBag())
-            writeScaledSize(bag, PROP_SIZE, size);
-    }
-    if (!parent) {
-        if (auto bag = getPropBag())
-            writeScaledPos(bag, PROP_POS, rect);
-    }
-}
-
 LRESULT ItemWindow::hitTestNCA(POINT cursor) {
     // from https://docs.microsoft.com/en-us/windows/win32/dwm/customframe?redirectedfrom=MSDN#appendix-c-hittestnca-function
     // the default window proc handles the left, right, and bottom edges
@@ -1441,10 +1453,7 @@ void ItemWindow::openParent() {
 
     if (persistSizeInParent())
         parent->onChildResized(rectSize(windowRect(hwnd)));
-    if (auto bag = getPropBag()) {
-        CComVariant empty;
-        checkHR(bag->Write(PROP_POS, &empty)); // forget window position
-    }
+    resetViewState(1 << STATE_POS); // forget window position
 }
 
 void ItemWindow::clearParent() {
@@ -1488,17 +1497,15 @@ void ItemWindow::detachFromParent(bool closeParent) {
     }
     activate(); // bring this chain to front
 
-    if (auto bag = getPropBag())
-        writeScaledSize(bag, PROP_SIZE, rectSize(windowRect(hwnd)));
-
+    viewStateDirty(1 << STATE_SIZE);
     SHAddToRecentDocs(SHARD_APPIDINFO, tempPtr(SHARDAPPIDINFO{item, appUserModelID()}));
 }
 
 void ItemWindow::onChildDetached() {}
 
 void ItemWindow::onChildResized(SIZE size) {
-    if (auto bag = getPropBag())
-        writeScaledSize(bag, PROP_CHILD_SIZE, size);
+    childSize = size;
+    viewStateDirty(1 << STATE_CHILD_SIZE);
 }
 
 void ItemWindow::detachAndMove(bool closeParent) {
@@ -1573,19 +1580,22 @@ RECT ItemWindow::requestedRect(HMONITOR preferMonitor) {
         checkLE(DestroyWindow(owner));
     }
 
-    if (auto bag = getPropBag())
-        writeScaledPos(bag, PROP_POS, rect);
+    viewStateDirty(1 << STATE_POS);
     return rect;
 }
 
 SIZE ItemWindow::requestedChildSize() {
-    if (auto bag = getPropBag()) {
-        VARIANT sizeVar = {VT_UI4};
-        if (SUCCEEDED(bag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
-            return scaleDPI(sizeFromLParam(sizeVar.ulVal));
+    if (sizeEqual(childSize, {0, 0})) {
+        if (auto bag = getPropBag()) {
+            VARIANT sizeVar = {VT_UI4};
+            if (SUCCEEDED(bag->Read(PROP_CHILD_SIZE, &sizeVar, nullptr))) {
+                childSize = scaleDPI(sizeFromLParam(sizeVar.ulVal));
+                return childSize;
+            }
         }
+        childSize = scaleDPI(settings::getItemWindowSize());
     }
-    return scaleDPI(settings::getItemWindowSize());
+    return childSize;
 }
 
 POINT ItemWindow::childPos(SIZE size) {
@@ -1798,8 +1808,11 @@ void ItemWindow::onItemChanged() {
         item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
     }
     propBag = nullptr;
+    // TODO: also reset old prop bag, and prop bags of deleted items
+    resetViewState();
     if (auto bag = getPropBag())
-        writeAllViewState(bag);
+        writeViewState(bag, ~0u);
+
     unregisterShellNotify();
     registerShellNotify();
     if (!getShellViewDispatch())

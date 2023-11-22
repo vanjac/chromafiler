@@ -20,6 +20,10 @@ public:
     bool handleTopLevelMessage(MSG *msg) override;
 
 protected:
+    enum ViewStateIndex {
+        STATE_WORD_WRAP = ItemWindow::STATE_LAST,
+        STATE_LAST
+    };
     enum UserMessage {
         // WPARAM: 0, LPARAM: 0
         MSG_LOAD_COMPLETE = ItemWindow::MSG_LAST,
@@ -36,8 +40,8 @@ protected:
 
     void updateWindowPropStore(CComPtr<IPropertyStore> propStore) override;
 
-    void resetPropBag(CComPtr<IPropertyBag> bag) override;
-    void writeAllViewState(CComPtr<IPropertyBag> bag) override;
+    void clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) override;
+    void writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) override;
 
     void onCreate() override;
     bool onCloseRequest() override;

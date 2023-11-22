@@ -3,6 +3,7 @@
 
 #include "COMUtils.h"
 #include "SettingsDialog.h"
+#include <cstdint>
 #include <windows.h>
 #include <shobjidl.h>
 #include <atlbase.h>
@@ -56,6 +57,12 @@ public:
     CComPtr<IShellItem> item;
 
 protected:
+    enum ViewStateIndex {
+        STATE_POS, // 0x1
+        STATE_SIZE, // 0x2
+        STATE_CHILD_SIZE, // 0x4
+        STATE_LAST
+    };
     enum UserMessage {
         // WPARAM: 0, LPARAM: 0
         MSG_UPDATE_ICONS = WM_USER,
@@ -90,8 +97,12 @@ protected:
         const PROPERTYKEY &key, const wchar_t *value);
 
     CComPtr<IPropertyBag> getPropBag();
-    virtual void resetPropBag(CComPtr<IPropertyBag> bag);
-    virtual void writeAllViewState(CComPtr<IPropertyBag> bag);
+    void resetViewState(uint32_t mask);
+    void persistViewState();
+    virtual void clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask);
+    virtual void writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask);
+    void viewStateDirty(uint32_t mask);
+    void viewStateClean(uint32_t mask);
 
     bool isScratch();
     void onModify();
@@ -115,7 +126,6 @@ protected:
     virtual LRESULT onNotify(NMHDR *nmHdr);
     virtual void onActivate(WORD state, HWND prevWindow);
     virtual void onSize(SIZE size);
-    virtual void onExitSizeMove(bool moved, bool sized);
     virtual void onPaint(PAINTSTRUCT paint);
 
     bool hasStatusText();
@@ -209,6 +219,7 @@ private:
     CComPtr<IShellLink> link;
     CComPtr<IPropertyBag> propBag;
     bool scratch = false;
+    uint32_t dirtyViewState = 0; // bit field indexed by ViewStateIndex
 
     HWND proxyToolbar = nullptr, proxyTooltip = nullptr;
     HWND parentToolbar = nullptr, renameBox = nullptr;
@@ -218,8 +229,8 @@ private:
     long shellWindowCookie = 0;
     ULONG shellNotifyID = 0;
 
+    SIZE childSize = {0, 0};
     POINT moveAccum;
-    SIZE lastSize;
     bool isChainPreview = false;
     bool firstActivate = false, closing = false;
     bool draggingObject = false;

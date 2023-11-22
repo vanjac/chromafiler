@@ -19,9 +19,8 @@ namespace chromafiler {
 
 const wchar_t FOLDER_WINDOW_CLASS[] = L"ChromaFile Folder";
 
-const wchar_t PROP_VISITED[] = L"Visited";
+const wchar_t PROP_SHELL_VISITED[] = L"Visited";
 const wchar_t PROP_ICON_POS[] = L"IconPos";
-const wchar_t PROP_SCROLL[] = L"Scroll";
 
 const EXPLORER_BROWSER_OPTIONS BROWSER_OPTIONS = EBO_NOBORDER | EBO_NOTRAVELLOG;
 
@@ -95,21 +94,6 @@ SIZE FolderWindow::defaultSize() const {
 
 bool FolderWindow::isFolder() const {
     return true;
-}
-
-void FolderWindow::resetPropBag(CComPtr<IPropertyBag> bag) {
-    ItemWindow::resetPropBag(bag);
-    CComVariant visitedVar(false);
-    checkHR(bag->Write(PROP_VISITED, &visitedVar));
-    CComVariant empty;
-    checkHR(bag->Write(PROP_ICON_POS, &empty));
-    checkHR(bag->Write(PROP_SCROLL, &empty));
-}
-
-void FolderWindow::writeAllViewState(CComPtr<IPropertyBag> bag) {
-    ItemWindow::writeAllViewState(bag);
-    scrollChanged = true;
-    saveViewState(bag);
 }
 
 bool FolderWindow::handleTopLevelMessage(MSG *msg) {
@@ -308,8 +292,6 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
             if (window->hasStatusText())
                 window->updateStatus();
             return res;
-        } else if (nmHdr->code == LVN_ENDSCROLL) {
-            window->scrollChanged = true;
         }
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
@@ -367,27 +349,33 @@ void FolderWindow::setViewState(CComPtr<IFolderView2> folderView, const ViewStat
         (PCITEMID_CHILD *)state.itemIds.get(), state.itemPositions.get(), SVSI_NOSTATECHANGE));
 }
 
-void FolderWindow::saveViewState(CComPtr<IPropertyBag> bag) {
+void FolderWindow::clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+    ItemWindow::clearViewState(bag, mask);
+
+    CComVariant empty;
+    if (mask & (1 << STATE_SHELL_VISITED))
+        checkHR(bag->Write(PROP_SHELL_VISITED, &empty));
+    if (mask & (1 << STATE_ICON_POS))
+        checkHR(bag->Write(PROP_ICON_POS, &empty));
+}
+
+void FolderWindow::writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+    ItemWindow::writeViewState(bag, mask);
+
+    if (mask & (1 << STATE_SHELL_VISITED)) {
+        CComVariant visitedVar(true);
+        checkHR(bag->Write(PROP_SHELL_VISITED, &visitedVar));
+    }
     CComPtr<IFolderView> folderView;
     if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))) && spatialView(folderView)) {
-        if (iconPosChanged && useCustomIconPersistence()) {
+        if ((mask & (1 << STATE_ICON_POS)) && useCustomIconPersistence()) {
             CComPtr<IStream> stream;
             stream.Attach(SHCreateMemStream(nullptr, 0));
             if (stream) {
                 if (writeIconPositions(folderView, stream)) {
                     CComVariant streamVar((IUnknown*)stream);
                     checkHR(bag->Write(PROP_ICON_POS, &streamVar));
-                    iconPosChanged = false;
                 }
-            }
-        }
-        if (scrollChanged && listView) {
-            POINT pos;
-            if (ListView_GetOrigin(listView, &pos)) {
-                CComVariant scrollVar((unsigned long)
-                    MAKELONG(invScaleDPI(pos.x), invScaleDPI(pos.y)));
-                checkHR(bag->Write(PROP_SCROLL, &scrollVar));
-                scrollChanged = false;
             }
         }
     }
@@ -419,22 +407,12 @@ void FolderWindow::loadViewState(CComPtr<IPropertyBag> bag) {
             if (SUCCEEDED(bag->Read(PROP_ICON_POS, &streamVar, nullptr))) {
                 CComQIPtr<IStream> stream(streamVar.punkVal);
                 streamVar.punkVal->Release();
-                if (stream) {
+                if (stream)
                     readIconPositions(folderView, stream);
-                    iconPosChanged = false;
-                }
-            }
-        }
-        if (listView) {
-            CComVariant scrollVar = {VT_UI4};
-            if (SUCCEEDED(bag->Read(PROP_SCROLL, &scrollVar, nullptr))) {
-                POINT origin = {}, pos = scaleDPI(pointFromLParam(scrollVar.ulVal));
-                ListView_GetOrigin(listView, &origin);
-                ListView_Scroll(listView, pos.x - origin.x, pos.y - origin.y);
-                scrollChanged = false;
             }
         }
     }
+    viewStateClean((1 << STATE_ICON_POS));
 }
 
 bool FolderWindow::readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream) {
@@ -454,12 +432,6 @@ bool FolderWindow::readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IS
 
 void FolderWindow::onDestroy() {
     if (shellView) {
-        if (auto bag = getPropBag()) {
-            // view settings are only written when shell view is destroyed
-            CComVariant visitedVar(true);
-            checkHR(bag->Write(PROP_VISITED, &visitedVar));
-            saveViewState(bag);
-        }
         CComQIPtr<IShellFolderView> sfv(shellView);
         if (sfv) {
             CComPtr<IShellFolderViewCB> oldCB;
@@ -526,8 +498,7 @@ void FolderWindow::onActivate(WORD state, HWND prevWindow) {
 void FolderWindow::onSize(SIZE size) {
     ItemWindow::onSize(size);
     if (browser) {
-        RECT rect = windowBody();
-        checkHR(browser->SetRect(nullptr, rect));
+        checkHR(browser->SetRect(nullptr, windowBody()));
         CComQIPtr<IFolderView2> folderView(shellView);
         if (folderView)
             folderView->SetRedraw(true); // Windows 11 has so many cool bugs
@@ -981,19 +952,19 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
         if (storedViewState) {
             setViewState(folderView, *storedViewState);
             storedViewState = nullptr;
-            CComVariant visitedVar(true);
-            if (auto bag = getPropBag())
-                checkHR(bag->Write(PROP_VISITED, &visitedVar));
+            viewStateDirty(1 << STATE_SHELL_VISITED);
         } else {
             bool visited = false; // folder has been visited before
             if (auto bag = getPropBag()) {
                 VARIANT var = {VT_BOOL};
-                if (SUCCEEDED(bag->Read(PROP_VISITED, &var, nullptr)))
+                if (SUCCEEDED(bag->Read(PROP_SHELL_VISITED, &var, nullptr)))
                     visited = !!var.boolVal;
                 // can't load icon pos yet, view state not known
             }
-            if (!visited)
+            if (!visited) {
                 initDefaultView(folderView);
+                viewStateDirty(1 << STATE_SHELL_VISITED);
+            }
         }
     }
 
@@ -1004,17 +975,16 @@ STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
 
 STDMETHODIMP FolderWindow::MessageSFVCB(UINT msg, WPARAM wParam, LPARAM lParam) {
     if (msg == 17) { // refresh
-        if (auto bag = getPropBag()) {
-            if (wParam) // pre refresh
-                saveViewState(bag);
-            else
-                loadViewState(bag);
+        if (wParam) { // pre refresh
+            persistViewState();
+        } else if (auto bag = getPropBag()) { // post refresh
+            loadViewState(bag);
         }
     } else if (msg == SFVM_DIDDRAGDROP) { // sent to source, not target!
-        iconPosChanged = true;
+        viewStateDirty(1 << STATE_ICON_POS);
     } else if (msg == SFVM_FSNOTIFY) {
         if (lParam & (SHCNE_CREATE | SHCNE_MKDIR))
-            iconPosChanged = true;
+            viewStateDirty(1 << STATE_ICON_POS);
     }
     if (prevCB)
         return prevCB->MessageSFVCB(msg, wParam, lParam);

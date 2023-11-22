@@ -95,6 +95,11 @@ public:
     STDMETHODIMP put_FullScreen(VARIANT_BOOL) override;
 
 protected:
+    enum ViewStateIndex {
+        STATE_SHELL_VISITED = ItemWindow::STATE_LAST, // 0x8 - folder was visited by shell view
+        STATE_ICON_POS, // 0x10
+        STATE_LAST
+    };
     enum TimerID {
         TIMER_UPDATE_SELECTION = 1,
         TIMER_LAST
@@ -108,8 +113,8 @@ protected:
     SIZE defaultSize() const override;
     bool isFolder() const override;
 
-    void resetPropBag(CComPtr<IPropertyBag> bag) override;
-    void writeAllViewState(CComPtr<IPropertyBag> bag) override;
+    void clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) override;
+    void writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) override;
 
     virtual FOLDERSETTINGS folderSettings() const;
     virtual void initDefaultView(CComPtr<IFolderView2> folderView);
@@ -167,7 +172,6 @@ private:
     static void getViewState(CComPtr<IFolderView2> folderView, ViewState *state);
     static void setViewState(CComPtr<IFolderView2> folderView, const ViewState &state);
 
-    void saveViewState(CComPtr<IPropertyBag> bag);
     bool writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
     void loadViewState(CComPtr<IPropertyBag> bag);
     bool readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
@@ -189,9 +193,6 @@ private:
     CComPtr<IShellFolderViewCB> prevCB;
 
     CComPtr<IShellItem> selected; // links are not resolved unlike child->item
-
-    bool iconPosChanged = false;
-    bool scrollChanged = false;
 
     // jank flags
     bool ignoreInitialSelection = false;
