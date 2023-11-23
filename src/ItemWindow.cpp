@@ -363,7 +363,7 @@ void ItemWindow::writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
         CComVariant sizeVar((unsigned long)MAKELONG(invScaleDPI(size.cx), invScaleDPI(size.cy)));
         checkHR(bag->Write(PROP_SIZE, &sizeVar));
     }
-    if (mask & (1 << STATE_CHILD_SIZE)) {
+    if ((mask & (1 << STATE_CHILD_SIZE)) && !sizeEqual(childSize, {0, 0})) {
         CComVariant sizeVar((unsigned long)MAKELONG(
             invScaleDPI(childSize.cx), invScaleDPI(childSize.cy)));
         checkHR(bag->Write(PROP_CHILD_SIZE, &sizeVar));
