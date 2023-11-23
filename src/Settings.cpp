@@ -5,7 +5,15 @@
 namespace chromafiler {
 namespace settings {
 
-const wchar_t KEY_SETTINGS[]            = L"Software\\ChromaFiler";
+bool testMode = false;
+
+const wchar_t KEY_SETTINGS_NORMAL[]     = L"Software\\ChromaFiler";
+const wchar_t KEY_SETTINGS_TEST[]       = L"Software\\ChromaFiler\\Test";
+#ifdef CHROMAFILER_DEBUG
+    #define KEY_SETTINGS (testMode ? KEY_SETTINGS_TEST : KEY_SETTINGS_NORMAL)
+#else
+    #define KEY_SETTINGS KEY_SETTINGS_NORMAL
+#endif
 
 const wchar_t KEY_STARTUP[]             = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 const wchar_t VAL_STARTUP[]             = L"ChromaFiler";

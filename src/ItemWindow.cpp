@@ -238,7 +238,11 @@ SIZE ItemWindow::defaultSize() const {
 }
 
 const wchar_t * ItemWindow::propBagName() const {
+#ifdef CHROMAFILER_DEBUG
+    return settings::testMode ? L"chromafiler_test" : L"chromafiler";
+#else
     return L"chromafiler";
+#endif
 }
 
 const wchar_t * ItemWindow::appUserModelID() const {

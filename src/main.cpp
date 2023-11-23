@@ -194,6 +194,12 @@ LaunchType createWindowFromCommandLine(int argc, wchar_t **argv, int showCommand
             // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
             debugPrintf(L"Started as local COM server\n");
             return LAUNCH_HEADLESS;
+        } else if (lstrcmpi(arg, L"/test") == 0) {
+#ifdef CHROMAFILER_DEBUG
+            settings::testMode = true;
+#else
+            return LAUNCH_FAIL;
+#endif
         } else if (!path) {
             int argLen = lstrlen(arg);
             if (arg[argLen - 1] == '"')

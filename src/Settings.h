@@ -11,6 +11,8 @@ enum TextNewlines : DWORD { NL_UNK, NL_CRLF, NL_LF, NL_CR };
 
 namespace settings {
 
+extern bool testMode;
+
 // http://smallvoid.com/article/winnt-shell-keyword.html
 const DWORD     DEFAULT_LAST_OPENED_VERSION = 0;
 const bool      DEFAULT_UPDATE_CHECK_ENABLED= false;
