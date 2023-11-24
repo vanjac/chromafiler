@@ -259,6 +259,10 @@ LRESULT CALLBACK FolderWindow::listViewSubclassProc(HWND hwnd, UINT message,
         LRESULT res = DefSubclassProc(hwnd, message, wParam, lParam);
         ((FolderWindow *)refData)->handlingSetColumnWidth = false;
         return res;
+    } else if (message == WM_NOTIFY) {
+        NMHDR *nmHdr = (NMHDR *)lParam;
+        if (nmHdr->code == HDN_ITEMCHANGED)
+            PostMessage(hwnd, WM_SETREDRAW, 1, 0); // Windows 11 likes to turn this off, why???
     }
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
