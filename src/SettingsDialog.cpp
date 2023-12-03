@@ -128,8 +128,13 @@ INT_PTR CALLBACK generalProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
                         settings::setItemWindowSize(size);
                 }
                 int selectionDelay = GetDlgItemInt(hwnd, IDC_SELECTION_DELAY, &success, FALSE);
-                if (success)
+                if (success) {
+                    if (selectionDelay < USER_TIMER_MINIMUM) {
+                        selectionDelay = USER_TIMER_MINIMUM;
+                        SetDlgItemInt(hwnd, IDC_SELECTION_DELAY, selectionDelay, FALSE);
+                    }
                     settings::setOpenSelectionTime(selectionDelay);
+                }
                 settings::setStatusTextEnabled(!!IsDlgButtonChecked(hwnd, IDC_STATUS_TEXT_ENABLED));
                 settings::setToolbarEnabled(!!IsDlgButtonChecked(hwnd, IDC_TOOLBAR_ENABLED));
                 settings::setPreviewsEnabled(!!IsDlgButtonChecked(hwnd, IDC_PREVIEWS_ENABLED));
