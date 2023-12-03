@@ -356,7 +356,7 @@ void ItemWindow::writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
     viewStateClean(mask);
 
     RECT rect = windowRect(hwnd);
-    if (mask & (1 << STATE_POS)) {
+    if ((mask & (1 << STATE_POS)) && !parent) {
         // unlike the tray we don't store the DPI along with unscaled positions
         // because we don't need to be pixel-perfect
         CComVariant posVar((unsigned long)MAKELONG(invScaleDPI(rect.left), invScaleDPI(rect.top)));
@@ -1029,6 +1029,7 @@ void ItemWindow::onDestroy() {
     clearParent();
     if (child)
         child->close(); // recursive
+    // child will still have a reference to parent until it handles WM_CLOSE
     child = nullptr; // onChildDetached will not be called
     if (activeWindow == this)
         activeWindow = nullptr;
