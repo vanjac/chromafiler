@@ -1044,6 +1044,7 @@ void ItemWindow::onDestroy() {
 
     if (isScratch()) {
         debugPrintf(L"Deleting scratch file %s\n", &*title);
+        resetViewState();
         deleteProxy(); // this is done after unregisterShellNotify()
     }
 
@@ -1741,6 +1742,7 @@ bool ItemWindow::resolveItem() {
     // check if item exists
     if (SUCCEEDED(item->GetAttributes(SFGAO_VALIDATE, &attr)))
         return true;
+    resetViewState(); // clear view state of old item
 
     if (link) {
         checkHR(link->Resolve(nullptr, SLR_NO_UI));
@@ -1756,13 +1758,11 @@ bool ItemWindow::resolveItem() {
                 if ((short)HRESULT_CODE(compareHR) != 0) {
                     debugPrintf(L"Item has moved!\n");
                     CComPtr<IShellItem> newItem;
-                    if (!checkHR(SHCreateItemFromIDList(newIDList, IID_PPV_ARGS(&newItem)))) {
-                        close();
-                        return false;
+                    if (checkHR(SHCreateItemFromIDList(newIDList, IID_PPV_ARGS(&newItem)))) {
+                        item = newItem; // itemMoved() is unnecessary since we can reuse link
+                        onItemChanged();
+                        return true;
                     }
-                    item = newItem; // itemMoved() is unnecessary since we can reuse link
-                    onItemChanged();
-                    return true;
                 }
             }
         }
@@ -1776,6 +1776,7 @@ bool ItemWindow::resolveItem() {
 }
 
 void ItemWindow::itemMoved(CComPtr<IShellItem> newItem) {
+    resetViewState(); // clear view state of old item
     item = newItem;
     link = nullptr;
     CComHeapPtr<ITEMIDLIST> idList;
@@ -1812,7 +1813,6 @@ void ItemWindow::onItemChanged() {
         item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
     }
     propBag = nullptr;
-    // TODO: also reset old prop bag, and prop bags of deleted items
     resetViewState();
     if (auto bag = getPropBag())
         writeViewState(bag, ~0u);
