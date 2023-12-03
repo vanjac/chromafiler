@@ -82,12 +82,28 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
             CloseHandle(procToken);
         }
         if (elevation.TokenIsElevated) {
-            int button = 0;
-            checkHR(TaskDialog(nullptr, nullptr, MAKEINTRESOURCE(IDS_APP_NAME), nullptr,
-                MAKEINTRESOURCE(IDS_ADMIN_WARNING), TDCBF_YES_BUTTON | TDCBF_NO_BUTTON,
-                TD_WARNING_ICON, &button));
-            if (button != IDYES)
+            TASKDIALOGCONFIG config = {sizeof(config)};
+            config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
+            config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
+            config.pszWindowTitle = MAKEINTRESOURCE(IDS_APP_NAME);
+            config.pszMainIcon = TD_WARNING_ICON;
+            config.pszContent = MAKEINTRESOURCE(IDS_ADMIN_WARNING);
+            config.nDefaultButton = IDNO;
+            config.pszVerificationText = MAKEINTRESOURCE(IDS_DONT_ASK);
+            config.pfCallback = [](HWND hwnd, UINT msg, WPARAM, LPARAM, LONG_PTR) -> HRESULT {
+                if (msg == TDN_CREATED) {
+                    SendMessage(hwnd, WM_SETICON, ICON_BIG, 0); // this is what TaskDialog does
+                    SendMessage(hwnd, WM_SETICON, ICON_SMALL, 0);
+                }
+                return S_OK;
+            };
+            int result = 0;
+            BOOL dontShowAgain = false;
+            checkHR(TaskDialogIndirect(&config, &result, nullptr, &dontShowAgain));
+            if (result != IDYES)
                 return 0;
+            if (dontShowAgain) // only counts if user chose yes!
+                settings::setAdminWarning(false);
         }
     }
 

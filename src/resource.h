@@ -116,6 +116,7 @@
 #define IDS_TEXT_LOADING        249
 #define IDS_INVALID_CHARS       250
 #define IDS_ADMIN_WARNING       251
+#define IDS_DONT_ASK            252
 
 // corresponds to UNDONAMEID
 #define IDS_TEXT_UNDO_UNKNOWN   300

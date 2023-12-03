@@ -184,6 +184,7 @@ STRINGTABLE {
     IDS_WELCOME_UPDATE,     "Check for &updates weekly"
 
     IDS_ADMIN_WARNING,      "You are attempting to run ChromaFiler as Administrator. This is not recommended!\n\nContinue anyway?"
+    IDS_DONT_ASK,           "Don't ask again"
 
     IDS_LEGAL_INFO,         "\
 Copyright (c) 2023 J. van't Hoog\r\n\
