@@ -198,29 +198,6 @@ void ItemWindow::flashWindow(HWND hwnd) {
     PostMessage(hwnd, MSG_FLASH_WINDOW, 0, 0);
 }
 
-LRESULT CALLBACK ItemWindow::windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    ItemWindow *self = nullptr;
-    if (message == WM_NCCREATE) {
-        CREATESTRUCT *create = (CREATESTRUCT*)lParam;
-        self = (ItemWindow *)create->lpCreateParams;
-        SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)self);
-        self->hwnd = hwnd;
-    } else {
-        self = (ItemWindow *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-    }
-    if (self) {
-        if (self->useCustomFrame()) {
-            // https://docs.microsoft.com/en-us/windows/win32/dwm/customframe
-            LRESULT dwmResult = 0;
-            if (DwmDefWindowProc(hwnd, message, wParam, lParam, &dwmResult))
-                return dwmResult;
-        }
-        return self->handleMessage(message, wParam, lParam);
-    } else {
-        return DefWindowProc(hwnd, message, wParam, lParam);
-    }
-}
-
 ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : parent(parent),
           item(item) {}
@@ -408,7 +385,7 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     HWND createHwnd = checkLE(CreateWindowEx(
         windowExStyle(), className(), title, windowStyle(),
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
-        owner, nullptr, GetModuleHandle(nullptr), this));
+        owner, nullptr, GetModuleHandle(nullptr), (WindowImpl *)this));
     if (!createHwnd)
         return false;
     SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) + 1);

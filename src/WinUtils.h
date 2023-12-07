@@ -19,4 +19,12 @@ SIZE clientSize(HWND hwnd);
 POINT screenToClient(HWND hwnd, POINT screenPt);
 POINT clientToScreen(HWND hwnd, POINT clientPt);
 
+class WindowImpl {
+protected:
+    static LRESULT CALLBACK windowProc(HWND, UINT, WPARAM, LPARAM);
+    virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) = 0;
+    virtual bool useCustomFrame() const;
+    HWND hwnd;
+};
+
 } // namespace

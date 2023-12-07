@@ -3,6 +3,7 @@
 
 #include "COMUtils.h"
 #include "SettingsDialog.h"
+#include "WinUtils.h"
 #include <cstdint>
 #include <windows.h>
 #include <shobjidl.h>
@@ -10,7 +11,7 @@
 
 namespace chromafiler {
 
-class ItemWindow : public IUnknownImpl, public IDropSource, public IDropTarget {
+class ItemWindow : public WindowImpl, public IUnknownImpl, public IDropSource, public IDropTarget {
 protected:
     static HACCEL accelTable;
     static int CAPTION_HEIGHT;
@@ -75,7 +76,7 @@ protected:
         MSG_LAST
     };
     static WNDCLASS createWindowClass(const wchar_t *name);
-    virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
+    LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     virtual SIZE defaultSize() const;
     virtual const wchar_t * propBagName() const;
@@ -83,7 +84,7 @@ protected:
     virtual bool isFolder() const;
     virtual DWORD windowStyle() const;
     virtual DWORD windowExStyle() const;
-    virtual bool useCustomFrame() const;
+    bool useCustomFrame() const override;
     // a window that stays open and is not shown in taskbar. currently only used by TrayWindow
     virtual bool paletteWindow() const;
     virtual bool stickToChild() const; // for windows that override childPos
@@ -155,7 +156,6 @@ protected:
     void deleteProxy();
     CMINVOKECOMMANDINFOEX makeInvokeInfo(int cmd, POINT point);
 
-    HWND hwnd;
     CComHeapPtr<wchar_t> title;
 
     CComPtr<ItemWindow> parent, child;
@@ -165,7 +165,6 @@ protected:
     CComQIPtr<IContextMenu3> contextMenu3;
 
 private:
-    static LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     virtual const wchar_t * className() const = 0;
 
     bool centeredProxy() const; // requires useCustomFrame() == true
