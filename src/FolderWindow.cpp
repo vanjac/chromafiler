@@ -51,7 +51,7 @@ bool FolderWindow::useCustomIconPersistence() {
     return IsWindows10OrGreater();
 }
 
-bool FolderWindow::spatialView(CComPtr<IFolderView> folderView) {
+bool FolderWindow::spatialView(IFolderView *const folderView) {
     UINT viewMode;
     return folderView->GetAutoArrange() == S_FALSE
         && checkHR(folderView->GetCurrentViewMode(&viewMode))
@@ -73,7 +73,7 @@ void FolderWindow::init() {
     }
 }
 
-FolderWindow::FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
+FolderWindow::FolderWindow(ItemWindow *const parent, IShellItem *const item)
         : ItemWindow(parent, item) {}
 
 const wchar_t * FolderWindow::className() const {
@@ -175,7 +175,7 @@ FOLDERSETTINGS FolderWindow::folderSettings() const {
     return settings;
 }
 
-void FolderWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
+void FolderWindow::initDefaultView(IFolderView2 *const folderView) {
     // FVM_SMALLICON only seems to work if it's also specified with an icon size
     // https://docs.microsoft.com/en-us/windows/win32/menurc/about-icons
     checkHR(folderView->SetCurrentViewMode(FVM_DETAILS));
@@ -301,7 +301,7 @@ LRESULT CALLBACK FolderWindow::listViewOwnerProc(HWND hwnd, UINT message,
     return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 
-void FolderWindow::getViewState(CComPtr<IFolderView2> folderView, ShellViewState *state) {
+void FolderWindow::getViewState(IFolderView2 *const folderView, ShellViewState *state) {
     checkHR(folderView->GetViewModeAndIconSize(&state->viewMode, &state->iconSize));
     checkHR(folderView->GetCurrentFolderFlags(&state->flags));
 
@@ -335,7 +335,7 @@ void FolderWindow::getViewState(CComPtr<IFolderView2> folderView, ShellViewState
     }
 }
 
-void FolderWindow::setViewState(CComPtr<IFolderView2> folderView, const ShellViewState &state) {
+void FolderWindow::setViewState(IFolderView2 *const folderView, const ShellViewState &state) {
     checkHR(folderView->SetViewModeAndIconSize(state.viewMode, state.iconSize));
     checkHR(folderView->SetCurrentFolderFlags(FWF_AUTOARRANGE | FWF_SNAPTOGRID, state.flags));
     CComQIPtr<IColumnManager> columnMgr(folderView);
@@ -353,7 +353,7 @@ void FolderWindow::setViewState(CComPtr<IFolderView2> folderView, const ShellVie
         (PCITEMID_CHILD *)state.itemIds.get(), state.itemPositions.get(), SVSI_NOSTATECHANGE));
 }
 
-void FolderWindow::clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+void FolderWindow::clearViewState(IPropertyBag *const bag, uint32_t mask) {
     ItemWindow::clearViewState(bag, mask);
 
     CComVariant empty;
@@ -363,7 +363,7 @@ void FolderWindow::clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
         checkHR(bag->Write(PROP_ICON_POS, &empty));
 }
 
-void FolderWindow::writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+void FolderWindow::writeViewState(IPropertyBag *const bag, uint32_t mask) {
     ItemWindow::writeViewState(bag, mask);
 
     if (mask & (1 << STATE_SHELL_VISITED)) {
@@ -385,7 +385,7 @@ void FolderWindow::writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
     }
 }
 
-bool FolderWindow::writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream) {
+bool FolderWindow::writeIconPositions(IFolderView *const folderView, IStream *const stream) {
     debugPrintf(L"Write icon positions\n");
     CComPtr<IEnumIDList> enumID;
     if (checkHR(folderView->Items(SVGIO_ALLVIEW, IID_PPV_ARGS(&enumID)))) {
@@ -403,7 +403,7 @@ bool FolderWindow::writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<I
     return true;
 }
 
-void FolderWindow::loadViewState(CComPtr<IPropertyBag> bag) {
+void FolderWindow::loadViewState(IPropertyBag *const bag) {
     CComPtr<IFolderView> folderView;
     if (checkHR(browser->GetCurrentView(IID_PPV_ARGS(&folderView))) && spatialView(folderView)) {
         if (useCustomIconPersistence()) {
@@ -419,7 +419,7 @@ void FolderWindow::loadViewState(CComPtr<IPropertyBag> bag) {
     viewStateClean((1 << STATE_ICON_POS));
 }
 
-bool FolderWindow::readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream) {
+bool FolderWindow::readIconPositions(IFolderView *const folderView, IStream *const stream) {
     // https://devblogs.microsoft.com/oldnewthing/20130318-00/?p=4933
     CComHeapPtr<ITEMID_CHILD> idList;
     POINT pos;
@@ -725,7 +725,7 @@ void FolderWindow::trackContextMenu(POINT pos) {
     DestroyMenu(menu);
 }
 
-HMENU findNewItemMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
+HMENU findNewItemMenu(IContextMenu *const contextMenu, HMENU popupMenu) {
     // search for the submenu that contains NewFolder verb as the first item (TODO: jank)
     CComQIPtr<IContextMenu3> contextMenu3(contextMenu);
     for (int i = 0, count = GetMenuItemCount(popupMenu); i < count; i++) {
@@ -764,7 +764,7 @@ void FolderWindow::openNewItemMenu(POINT point) {
     checkLE(DestroyMenu(popupMenu));
 }
 
-HMENU findViewMenu(CComPtr<IContextMenu> contextMenu, HMENU popupMenu) {
+HMENU findViewMenu(IContextMenu *const contextMenu, HMENU popupMenu) {
     if (!IsWindows8OrGreater())
         return GetSubMenu(popupMenu, 0);
     for (int i = 0, count = GetMenuItemCount(popupMenu); i < count; i++) {
@@ -795,7 +795,7 @@ void FolderWindow::openViewMenu(POINT point) {
     checkLE(DestroyMenu(popupMenu));
 }
 
-void FolderWindow::openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu,
+void FolderWindow::openBackgroundSubMenu(IContextMenu *const contextMenu, HMENU subMenu,
         POINT point) {
     int cmd = TrackPopupMenuEx(subMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON,
         point.x, point.y, hwnd, nullptr);
@@ -857,7 +857,7 @@ STDMETHODIMP FolderWindow::QueryService(REFGUID guidService, REFIID riid, void *
 /* ICommDlgBrowser */
 
 // called when double-clicking a file
-STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *view) {
+STDMETHODIMP FolderWindow::OnDefaultCommand(IShellView *const view) {
     if (!invokingDefaultVerb && GetKeyState(VK_MENU) >= 0 && settings::getDeselectOnOpen()) {
         CComQIPtr<IFolderView2> folderView(view);
         int numSelected;
@@ -942,7 +942,7 @@ STDMETHODIMP FolderWindow::OnNavigationFailed(PCIDLIST_ABSOLUTE) {
     return S_OK;
 }
 
-STDMETHODIMP FolderWindow::OnViewCreated(IShellView *view) {
+STDMETHODIMP FolderWindow::OnViewCreated(IShellView *const view) {
     shellView = view;
 
     CComQIPtr<IShellFolderView> sfv(view);

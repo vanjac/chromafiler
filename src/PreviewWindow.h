@@ -8,7 +8,7 @@ namespace chromafiler {
 class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
 
     struct InitPreviewRequest : public IUnknownImpl {
-        InitPreviewRequest(CComPtr<IShellItem> item, CLSID previewID,
+        InitPreviewRequest(IShellItem *item, CLSID previewID,
             PreviewWindow *callbackWindow, HWND container);
         ~InitPreviewRequest();
         void cancel(); // ok to call this multiple times
@@ -25,7 +25,7 @@ public:
     static void init();
     static void uninit();
 
-    PreviewWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, CLSID previewID);
+    PreviewWindow(ItemWindow *parent, IShellItem *item, CLSID previewID);
 
     // IUnknown
     STDMETHODIMP QueryInterface(REFIID id, void **obj) override;
@@ -66,8 +66,8 @@ private:
     // worker thread
     static HANDLE initPreviewThread;
     static DWORD WINAPI initPreviewThreadProc(void *);
-    static void initPreview(CComPtr<InitPreviewRequest> request);
-    static bool initPreviewWithItem(CComPtr<IPreviewHandler> preview, CComPtr<IShellItem> item);
+    static void initPreview(InitPreviewRequest *request);
+    static bool initPreviewWithItem(IPreviewHandler *preview, IShellItem *item);
 };
 
 } // namespace

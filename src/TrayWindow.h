@@ -14,7 +14,7 @@ public:
     static void resetTrayPosition();
     static void updateAllSettings();
 
-    TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
+    TrayWindow(ItemWindow *parent, IShellItem *item);
 
     SIZE requestedSize() override;
     RECT requestedRect(HMONITOR preferMonitor) override;
@@ -44,7 +44,7 @@ protected:
 
     POINT childPos(SIZE size) override;
     const wchar_t * propBagName() const override;
-    void initDefaultView(CComPtr<IFolderView2> folderView) override;
+    void initDefaultView(IFolderView2 *folderView) override;
     FOLDERSETTINGS folderSettings() const override;
 
     RECT windowBody() override;

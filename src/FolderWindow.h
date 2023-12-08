@@ -13,7 +13,7 @@ class FolderWindow : public ItemWindow, public IServiceProvider, public ICommDlg
 public:
     static void init();
 
-    FolderWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
+    FolderWindow(ItemWindow *parent, IShellItem *item);
 
     bool persistSizeInParent() const override;
 
@@ -107,17 +107,17 @@ protected:
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     static bool useCustomIconPersistence();
-    static bool spatialView(CComPtr<IFolderView> folderView);
+    static bool spatialView(IFolderView *folderView);
 
     bool useDefaultStatusText() const override;
     SIZE defaultSize() const override;
     bool isFolder() const override;
 
-    void clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) override;
-    void writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) override;
+    void clearViewState(IPropertyBag *bag, uint32_t mask) override;
+    void writeViewState(IPropertyBag *bag, uint32_t mask) override;
 
     virtual FOLDERSETTINGS folderSettings() const;
-    virtual void initDefaultView(CComPtr<IFolderView2> folderView);
+    virtual void initDefaultView(IFolderView2 *folderView);
 
     void onCreate() override;
     void onDestroy() override;
@@ -169,12 +169,12 @@ private:
     static LRESULT CALLBACK listViewOwnerProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
-    static void getViewState(CComPtr<IFolderView2> folderView, ShellViewState *state);
-    static void setViewState(CComPtr<IFolderView2> folderView, const ShellViewState &state);
+    static void getViewState(IFolderView2 *folderView, ShellViewState *state);
+    static void setViewState(IFolderView2 *folderView, const ShellViewState &state);
 
-    bool writeIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
-    void loadViewState(CComPtr<IPropertyBag> bag);
-    bool readIconPositions(CComPtr<IFolderView> folderView, CComPtr<IStream> stream);
+    bool writeIconPositions(IFolderView *folderView, IStream *stream);
+    void loadViewState(IPropertyBag *bag);
+    bool readIconPositions(IFolderView *folderView, IStream *stream);
 
     void selectionChanged();
     void scheduleUpdateSelection();
@@ -186,7 +186,7 @@ private:
     void newItem(const char *verb);
     void openNewItemMenu(POINT point);
     void openViewMenu(POINT point);
-    void openBackgroundSubMenu(CComPtr<IContextMenu> contextMenu, HMENU subMenu, POINT point);
+    void openBackgroundSubMenu(IContextMenu *contextMenu, HMENU subMenu, POINT point);
 
     CComPtr<IExplorerBrowser> browser; // will be null if browser can't be initialized!
     DWORD eventsCookie = 0;

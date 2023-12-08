@@ -13,7 +13,7 @@ class TextWindow : public ItemWindow {
 public:
     static void init();
 
-    TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
+    TextWindow(ItemWindow *parent, IShellItem *item);
 
     static void updateAllSettings();
 
@@ -38,10 +38,10 @@ protected:
     SettingsPage settingsStartPage() const override;
     const wchar_t * helpURL() const override;
 
-    void updateWindowPropStore(CComPtr<IPropertyStore> propStore) override;
+    void updateWindowPropStore(IPropertyStore *propStore) override;
 
-    void clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) override;
-    void writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) override;
+    void clearViewState(IPropertyBag *bag, uint32_t mask) override;
+    void writeViewState(IPropertyBag *bag, uint32_t mask) override;
 
     void onCreate() override;
     bool onCloseRequest() override;
@@ -89,7 +89,7 @@ private:
         TextNewlines newlines;
     };
 
-    static HRESULT loadText(CComPtr<IShellItem> item, LoadResult *result);
+    static HRESULT loadText(IShellItem *item, LoadResult *result);
     HRESULT saveText();
 
     static LRESULT CALLBACK richEditProc(HWND hwnd, UINT message,
@@ -111,7 +111,7 @@ private:
 
     class LoadThread : public StoppableThread {
     public:
-        LoadThread(CComPtr<IShellItem> item, TextWindow *callbackWindow);
+        LoadThread(IShellItem *item, TextWindow *callbackWindow);
     protected:
         void run() override;
     private:

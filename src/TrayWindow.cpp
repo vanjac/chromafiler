@@ -58,7 +58,7 @@ void TrayWindow::init() {
     taskbarCreatedMessage = checkLE(RegisterWindowMessage(L"TaskbarCreated"));
 }
 
-TrayWindow::TrayWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
+TrayWindow::TrayWindow(ItemWindow *const parent, IShellItem *const item)
         : FolderWindow(parent, item) {}
 
 const wchar_t * TrayWindow::className() const {
@@ -181,7 +181,7 @@ const wchar_t * TrayWindow::propBagName() const {
     return L"chromafiler.tray";
 }
 
-void TrayWindow::initDefaultView(CComPtr<IFolderView2> folderView) {
+void TrayWindow::initDefaultView(IFolderView2 *const folderView) {
     checkHR(folderView->SetViewModeAndIconSize(FVM_ICON, SHELL_SMALL_ICON));
     checkHR(folderView->SetCurrentFolderFlags(FWF_AUTOARRANGE, FWF_AUTOARRANGE));
 }

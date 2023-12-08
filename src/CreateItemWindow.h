@@ -6,13 +6,13 @@
 
 namespace chromafiler {
 
-CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
-bool showItemWindow(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows, int showCmd);
-CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem);
+CComPtr<ItemWindow> createItemWindow(ItemWindow *parent, IShellItem *item);
+bool showItemWindow(IShellItem *item, IShellWindows *shellWindows, int showCmd);
+CComPtr<IShellItem> resolveLink(IShellItem *linkItem);
 // displays error message if item can't be found
 CComPtr<IShellItem> itemFromPath(wchar_t *path);
-CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder);
+CComPtr<IShellItem> createScratchFile(IShellItem *folder);
 
-void debugDisplayNames(HWND hwnd, CComPtr<IShellItem> item);
+void debugDisplayNames(HWND hwnd, IShellItem *item);
 
 } // namespace

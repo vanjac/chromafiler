@@ -55,7 +55,7 @@ void TextWindow::init() {
     }
 }
 
-TextWindow::TextWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
+TextWindow::TextWindow(ItemWindow *const parent, IShellItem *const item)
         : ItemWindow(parent, item) {
     findBuffer[0] = 0;
     replaceBuffer[0] = 0;
@@ -81,7 +81,7 @@ const wchar_t * TextWindow::helpURL() const {
     return L"https://github.com/vanjac/chromafiler/wiki/Text-Editor";
 }
 
-void TextWindow::updateWindowPropStore(CComPtr<IPropertyStore> propStore) {
+void TextWindow::updateWindowPropStore(IPropertyStore *const propStore) {
     if (!textExePath[0]) {
         ItemWindow::updateWindowPropStore(propStore);
         return;
@@ -96,14 +96,14 @@ void TextWindow::updateWindowPropStore(CComPtr<IPropertyStore> propStore) {
     propStoreWriteString(propStore, PKEY_AppUserModel_RelaunchIconResource, iconResource.get());
 }
 
-void TextWindow::clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+void TextWindow::clearViewState(IPropertyBag *const bag, uint32_t mask) {
     ItemWindow::clearViewState(bag, mask);
     CComVariant empty;
     if (mask & (1 << STATE_WORD_WRAP))
         checkHR(bag->Write(PROP_WORD_WRAP, &empty));
 }
 
-void TextWindow::writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+void TextWindow::writeViewState(IPropertyBag *const bag, uint32_t mask) {
     ItemWindow::writeViewState(bag, mask);
     if (mask & (1 << STATE_WORD_WRAP)) {
         CComVariant wordWrapVar(isWordWrap());
@@ -721,7 +721,7 @@ TextNewlines detectNewlineType(T *start, T*end) {
     return NL_UNK;
 }
 
-HRESULT TextWindow::loadText(CComPtr<IShellItem> item, LoadResult *result) {
+HRESULT TextWindow::loadText(IShellItem *const item, LoadResult *result) {
     HRESULT hr;
     ULONG size;
     {
@@ -894,7 +894,7 @@ HRESULT TextWindow::saveText() {
     return S_OK;
 }
 
-TextWindow::LoadThread::LoadThread(CComPtr<IShellItem> item, TextWindow *callbackWindow)
+TextWindow::LoadThread::LoadThread(IShellItem *const item, TextWindow *const callbackWindow)
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
 }

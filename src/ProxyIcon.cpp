@@ -47,9 +47,10 @@ void ProxyIcon::uninit() {
         DeleteFont(captionFont);
 }
 
-ProxyIcon::ProxyIcon(ItemWindow *outer) : outer(outer) {}
+ProxyIcon::ProxyIcon(ItemWindow *const outer) : outer(outer) {}
 
-void ProxyIcon::create(HWND parent, IShellItem *item, wchar_t *title, int top, int height) {
+void ProxyIcon::create(HWND parent, IShellItem *const item, wchar_t *title,
+        int top, int height) {
     bool layered = IsWindows8OrGreater();
     toolbar = CreateWindowEx(layered ? WS_EX_LAYERED : 0, TOOLBARCLASSNAME, nullptr,
         TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_REGISTERDROP
@@ -117,7 +118,7 @@ POINT ProxyIcon::getMenuPoint(HWND parent) {
     }
 }
 
-void ProxyIcon::setItem(IShellItem *item) {
+void ProxyIcon::setItem(IShellItem *const item) {
     if (toolbar) {
         dropTarget = nullptr;
         item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&dropTarget));
@@ -206,7 +207,7 @@ void ProxyIcon::redrawToolbar() {
         RedrawWindow(toolbar, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
 }
 
-void ProxyIcon::dragDrop(IDataObject *dataObject, POINT offset) {
+void ProxyIcon::dragDrop(IDataObject *const dataObject, POINT offset) {
     if (toolbar) {
         CComPtr<IDragSourceHelper> dragHelper;
         if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper)))
@@ -467,7 +468,7 @@ static DWORD getDropEffect(DWORD keyState) {
         return DROPEFFECT_MOVE;
 }
 
-STDMETHODIMP ProxyIcon::DragEnter(IDataObject *dataObject, DWORD keyState, POINTL pt,
+STDMETHODIMP ProxyIcon::DragEnter(IDataObject *const dataObject, DWORD keyState, POINTL pt,
         DWORD *effect) {
     if (dragging) {
         *effect = getDropEffect(keyState); // pretend we can drop so the drag image is visible
@@ -506,7 +507,8 @@ STDMETHODIMP ProxyIcon::DragOver(DWORD keyState, POINTL pt, DWORD *effect) {
     return S_OK;
 }
 
-STDMETHODIMP ProxyIcon::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) {
+STDMETHODIMP ProxyIcon::Drop(IDataObject *const dataObject, DWORD keyState, POINTL pt,
+        DWORD *effect) {
     if (dragging) {
         *effect = DROPEFFECT_NONE; // can't drop item onto itself
     } else {

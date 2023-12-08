@@ -14,7 +14,7 @@ void ThumbnailWindow::init() {
     RegisterClass(&wndClass);
 }
 
-ThumbnailWindow::ThumbnailWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
+ThumbnailWindow::ThumbnailWindow(ItemWindow *const parent, IShellItem *const item)
     : ItemWindow(parent, item) {}
 
 ThumbnailWindow::~ThumbnailWindow() {
@@ -113,7 +113,7 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
 }
 
 ThumbnailWindow::ThumbnailThread::ThumbnailThread(
-        CComPtr<IShellItem> item, ThumbnailWindow *callbackWindow)
+        IShellItem *const item, ThumbnailWindow *const callbackWindow)
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
     requestThumbnailEvent = checkLE(CreateEvent(nullptr, TRUE, FALSE, nullptr));

@@ -53,7 +53,7 @@ void PreviewWindow::uninit() {
         entry.factory.Release();
 }
 
-PreviewWindow::PreviewWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item, CLSID previewID)
+PreviewWindow::PreviewWindow(ItemWindow *const parent, IShellItem *const item, CLSID previewID)
     : ItemWindow(parent, item),
       previewID(previewID) {}
 
@@ -193,8 +193,8 @@ STDMETHODIMP PreviewWindow::TranslateAccelerator(MSG *msg) {
 }
 
 
-PreviewWindow::InitPreviewRequest::InitPreviewRequest(CComPtr<IShellItem> item, CLSID previewID,
-        PreviewWindow *callbackWindow, HWND container)
+PreviewWindow::InitPreviewRequest::InitPreviewRequest(IShellItem *const item, CLSID previewID,
+        PreviewWindow *const callbackWindow, HWND container)
         : previewID(previewID),
           callbackWindow(callbackWindow),
           container(container) {
@@ -232,7 +232,7 @@ DWORD WINAPI PreviewWindow::initPreviewThreadProc(void *) {
     return 0;
 }
 
-void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
+void PreviewWindow::initPreview(InitPreviewRequest *const request) {
     CComPtr<IShellItem> item;
     if (!checkHR(SHCreateItemFromIDList(request->itemIDList, IID_PPV_ARGS(&item))))
         return;
@@ -293,8 +293,7 @@ void PreviewWindow::initPreview(CComPtr<InitPreviewRequest> request) {
     ReleaseSRWLockExclusive(&request->cancelLock);
 }
 
-bool PreviewWindow::initPreviewWithItem(CComPtr<IPreviewHandler> preview,
-        CComPtr<IShellItem> item) {
+bool PreviewWindow::initPreviewWithItem(IPreviewHandler *const preview, IShellItem *const item) {
     CComPtr<IBindCtx> context;
     if (checkHR(CreateBindCtx(0, &context))) {
         BIND_OPTS options = {sizeof(BIND_OPTS), 0, STGM_READ | STGM_SHARE_DENY_NONE, 0};

@@ -35,7 +35,7 @@ STDMETHODIMP CFExecute::QueryInterface(REFIID id, void **obj) {
 
 /* IObjectWithSelection */
 
-STDMETHODIMP CFExecute::SetSelection(IShellItemArray *array) {
+STDMETHODIMP CFExecute::SetSelection(IShellItemArray *const array) {
     selection = array;
     return S_OK;
 }
@@ -106,7 +106,8 @@ STDMETHODIMP CFExecute::DragLeave() {
     return S_OK;
 }
 
-STDMETHODIMP CFExecute::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) {
+STDMETHODIMP CFExecute::Drop(IDataObject *const dataObject, DWORD keyState, POINTL pt,
+        DWORD *effect) {
     debugPrintf(L"Invoked with DropTarget\n");
     // https://devblogs.microsoft.com/oldnewthing/20130204-00/?p=5363
     SetKeyState(keyState);
@@ -122,7 +123,7 @@ STDMETHODIMP CFExecute::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt,
     return S_OK;
 }
 
-HRESULT CFExecute::openArray(CComPtr<IShellItemArray> array) {
+HRESULT CFExecute::openArray(IShellItemArray *const array) {
     CComPtr<IShellWindows> shellWindows;
     checkHR(shellWindows.CoCreateInstance(CLSID_ShellWindows));
 
@@ -138,17 +139,17 @@ HRESULT CFExecute::openArray(CComPtr<IShellItemArray> array) {
     return S_OK;
 }
 
-void CFExecute::openItem(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows) {
-    item = resolveLink(item);
+void CFExecute::openItem(IShellItem *const item, IShellWindows *const shellWindows) {
+    CComPtr<IShellItem> resolved = resolveLink(item);
 
-    if (shellWindows && showItemWindow(item, shellWindows, showCommand))
+    if (shellWindows && showItemWindow(resolved, shellWindows, showCommand))
         return;
 
     CComPtr<ItemWindow> window;
     if (text) {
-        window.Attach(new TextWindow(nullptr, item));
+        window.Attach(new TextWindow(nullptr, resolved));
     } else {
-        window = createItemWindow(nullptr, item);
+        window = createItemWindow(nullptr, resolved);
     }
     window->create(window->requestedRect(monitor), showCommand);
     // fix issue when invoking 64-bit ChromaFiler from 32-bit app
@@ -176,7 +177,7 @@ STDMETHODIMP CFExecuteFactory::QueryInterface(REFIID id, void **obj) {
     return QISearch(this, interfaces, id, obj);
 }
 
-STDMETHODIMP CFExecuteFactory::CreateInstance(IUnknown *outer, REFIID id, void **obj) {
+STDMETHODIMP CFExecuteFactory::CreateInstance(IUnknown *const outer, REFIID id, void **obj) {
     *obj = nullptr;
     if (outer)
         return CLASS_E_NOAGGREGATION;

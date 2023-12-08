@@ -15,22 +15,23 @@ STDMETHODIMP NewItemSink::ResetTimer() {return S_OK;}
 STDMETHODIMP NewItemSink::PauseTimer() {return S_OK;}
 STDMETHODIMP NewItemSink::ResumeTimer() {return S_OK;}
 
-STDMETHODIMP NewItemSink::PostRenameItem(DWORD, IShellItem *, LPCWSTR, HRESULT, IShellItem *item) {
+STDMETHODIMP NewItemSink::PostRenameItem(DWORD, IShellItem *, LPCWSTR, HRESULT,
+        IShellItem *const item) {
     newItem = item;
     return S_OK;
 }
 STDMETHODIMP NewItemSink::PostMoveItem(DWORD, IShellItem *, IShellItem *, LPCWSTR, HRESULT,
-        IShellItem *item) {
+        IShellItem *const item) {
     newItem = item;
     return S_OK;
 }
 STDMETHODIMP NewItemSink::PostCopyItem(DWORD, IShellItem *, IShellItem *, LPCWSTR, HRESULT,
-        IShellItem * item) {
+        IShellItem *const item) {
     newItem = item;
     return S_OK;
 }
 STDMETHODIMP NewItemSink::PostNewItem(DWORD, IShellItem *, LPCWSTR, LPCWSTR, DWORD, HRESULT,
-        IShellItem *item) {
+        IShellItem *const item) {
     newItem = item;
     return S_OK;
 }

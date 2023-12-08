@@ -25,7 +25,7 @@ public:
 
     static void flashWindow(HWND hwnd);
 
-    ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
+    ItemWindow(ItemWindow *parent, IShellItem *item);
 
     virtual SIZE requestedSize(); // called if (! persistSizeInParent())
     virtual RECT requestedRect(HMONITOR preferMonitor); // called for root windows
@@ -81,15 +81,15 @@ protected:
     virtual SettingsPage settingsStartPage() const;
     virtual const wchar_t * helpURL() const;
 
-    virtual void updateWindowPropStore(CComPtr<IPropertyStore> propStore);
-    static void propStoreWriteString(CComPtr<IPropertyStore> propStore,
+    virtual void updateWindowPropStore(IPropertyStore *propStore);
+    static void propStoreWriteString(IPropertyStore *propStore,
         const PROPERTYKEY &key, const wchar_t *value);
 
     CComPtr<IPropertyBag> getPropBag();
     void resetViewState(uint32_t mask);
     void persistViewState();
-    virtual void clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask);
-    virtual void writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask);
+    virtual void clearViewState(IPropertyBag *bag, uint32_t mask);
+    virtual void writeViewState(IPropertyBag *bag, uint32_t mask);
     void viewStateDirty(uint32_t mask);
     void viewStateClean(uint32_t mask);
 
@@ -128,7 +128,7 @@ protected:
     virtual void trackContextMenu(POINT pos);
     int trackContextMenu(POINT pos, HMENU menu); // will modify menu!
 
-    void openChild(CComPtr<IShellItem> childItem);
+    void openChild(IShellItem *childItem);
     void closeChild();
     virtual void onChildDetached();
     SIZE requestedChildSize(); // called if child->persistSizeInParent()
@@ -183,7 +183,7 @@ private:
     void registerShellNotify();
     void unregisterShellNotify();
 
-    void itemMoved(CComPtr<IShellItem> newItem);
+    void itemMoved(IShellItem *newItem);
 
     void openParentMenu();
 
@@ -220,7 +220,7 @@ private:
 
     class IconThread : public StoppableThread {
     public:
-        IconThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow);
+        IconThread(IShellItem *item, ItemWindow *callbackWindow);
     protected:
         void run() override;
     private:
@@ -231,7 +231,7 @@ private:
 
     class StatusTextThread : public StoppableThread {
     public:
-        StatusTextThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow);
+        StatusTextThread(IShellItem *item, ItemWindow *callbackWindow);
     protected:
         void run() override;
     private:

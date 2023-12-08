@@ -9,7 +9,7 @@ class ThumbnailWindow : public ItemWindow {
 public:
     static void init();
 
-    ThumbnailWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item);
+    ThumbnailWindow(ItemWindow *parent, IShellItem *item);
     ~ThumbnailWindow();
 
 protected:
@@ -36,7 +36,7 @@ private:
 
     class ThumbnailThread : public StoppableThread {
     public:
-        ThumbnailThread(CComPtr<IShellItem> item, ThumbnailWindow *callbackWindow);
+        ThumbnailThread(IShellItem *item, ThumbnailWindow *callbackWindow);
         ~ThumbnailThread();
         void requestThumbnail(SIZE size);
     protected:

@@ -49,8 +49,8 @@ public:
     STDMETHODIMP Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) override;
 
 private:
-    HRESULT openArray(CComPtr<IShellItemArray> array);
-    void openItem(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows);
+    HRESULT openArray(IShellItemArray *array);
+    void openItem(IShellItem *item, IShellWindows *shellWindows);
 
     const bool text;
     CComPtr<IShellItemArray> selection;

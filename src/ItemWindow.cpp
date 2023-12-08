@@ -185,7 +185,7 @@ void ItemWindow::flashWindow(HWND hwnd) {
     PostMessage(hwnd, MSG_FLASH_WINDOW, 0, 0);
 }
 
-ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
+ItemWindow::ItemWindow(ItemWindow *const parent, IShellItem *const item)
         : parent(parent),
           item(item),
           proxyIcon(this) {}
@@ -254,7 +254,7 @@ const wchar_t * ItemWindow::helpURL() const {
     return L"https://github.com/vanjac/chromafiler/wiki";
 }
 
-void ItemWindow::updateWindowPropStore(CComPtr<IPropertyStore> propStore) {
+void ItemWindow::updateWindowPropStore(IPropertyStore *const propStore) {
     // https://learn.microsoft.com/en-us/windows/win32/shell/appids
     PROPVARIANT empty = {VT_EMPTY};
     propStore->SetValue(PKEY_AppUserModel_ID, empty); // use process explicit
@@ -266,7 +266,7 @@ void ItemWindow::updateWindowPropStore(CComPtr<IPropertyStore> propStore) {
         propStore->SetValue(PKEY_AppUserModel_RelaunchIconResource, empty);
 }
 
-void ItemWindow::propStoreWriteString(CComPtr<IPropertyStore> propStore,
+void ItemWindow::propStoreWriteString(IPropertyStore *const propStore,
         const PROPERTYKEY &key, const wchar_t *value) {
     PROPVARIANT propVar;
     if (checkHR(InitPropVariantFromString(value, &propVar))) {
@@ -305,7 +305,7 @@ void ItemWindow::persistViewState() {
     }
 }
 
-void ItemWindow::clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+void ItemWindow::clearViewState(IPropertyBag *const bag, uint32_t mask) {
     viewStateClean(mask);
 
     CComVariant empty;
@@ -317,7 +317,7 @@ void ItemWindow::clearViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
         checkHR(bag->Write(PROP_CHILD_SIZE, &empty));
 }
 
-void ItemWindow::writeViewState(CComPtr<IPropertyBag> bag, uint32_t mask) {
+void ItemWindow::writeViewState(IPropertyBag *const bag, uint32_t mask) {
     viewStateClean(mask);
 
     RECT rect = windowRect(hwnd);
@@ -1223,17 +1223,17 @@ void ItemWindow::limitChainWindowRect(RECT *rect) {
         rect->bottom = maxBottom;
 }
 
-void ItemWindow::openChild(CComPtr<IShellItem> childItem) {
-    childItem = resolveLink(childItem);
+void ItemWindow::openChild(IShellItem *const childItem) {
+    CComPtr<IShellItem> resolved = resolveLink(childItem);
     if (child) {
         const int compareFlags = SICHINT_CANONICAL | SICHINT_TEST_FILESYSPATH_IF_NOT_EQUAL;
         int compare;
-        if (checkHR(child->item->Compare(childItem, compareFlags, &compare)) && compare == 0)
+        if (checkHR(child->item->Compare(resolved, compareFlags, &compare)) && compare == 0)
             return; // already open
         child->close();
     }
     unregisterShellWindow();
-    child = createItemWindow(this, childItem);
+    child = createItemWindow(this, resolved);
     SIZE size = child->persistSizeInParent() ? requestedChildSize() : child->requestedSize();
     POINT pos = childPos(size);
     RECT rect = {pos.x, pos.y, pos.x + size.cx, pos.y + size.cy};
@@ -1591,7 +1591,7 @@ bool ItemWindow::resolveItem() {
     return false;
 }
 
-void ItemWindow::itemMoved(CComPtr<IShellItem> newItem) {
+void ItemWindow::itemMoved(IShellItem *const newItem) {
     resetViewState(); // clear view state of old item
     item = newItem;
     link = nullptr;
@@ -1852,7 +1852,7 @@ LRESULT CALLBACK ItemWindow::chainWindowProc(HWND hwnd, UINT message,
     return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
-ItemWindow::IconThread::IconThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow)
+ItemWindow::IconThread::IconThread(IShellItem *const item, ItemWindow *const callbackWindow)
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
 }
@@ -1897,7 +1897,8 @@ void ItemWindow::IconThread::run() {
     ReleaseSRWLockExclusive(&stopLock);
 }
 
-ItemWindow::StatusTextThread::StatusTextThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow)
+ItemWindow::StatusTextThread::StatusTextThread(
+        IShellItem *const item, ItemWindow *const callbackWindow)
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
 }

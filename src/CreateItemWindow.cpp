@@ -23,7 +23,7 @@ const CLSID TXT_PREVIEWER_CLSID =
 bool previewHandlerCLSID(wchar_t *type, CLSID *previewID);
 bool isCFWindow(HWND hwnd);
 
-CComPtr<ItemWindow> createItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item) {
+CComPtr<ItemWindow> createItemWindow(ItemWindow *const parent, IShellItem *const item) {
     CComPtr<ItemWindow> window;
     SFGAOF attr;
     if (checkHR(item->GetAttributes(SFGAO_FOLDER, &attr)) && (attr & SFGAO_FOLDER)) {
@@ -67,7 +67,7 @@ bool previewHandlerCLSID(wchar_t *type, CLSID *previewID) {
     return checkHR(CLSIDFromString(resultGUID, previewID));
 }
 
-bool showItemWindow(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindows, int showCmd) {
+bool showItemWindow(IShellItem *const item, IShellWindows *const shellWindows, int showCmd) {
     CComQIPtr<IPersistIDList> persistIDList(item);
     if (!persistIDList)
         return false;
@@ -91,7 +91,7 @@ bool showItemWindow(CComPtr<IShellItem> item, CComPtr<IShellWindows> shellWindow
     return false;
 }
 
-CComPtr<IShellItem> resolveLink(CComPtr<IShellItem> linkItem) {
+CComPtr<IShellItem> resolveLink(IShellItem *const linkItem) {
     // https://stackoverflow.com/a/46064112
     CComPtr<IShellLink> link;
     if (SUCCEEDED(linkItem->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&link)))) {
@@ -130,7 +130,7 @@ CComPtr<IShellItem> itemFromPath(wchar_t *path) {
     }
 }
 
-CComPtr<IShellItem> createScratchFile(CComPtr<IShellItem> folder) {
+CComPtr<IShellItem> createScratchFile(IShellItem *const folder) {
     CComPtr<IFileOperation> operation;
     if (!checkHR(operation.CoCreateInstance(__uuidof(FileOperation))))
         return nullptr;
@@ -153,7 +153,7 @@ bool isCFWindow(HWND hwnd) {
 }
 
 
-void debugDisplayNames(HWND hwnd, CComPtr<IShellItem> item) {
+void debugDisplayNames(HWND hwnd, IShellItem *const item) {
     static SIGDN nameTypes[] = {
         SIGDN_NORMALDISPLAY, SIGDN_PARENTRELATIVE,
         SIGDN_PARENTRELATIVEEDITING, SIGDN_PARENTRELATIVEFORUI,
