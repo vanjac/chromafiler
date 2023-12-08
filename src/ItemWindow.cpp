@@ -14,7 +14,6 @@
 #include <dwmapi.h>
 #include <vssym32.h>
 #include <shellapi.h>
-#include <strsafe.h>
 #include <propkey.h>
 #include <Propvarutil.h>
 #include <VersionHelpers.h>
@@ -34,8 +33,6 @@ const wchar_t PROP_CHILD_SIZE[] = L"ChildSize";
 // dimensions
 static int PARENT_BUTTON_WIDTH = 34; // caption only, matches close button width in windows 10
 static int COMP_CAPTION_VMARGIN = 1;
-static SIZE PROXY_PADDING = {7, 3};
-static SIZE PROXY_INFLATE = {4, 1};
 static int TOOLBAR_HEIGHT = 24;
 static int STATUS_TEXT_MARGIN = 4;
 static int STATUS_TOOLTIP_OFFSET = 2; // TODO not correct at higher DPIs
@@ -49,21 +46,14 @@ static LOGFONT SYMBOL_LOGFONT = {14, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE,
 
 // these are Windows metrics/colors that are not exposed through the API >:(
 static int WIN10_CXSIZEFRAME = 8; // TODO not correct at higher DPIs
-// this produces the color used in every high-contrast theme
-// regular light mode theme uses #999999
-const BYTE INACTIVE_CAPTION_ALPHA = 156;
-
-const BYTE PROXY_BUTTON_STYLE = BTNS_DROPDOWN | BTNS_NOPREFIX;
 
 static local_wstr_ptr iconResource;
 static HANDLE symbolFontHandle = nullptr;
-static HFONT captionFont = nullptr, statusFont = nullptr;
+static HFONT statusFont = nullptr;
 static HFONT symbolFont = nullptr;
 static HCURSOR rightSideCursor = nullptr;
 
 static BOOL compositionEnabled = FALSE;
-
-static CComPtr<IDropTargetHelper> dropTargetHelper;
 
 HACCEL ItemWindow::accelTable;
 
@@ -129,8 +119,6 @@ void ItemWindow::init() {
 
     PARENT_BUTTON_WIDTH = scaleDPI(PARENT_BUTTON_WIDTH);
     COMP_CAPTION_VMARGIN = scaleDPI(COMP_CAPTION_VMARGIN);
-    PROXY_PADDING = scaleDPI(PROXY_PADDING);
-    PROXY_INFLATE = scaleDPI(PROXY_INFLATE);
     TOOLBAR_HEIGHT = scaleDPI(TOOLBAR_HEIGHT);
     STATUS_TEXT_MARGIN = scaleDPI(STATUS_TEXT_MARGIN);
     STATUS_TOOLTIP_OFFSET = scaleDPI(STATUS_TOOLTIP_OFFSET);
@@ -138,18 +126,18 @@ void ItemWindow::init() {
     WIN10_CXSIZEFRAME = scaleDPI(WIN10_CXSIZEFRAME);
     SYMBOL_LOGFONT.lfHeight = scaleDPI(SYMBOL_LOGFONT.lfHeight);
 
+    ProxyIcon::init();
     if (HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME)) {
         LOGFONT logFont;
-        if (checkHR(GetThemeSysFont(theme, TMT_CAPTIONFONT, &logFont)))
-            captionFont = CreateFontIndirect(&logFont);
         if (checkHR(GetThemeSysFont(theme, TMT_STATUSFONT, &logFont)))
             statusFont = CreateFontIndirect(&logFont);
+        ProxyIcon::initTheme(theme);
         checkHR(CloseThemeData(theme));
     } else {
         NONCLIENTMETRICS metrics = {sizeof(metrics)};
         SystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, 0);
-        captionFont = CreateFontIndirect(&metrics.lfCaptionFont);
         statusFont = CreateFontIndirect(&metrics.lfStatusFont);
+        ProxyIcon::initMetrics(metrics);
     }
 
     if (HRSRC symbolFontResource =
@@ -173,8 +161,7 @@ void ItemWindow::init() {
 }
 
 void ItemWindow::uninit() {
-    if (captionFont)
-        DeleteFont(captionFont);
+    ProxyIcon::uninit();
     if (symbolFont)
         DeleteFont(symbolFont);
     if (symbolFontHandle)
@@ -200,10 +187,11 @@ void ItemWindow::flashWindow(HWND hwnd) {
 
 ItemWindow::ItemWindow(CComPtr<ItemWindow> parent, CComPtr<IShellItem> item)
         : parent(parent),
-          item(item) {}
+          item(item),
+          proxyIcon(this) {}
 
 void ItemWindow::setScratch(bool value) {
-    this->scratch = value;
+    scratch = value;
 }
 
 bool ItemWindow::persistSizeInParent() const {
@@ -469,6 +457,11 @@ RECT ItemWindow::windowBody() {
     return rect;
 }
 
+void ItemWindow::fakeDragMove() {
+    // https://stackoverflow.com/a/35880547/11525734
+    SendMessage(hwnd, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
+}
+
 void ItemWindow::enableTransitions(bool enabled) {
     if (compositionEnabled) {
         checkHR(DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
@@ -506,8 +499,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onDestroy();
             return 0;
         case WM_NCDESTROY:
-            if (imageList)
-                checkLE(ImageList_Destroy(imageList));
+            proxyIcon.destroy();
             // don't need icon lock since icon thread is stopped
             if (iconLarge) {
                 checkLE(DestroyIcon(iconLarge));
@@ -525,25 +517,22 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             onActivate(LOWORD(wParam), (HWND)lParam);
             return 0;
         case WM_NCACTIVATE: {
-            if (proxyToolbar && IsWindows8OrGreater()) {
-                BYTE alpha = wParam ? 255 : INACTIVE_CAPTION_ALPHA;
-                SetLayeredWindowAttributes(proxyToolbar, 0, alpha, LWA_ALPHA);
-            }
+            proxyIcon.setActive(!!wParam);
             LRESULT res = DefWindowProc(hwnd, message, wParam, lParam);
-            if (!compositionEnabled && proxyToolbar)
-                RedrawWindow(proxyToolbar, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
+            if (!compositionEnabled)
+                proxyIcon.redrawToolbar();
             return res;
         }
         case WM_NCPAINT: {
             LRESULT res = DefWindowProc(hwnd, message, wParam, lParam);
-            if (!compositionEnabled && proxyToolbar)
-                RedrawWindow(proxyToolbar, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW);
+            if (!compositionEnabled)
+                proxyIcon.redrawToolbar();
             return res;
         }
         case WM_MOUSEACTIVATE: {
             POINT cursor;
             GetCursorPos(&cursor);
-            if (ChildWindowFromPoint(hwnd, screenToClient(hwnd, cursor)) == proxyToolbar)
+            if (proxyIcon.isToolbarWindow(ChildWindowFromPoint(hwnd, screenToClient(hwnd, cursor))))
                 return MA_NOACTIVATE; // allow dragging without activating
             break;
         }
@@ -585,12 +574,7 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
         case WM_THEMECHANGED:
             // TODO: duplicate code, must be kept in sync with onCreate()
             // reset fonts
-            if (proxyToolbar && captionFont)
-                PostMessage(proxyToolbar, WM_SETFONT, (WPARAM)captionFont, TRUE);
-            if (proxyTooltip && captionFont)
-                PostMessage(proxyTooltip, WM_SETFONT, (WPARAM)captionFont, TRUE);
-            if (renameBox && captionFont)
-                PostMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, TRUE);
+            proxyIcon.onThemeChanged();
             if (statusText && statusFont)
                 PostMessage(statusText, WM_SETFONT, (WPARAM)statusFont, TRUE);
             if (statusTooltip && statusFont)
@@ -744,15 +728,9 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
                 SendMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
                 SendMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
             }
-
-            int iconSize = GetSystemMetrics(SM_CXSMICON);
-            if (imageList)
-                checkLE(ImageList_Destroy(imageList));
-            imageList = ImageList_Create(iconSize, iconSize, ILC_MASK | ILC_COLOR32, 1, 0);
-            ImageList_AddIcon(imageList, iconSmall);
+            proxyIcon.setIcon(iconSmall);
             ReleaseSRWLockExclusive(&iconLock);
 
-            SendMessage(proxyToolbar, TB_SETIMAGELIST, 0, (LPARAM)imageList);
             autoSizeProxy(clientSize(hwnd).cx);
             return 0;
         }
@@ -806,53 +784,9 @@ void ItemWindow::onCreate() {
         if (compositionEnabled)
             checkHR(DwmExtendFrameIntoClientArea(hwnd, &margins));
 
-        bool layered = IsWindows8OrGreater();
-        proxyToolbar = CreateWindowEx(layered ? WS_EX_LAYERED : 0, TOOLBARCLASSNAME, nullptr,
-            TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_REGISTERDROP
-                | CCS_NOPARENTALIGN | CCS_NORESIZE | CCS_NODIVIDER | WS_VISIBLE | WS_CHILD,
-            0, 0, 0, 0, hwnd, nullptr, instance, nullptr);
-        if (layered)
-            SetLayeredWindowAttributes(proxyToolbar, 0, INACTIVE_CAPTION_ALPHA, LWA_ALPHA);
-        SendMessage(proxyToolbar, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DRAWDDARROWS);
-        SendMessage(proxyToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM)sizeof(TBBUTTON), 0);
-        if (captionFont)
-            SendMessage(proxyToolbar, WM_SETFONT, (WPARAM)captionFont, FALSE);
-        SendMessage(proxyToolbar, TB_SETPADDING, 0, MAKELPARAM(PROXY_PADDING.cx, PROXY_PADDING.cy));
-        TBBUTTON proxyButton = {0, IDM_PROXY_BUTTON, TBSTATE_ENABLED,
-            PROXY_BUTTON_STYLE | BTNS_AUTOSIZE, {}, 0, (INT_PTR)(wchar_t *)title};
-        SendMessage(proxyToolbar, TB_ADDBUTTONS, 1, (LPARAM)&proxyButton);
-        SIZE ideal;
-        SendMessage(proxyToolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
-        int top = captionTopMargin();
-        int height = CAPTION_HEIGHT - captionTopMargin();
-        if (IsWindows10OrGreater()) {
-            // center vertically
-            int buttonHeight = GET_Y_LPARAM(SendMessage(proxyToolbar, TB_GETBUTTONSIZE, 0, 0));
-            top += max(0, (height - buttonHeight) / 2);
-            height = min(height, buttonHeight);
-        }
-        SetWindowPos(proxyToolbar, nullptr, PARENT_BUTTON_WIDTH, top, ideal.cx, height,
-            SWP_NOZORDER | SWP_NOACTIVATE);
-
-        // will succeed for folders and EXEs, and fail for regular files
-        // TODO: delay load?
-        item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
-
-        proxyTooltip = checkLE(CreateWindowEx(WS_EX_TOPMOST, TOOLTIPS_CLASS, nullptr,
-            WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
-            CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-            hwnd, nullptr, instance, nullptr));
-        SetWindowPos(proxyTooltip, HWND_TOPMOST, 0, 0, 0, 0,
-            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-        if (captionFont)
-            SendMessage(proxyTooltip, WM_SETFONT, (WPARAM)captionFont, FALSE);
-        TOOLINFO toolInfo = {sizeof(toolInfo)};
-        toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS | TTF_TRANSPARENT;
-        toolInfo.hwnd = hwnd;
-        toolInfo.uId = (UINT_PTR)proxyToolbar;
-        toolInfo.lpszText = title;
-        SendMessage(proxyTooltip, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
-    } // if (useCustomFrame())
+        proxyIcon.create(hwnd, item, title,
+            captionTopMargin(), CAPTION_HEIGHT - captionTopMargin());
+    }
 
     if (useCustomFrame() && settings::getStatusTextEnabled()) {
         // potentially leave room for parent button
@@ -1060,11 +994,13 @@ bool ItemWindow::onCommand(WORD command) {
                 refresh();
             return true;
         case IDM_PROXY_MENU: {
-            openProxyContextMenuFeedback();
+            proxyIcon.setPressedState(true);
+            openProxyContextMenu();
+            proxyIcon.setPressedState(false);
             return true;
         }
         case IDM_RENAME_PROXY:
-            beginRename();
+            proxyIcon.beginRename();
             return true;
         case IDM_DELETE_PROXY:
             deleteProxy();
@@ -1103,29 +1039,22 @@ LRESULT ItemWindow::onDropdown(int command, POINT pos) {
 }
 
 bool ItemWindow::onControlCommand(HWND controlHwnd, WORD notif) {
-    if (renameBox && controlHwnd == renameBox && notif == EN_KILLFOCUS) {
-        if (IsWindowVisible(renameBox))
-            completeRename();
+    if (proxyIcon.onControlCommand(controlHwnd, notif)) {
         return true;
     } else if (statusText && controlHwnd == statusText && notif == STN_CLICKED) {
         POINT cursorPos = {};
         GetCursorPos(&cursorPos);
         if (DragDetect(hwnd, cursorPos))
-            SendMessage(hwnd, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
+            fakeDragMove();
         return true;
     }
     return false;
 }
 
 LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
-    if (proxyTooltip && nmHdr->hwndFrom == proxyTooltip && nmHdr->code == TTN_SHOW) {
-        // position tooltip on top of title
-        RECT tooltipRect = titleRect();
-        MapWindowRect(hwnd, nullptr, &tooltipRect);
-        SendMessage(proxyTooltip, TTM_ADJUSTRECT, TRUE, (LPARAM)&tooltipRect);
-        SetWindowPos(proxyTooltip, nullptr, tooltipRect.left, tooltipRect.top, 0, 0,
-            SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-        return TRUE;
+    LRESULT proxyRes = proxyIcon.onNotify(nmHdr);
+    if (proxyRes) {
+        return proxyRes;
     } else if (statusTooltip && nmHdr->hwndFrom == statusTooltip && nmHdr->code == TTN_SHOW) {
         RECT statusRect = windowRect(statusText);
 
@@ -1156,7 +1085,7 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
         NMTOOLBAR *nmToolbar = (NMTOOLBAR *)nmHdr;
         POINT menuPos = {nmToolbar->rcButton.left, nmToolbar->rcButton.bottom};
         return onDropdown(nmToolbar->iItem, clientToScreen(nmHdr->hwndFrom, menuPos));
-    } else if ((nmHdr->hwndFrom == proxyToolbar || nmHdr->hwndFrom == parentToolbar)
+    } else if ((proxyIcon.isToolbarWindow(nmHdr->hwndFrom) || nmHdr->hwndFrom == parentToolbar)
             && nmHdr->code == NM_CUSTOMDRAW) {
         NMTBCUSTOMDRAW *customDraw = (NMTBCUSTOMDRAW *)nmHdr;
         if (customDraw->nmcd.dwDrawStage == CDDS_PREPAINT) {
@@ -1166,60 +1095,11 @@ LRESULT ItemWindow::onNotify(NMHDR *nmHdr) {
             makeBitmapOpaque(customDraw->nmcd.hdc, clientRect(nmHdr->hwndFrom));
         }
         return CDRF_DODEFAULT;
-    } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == NM_LDOWN) {
-        if (renameBox && IsWindowVisible(renameBox))
-            return FALSE; // don't steal focus
-        NMMOUSE *mouse = (NMMOUSE *)nmHdr;
-        POINT screenPos = clientToScreen(proxyToolbar, mouse->pt);
-        if (DragDetect(hwnd, screenPos)) {
-            POINT newCursorPos = {};
-            GetCursorPos(&newCursorPos);
-            // detect click-and-hold
-            // https://devblogs.microsoft.com/oldnewthing/20100304-00/?p=14733
-            RECT dragRect = {screenPos.x, screenPos.y, screenPos.x, screenPos.y};
-            InflateRect(&dragRect, GetSystemMetrics(SM_CXDRAG), GetSystemMetrics(SM_CYDRAG));
-            if (PtInRect(&dragRect, newCursorPos)
-                    || GetKeyState(VK_CONTROL) < 0 || GetKeyState(VK_MENU) < 0) {
-                RECT toolbarRect = windowRect(proxyToolbar);
-                proxyDrag({screenPos.x - toolbarRect.left, screenPos.y - toolbarRect.top});
-            } else {
-                SetActiveWindow(hwnd); // wasn't activated due to handling WM_MOUSEACTIVATE
-                // https://stackoverflow.com/a/35880547/11525734
-                SendMessage(hwnd, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
-                return TRUE;
-            }
-        } else {
-            SetActiveWindow(hwnd); // wasn't activated due to handling WM_MOUSEACTIVATE
-        }
-        return FALSE;
-    } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == NM_CLICK) {
-        // actually a double-click, since we captured the mouse in the NM_LDOWN handler (???)
-        if (renameBox && IsWindowVisible(renameBox))
-            return FALSE;
-        else if (GetKeyState(VK_MENU) < 0)
-            openProxyProperties();
-        else
-            invokeProxyDefaultVerb();
-        return TRUE;
-    } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == NM_RCLICK) {
-        openProxyContextMenuFeedback();
-        return TRUE;
-    } else if (nmHdr->hwndFrom == proxyToolbar && nmHdr->code == TBN_GETOBJECT) {
-        NMOBJECTNOTIFY *objNotif = (NMOBJECTNOTIFY *)nmHdr;
-        if (itemDropTarget || draggingObject) {
-            objNotif->pObject = (IDropTarget *)this;
-            objNotif->hResult = S_OK;
-            AddRef();
-        } else {
-            objNotif->pObject = nullptr;
-            objNotif->hResult = E_FAIL;
-        }
-        return 0;
     } else if (nmHdr->hwndFrom == parentToolbar && nmHdr->code == NM_LDOWN) {
         NMMOUSE *mouse = (NMMOUSE *)nmHdr;
         POINT screenPos = clientToScreen(parentToolbar, mouse->pt);
         if (DragDetect(hwnd, screenPos)) {
-            SendMessage(hwnd, WM_SYSCOMMAND, SC_DRAGMOVE, 0);
+            fakeDragMove();
         } else {
             onCommand((WORD)mouse->dwItemSpec); // button clicked normally
         }
@@ -1264,42 +1144,12 @@ void ItemWindow::onSize(SIZE size) {
 }
 
 void ItemWindow::autoSizeProxy(LONG width) {
-    if (proxyToolbar) {
-        TITLEBARINFOEX titleBar = {sizeof(titleBar)};
-        SendMessage(hwnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&titleBar);
-        int closeButtonWidth = rectWidth(titleBar.rgrect[5]);
+    TITLEBARINFOEX titleBar = {sizeof(titleBar)};
+    SendMessage(hwnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&titleBar);
+    int closeButtonWidth = rectWidth(titleBar.rgrect[5]);
 
-        // turn on autosize to calculate the ideal width
-        TBBUTTONINFO buttonInfo = {sizeof(buttonInfo)};
-        buttonInfo.dwMask = TBIF_STYLE;
-        buttonInfo.fsStyle = PROXY_BUTTON_STYLE | BTNS_AUTOSIZE;
-        SendMessage(proxyToolbar, TB_SETBUTTONINFO, IDM_PROXY_BUTTON, (LPARAM)&buttonInfo);
-        SIZE ideal;
-        SendMessage(proxyToolbar, TB_GETIDEALSIZE, FALSE, (LPARAM)&ideal);
-        int actualLeft;
-        if (centeredProxy()) {
-            int idealLeft = (width - ideal.cx) / 2;
-            actualLeft = max(PARENT_BUTTON_WIDTH, idealLeft);
-        } else {
-            actualLeft = 0; // cover actual window title/icon
-        }
-        int maxWidth = width - actualLeft - closeButtonWidth;
-        int actualWidth = min(ideal.cx, maxWidth);
-
-        // turn off autosize to set exact width
-        buttonInfo.dwMask = TBIF_STYLE | TBIF_SIZE;
-        buttonInfo.fsStyle = PROXY_BUTTON_STYLE;
-        buttonInfo.cx = (WORD)actualWidth;
-        SendMessage(proxyToolbar, TB_SETBUTTONINFO, IDM_PROXY_BUTTON, (LPARAM)&buttonInfo);
-
-        RECT rect = windowRect(proxyToolbar);
-        MapWindowRect(nullptr, hwnd, &rect);
-        SetWindowPos(proxyToolbar, nullptr, actualLeft, rect.top,
-            actualWidth, rectHeight(rect), SWP_NOZORDER | SWP_NOACTIVATE);
-
-        // show/hide tooltip if text truncated
-        SendMessage(proxyTooltip, TTM_ACTIVATE, ideal.cx > maxWidth, 0);
-    }
+    int left = centeredProxy() ? PARENT_BUTTON_WIDTH : 0;
+    proxyIcon.autoSize(width, left, closeButtonWidth);
 }
 
 void ItemWindow::windowRectChanged() {
@@ -1361,18 +1211,6 @@ void ItemWindow::onPaint(PAINTSTRUCT paint) {
                     0, 0, 1, 1, &bitmapBits, &bitmapInfo,
                     DIB_RGB_COLORS, SRCCOPY);
     }
-}
-
-RECT ItemWindow::titleRect() {
-    RECT rect;
-    SendMessage(proxyToolbar, TB_GETRECT, IDM_PROXY_BUTTON, (LPARAM)&rect);
-    // hardcoded nonsense
-    SIZE offset = IsThemeActive() ? SIZE{7, 5} : SIZE{3, 2};
-    InflateRect(&rect, -PROXY_INFLATE.cx - offset.cx, -PROXY_INFLATE.cy - offset.cy);
-    int iconSize = GetSystemMetrics(SM_CXSMICON);
-    rect.left += iconSize;
-    MapWindowRect(proxyToolbar, hwnd, &rect);
-    return rect;
 }
 
 void ItemWindow::limitChainWindowRect(RECT *rect) {
@@ -1771,25 +1609,10 @@ void ItemWindow::onItemChanged() {
     if (checkHR(item->GetDisplayName(SIGDN_NORMALDISPLAY, &newTitle))) {
         title = newTitle;
         SetWindowText(hwnd, title);
-        if (proxyToolbar) {
-            TBBUTTONINFO buttonInfo = {sizeof(buttonInfo)};
-            buttonInfo.dwMask = TBIF_TEXT;
-            buttonInfo.pszText = title;
-            SendMessage(proxyToolbar, TB_SETBUTTONINFO, IDM_PROXY_BUTTON, (LPARAM)&buttonInfo);
-        }
-        if (proxyTooltip) {
-            TOOLINFO toolInfo = {sizeof(toolInfo)};
-            toolInfo.hwnd = hwnd;
-            toolInfo.uId = (UINT_PTR)proxyToolbar;
-            toolInfo.lpszText = title;
-            SendMessage(proxyTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
-        }
+        proxyIcon.setTitle(title);
         autoSizeProxy(clientSize(hwnd).cx);
     }
-    if (proxyToolbar) {
-        itemDropTarget = nullptr;
-        item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&itemDropTarget));
-    }
+    proxyIcon.setItem(item);
     propBag = nullptr;
     resetViewState();
     if (auto bag = getPropBag())
@@ -1933,14 +1756,7 @@ void ItemWindow::openProxyContextMenu() {
         checkLE(DestroyMenu(popupMenu));
         return;
     }
-    POINT point;
-    if (proxyToolbar) {
-        RECT buttonRect;
-        SendMessage(proxyToolbar, TB_GETRECT, IDM_PROXY_BUTTON, (LPARAM)&buttonRect);
-        point = clientToScreen(proxyToolbar, {buttonRect.left, buttonRect.bottom});
-    } else {
-        point = clientToScreen(hwnd, {0, 0});
-    }
+    POINT point = proxyIcon.getMenuPoint(hwnd);
     contextMenu2 = contextMenu;
     contextMenu3 = contextMenu;
     int cmd = TrackPopupMenuEx(popupMenu, TPM_RETURNCMD | TPM_RIGHTBUTTON,
@@ -1955,24 +1771,13 @@ void ItemWindow::openProxyContextMenu() {
         bool hasVerb = checkHR(contextMenu->GetCommandString(cmd, GCS_VERBW, nullptr,
             (char*)verb, _countof(verb)));
         if (hasVerb && lstrcmpi(verb, L"rename") == 0) {
-            beginRename();
+            proxyIcon.beginRename();
         } else {
             auto info = makeInvokeInfo(cmd, point);
             contextMenu->InvokeCommand((CMINVOKECOMMANDINFO *)&info);
         }
     }
     checkLE(DestroyMenu(popupMenu));
-}
-
-void ItemWindow::openProxyContextMenuFeedback() {
-    LONG_PTR state = 0;
-    if (proxyToolbar) {
-        state = SendMessage(proxyToolbar, TB_GETSTATE, IDM_PROXY_BUTTON, 0);
-        SendMessage(proxyToolbar, TB_SETSTATE, IDM_PROXY_BUTTON, state | TBSTATE_PRESSED);
-    }
-    openProxyContextMenu();
-    if (proxyToolbar)
-        SendMessage(proxyToolbar, TB_SETSTATE, IDM_PROXY_BUTTON, state);
 }
 
 CMINVOKECOMMANDINFOEX ItemWindow::makeInvokeInfo(int cmd, POINT point) {
@@ -1998,109 +1803,17 @@ void ItemWindow::proxyDrag(POINT offset) {
     CComPtr<IDataObject> dataObject;
     if (!checkHR(item->BindToHandler(nullptr, BHID_SFUIObject, IID_PPV_ARGS(&dataObject))))
         return;
-    CComPtr<IDragSourceHelper> dragHelper;
-    if (checkHR(dragHelper.CoCreateInstance(CLSID_DragDropHelper)))
-        dragHelper->InitializeFromWindow(proxyToolbar, &offset, dataObject);
-
-    DWORD okEffects = DROPEFFECT_COPY | DROPEFFECT_LINK | DROPEFFECT_MOVE;
-    DWORD effect;
-    draggingObject = true;
-    // effect is supposed to be set to DROPEFFECT_MOVE if the target was unable to delete the
-    // original, however the only time I could trigger this was moving a file into a ZIP folder,
-    // which does successfully delete the original, only with a delay. So handling this as intended
-    // would actually break dragging into ZIP folders and cause loss of data!
-    // TODO: get CFSTR_PERFORMEDDROPEFFECT instead?
-    if (DoDragDrop(dataObject, this, okEffects, &effect) == DRAGDROP_S_DROP) {
-        // make sure the item is updated to the new path!
-        // TODO: is this still necessary with SHChangeNotify?
-        resolveItem();
-    }
-    draggingObject = false;
+    proxyIcon.dragDrop(dataObject, offset);
 }
 
-void ItemWindow::beginRename() {    
-    CComHeapPtr<wchar_t> editingName;
-    if (!checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEEDITING, &editingName)))
-        return;
-
-    if (!renameBox) {
-        if (!useCustomFrame())
-            return;
-        // create rename box
-        renameBox = checkLE(CreateWindow(L"EDIT", nullptr, WS_POPUP | WS_BORDER | ES_AUTOHSCROLL,
-            0, 0, 0, 0, hwnd, nullptr, GetModuleHandle(nullptr), nullptr));
-        // support ctrl+backspace
-        checkHR(SHAutoComplete(renameBox, SHACF_AUTOAPPEND_FORCE_OFF|SHACF_AUTOSUGGEST_FORCE_OFF));
-        SetWindowSubclass(renameBox, renameBoxProc, 0, (DWORD_PTR)this);
-        if (captionFont)
-            SendMessage(renameBox, WM_SETFONT, (WPARAM)captionFont, FALSE);
-    }
-
-    // update rename box rect
-    int leftMargin = LOWORD(SendMessage(renameBox, EM_GETMARGINS, 0, 0));
-    RECT textRect = titleRect();
-    int renameHeight = rectHeight(textRect) + 4; // NOT scaled with DPI
-    POINT renamePos = {textRect.left - leftMargin - 2,
-                       (CAPTION_HEIGHT - renameHeight) / 2};
-    TITLEBARINFOEX titleBar = {sizeof(titleBar)};
-    SendMessage(hwnd, WM_GETTITLEBARINFOEX, 0, (LPARAM)&titleBar);
-    int renameWidth = clientSize(hwnd).cx - rectWidth(titleBar.rgrect[5]) - renamePos.x;
-    renamePos = clientToScreen(hwnd, renamePos);
-    MoveWindow(renameBox, renamePos.x, renamePos.y, renameWidth, renameHeight, FALSE);
-
-    SendMessage(renameBox, WM_SETTEXT, 0, (LPARAM)&*editingName);
-    wchar_t *ext = PathFindExtension(editingName);
-    if (ext == editingName) { // files that start with a dot
-        Edit_SetSel(renameBox, 0, -1);
-    } else {
-        Edit_SetSel(renameBox, 0, ext - editingName);
-    }
-    ShowWindow(renameBox, SW_SHOW);
-    EnableWindow(proxyToolbar, FALSE);
-}
-
-void ItemWindow::completeRename() {
-    wchar_t newName[MAX_PATH];
-    SendMessage(renameBox, WM_GETTEXT, _countof(newName), (LPARAM)newName);
-    cancelRename();
-
-    CComHeapPtr<wchar_t> editingName;
-    if (!checkHR(item->GetDisplayName(SIGDN_PARENTRELATIVEEDITING, &editingName)))
-        return;
-
-    if (lstrcmp(newName, editingName) == 0)
-        return; // names are identical, which would cause an unnecessary error message
-    if (PathCleanupSpec(nullptr, newName) & (PCS_REPLACEDCHAR | PCS_REMOVEDCHAR)) {
-        enableChain(false);
-        checkHR(TaskDialog(hwnd, GetModuleHandle(nullptr), MAKEINTRESOURCE(IDS_ERROR_CAPTION),
-            nullptr, MAKEINTRESOURCE(IDS_INVALID_CHARS), TDCBF_OK_BUTTON, TD_ERROR_ICON, nullptr));
-        enableChain(true);
-        return;
-    }
-
-    SHELLFLAGSTATE shFlags = {};
-    SHGetSettings(&shFlags, SSF_SHOWEXTENSIONS);
-    if (!shFlags.fShowExtensions) {
-        CComQIPtr<IShellItem2> item2(item);
-        CComHeapPtr<wchar_t> display, ext;
-        if (item2 && checkHR(item2->GetString(PKEY_ItemNameDisplay, &display)) && display
-                && checkHR(item2->GetString(PKEY_FileExtension, &ext)) && ext) {
-            if (lstrcmpi(display, editingName) != 0) {
-                // extension was probably hidden (TODO: jank!)
-                debugPrintf(L"Appending extension %s\n", &*ext);
-                if (!checkHR(StringCchCat(newName, _countof(newName), ext)))
-                    return;
-            }
-        }
-    }
-
+void ItemWindow::proxyRename(const wchar_t *name) {
     CComPtr<IFileOperation> operation;
     if (!checkHR(operation.CoCreateInstance(__uuidof(FileOperation))))
         return;
     checkHR(operation->SetOperationFlags(
         IsWindows8OrGreater() ? FOFX_ADDUNDORECORD : FOF_ALLOWUNDO));
     NewItemSink eventSink;
-    if (!checkHR(operation->RenameItem(item, newName, &eventSink)))
+    if (!checkHR(operation->RenameItem(item, name, &eventSink)))
         return;
     unregisterShellNotify();
     checkHR(operation->PerformOperations());
@@ -2109,112 +1822,6 @@ void ItemWindow::completeRename() {
     } else {
         registerShellNotify();
     }
-}
-
-void ItemWindow::cancelRename() {
-    ShowWindow(renameBox, SW_HIDE);
-    EnableWindow(proxyToolbar, TRUE);
-}
-
-/* IUnknown */
-
-STDMETHODIMP ItemWindow::QueryInterface(REFIID id, void **obj) {
-    static const QITAB interfaces[] = {
-        QITABENT(ItemWindow, IDropSource),
-        QITABENT(ItemWindow, IDropTarget),
-        {},
-    };
-    HRESULT hr = QISearch(this, interfaces, id, obj);
-    if (SUCCEEDED(hr))
-        return hr;
-    return IUnknownImpl::QueryInterface(id, obj);
-}
-
-STDMETHODIMP_(ULONG) ItemWindow::AddRef() {
-    return IUnknownImpl::AddRef(); // fix diamond inheritance
-}
-
-STDMETHODIMP_(ULONG) ItemWindow::Release() {
-    return IUnknownImpl::Release();
-}
-
-/* IDropSource */
-
-STDMETHODIMP ItemWindow::QueryContinueDrag(BOOL escapePressed, DWORD keyState) {
-    if (escapePressed)
-        return DRAGDROP_S_CANCEL;
-    if (!(keyState & (MK_LBUTTON | MK_RBUTTON)))
-        return DRAGDROP_S_DROP;
-    return S_OK;
-}
-
-STDMETHODIMP ItemWindow::GiveFeedback(DWORD) {
-    return DRAGDROP_S_USEDEFAULTCURSORS;
-}
-
-/* IDropTarget */
-
-static DWORD getDropEffect(DWORD keyState) {
-    bool ctrl = (keyState & MK_CONTROL), shift = (keyState & MK_SHIFT), alt = (keyState & MK_ALT);
-    if ((ctrl && shift && !alt) || (!ctrl && !shift && alt))
-        return DROPEFFECT_LINK;
-    else if (ctrl && !shift && !alt)
-        return DROPEFFECT_COPY;
-    else
-        return DROPEFFECT_MOVE;
-}
-
-STDMETHODIMP ItemWindow::DragEnter(IDataObject *dataObject, DWORD keyState, POINTL pt,
-        DWORD *effect) {
-    if (draggingObject) {
-        *effect = getDropEffect(keyState); // pretend we can drop so the drag image is visible
-    } else {
-        if (!itemDropTarget
-                || !checkHR(itemDropTarget->DragEnter(dataObject, keyState, pt, effect)))
-            return E_FAIL;
-    }
-    POINT point {pt.x, pt.y};
-    if (!dropTargetHelper)
-        checkHR(dropTargetHelper.CoCreateInstance(CLSID_DragDropHelper));
-    if (dropTargetHelper)
-        checkHR(dropTargetHelper->DragEnter(hwnd, dataObject, &point, *effect));
-    return S_OK;
-}
-
-STDMETHODIMP ItemWindow::DragLeave() {
-    if (!draggingObject) {
-        if (!itemDropTarget || !checkHR(itemDropTarget->DragLeave()))
-            return E_FAIL;
-    }
-    if (dropTargetHelper)
-        checkHR(dropTargetHelper->DragLeave());
-    return S_OK;
-}
-
-STDMETHODIMP ItemWindow::DragOver(DWORD keyState, POINTL pt, DWORD *effect) {
-    if (draggingObject) {
-        *effect = getDropEffect(keyState);
-    } else {
-        if (!itemDropTarget || !checkHR(itemDropTarget->DragOver(keyState, pt, effect)))
-            return E_FAIL;
-    }
-    POINT point {pt.x, pt.y};
-    if (dropTargetHelper)
-        checkHR(dropTargetHelper->DragOver(&point, *effect));
-    return S_OK;
-}
-
-STDMETHODIMP ItemWindow::Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) {
-    if (draggingObject) {
-        *effect = DROPEFFECT_NONE; // can't drop item onto itself
-    } else {
-        if (!itemDropTarget || !checkHR(itemDropTarget->Drop(dataObject, keyState, pt, effect)))
-            return E_FAIL;
-    }
-    POINT point {pt.x, pt.y};
-    if (dropTargetHelper)
-        checkHR(dropTargetHelper->Drop(dataObject, &point, *effect));
-    return S_OK;
 }
 
 
@@ -2243,21 +1850,6 @@ LRESULT CALLBACK ItemWindow::chainWindowProc(HWND hwnd, UINT message,
         return 0;
     }
     return DefWindowProc(hwnd, message, wParam, lParam);
-}
-
-LRESULT CALLBACK ItemWindow::renameBoxProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData) {
-    if (message == WM_CHAR && wParam == VK_RETURN) {
-        ((ItemWindow *)refData)->completeRename();
-        return 0;
-    } else if (message == WM_CHAR && wParam == VK_ESCAPE) {
-        ((ItemWindow *)refData)->cancelRename();
-        return 0;
-    } else if (message == WM_CLOSE) {
-        // prevent user closing rename box (it will still be destroyed when owner is closed)
-        return 0;
-    }
-    return DefSubclassProc(hwnd, message, wParam, lParam);
 }
 
 ItemWindow::IconThread::IconThread(CComPtr<IShellItem> item, ItemWindow *callbackWindow)

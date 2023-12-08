@@ -24,7 +24,7 @@ protected:
     static LRESULT CALLBACK windowProc(HWND, UINT, WPARAM, LPARAM);
     virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) = 0;
     virtual bool useCustomFrame() const;
-    HWND hwnd;
+    HWND hwnd = nullptr;
 };
 
 } // namespace

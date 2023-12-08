@@ -2,6 +2,7 @@
 #include <common.h>
 
 #include "COMUtils.h"
+#include "ProxyIcon.h"
 #include "SettingsDialog.h"
 #include "WinUtils.h"
 #include <cstdint>
@@ -11,7 +12,8 @@
 
 namespace chromafiler {
 
-class ItemWindow : public WindowImpl, public IUnknownImpl, public IDropSource, public IDropTarget {
+class ItemWindow : public WindowImpl, public IUnknownImpl {
+    friend ProxyIcon;
 protected:
     static HACCEL accelTable;
     static int CAPTION_HEIGHT;
@@ -40,20 +42,6 @@ public:
     bool resolveItem();
 
     virtual bool handleTopLevelMessage(MSG *msg);
-
-    // IUnknown
-    STDMETHODIMP QueryInterface(REFIID id, void **obj) override;
-    STDMETHODIMP_(ULONG) AddRef() override;
-    STDMETHODIMP_(ULONG) Release() override;
-    // IDropSource
-    STDMETHODIMP QueryContinueDrag(BOOL escapePressed, DWORD keyState) override;
-    STDMETHODIMP GiveFeedback(DWORD effect) override;
-    // IDropTarget
-    STDMETHODIMP DragEnter(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect)
-        override;
-    STDMETHODIMP DragLeave() override;
-    STDMETHODIMP DragOver(DWORD keyState, POINTL pt, DWORD *effect) override;
-    STDMETHODIMP Drop(IDataObject *dataObject, DWORD keyState, POINTL pt, DWORD *effect) override;
 
     CComPtr<IShellItem> item;
 
@@ -171,12 +159,12 @@ private:
 
     HWND createChainOwner(int showCommand);
 
+    void fakeDragMove();
     void enableTransitions(bool enabled);
     void windowRectChanged();
     void autoSizeProxy(LONG width);
     LRESULT hitTestNCA(POINT cursor);
 
-    RECT titleRect();
     void limitChainWindowRect(RECT *rect);
     void openParent();
     void clearParent();
@@ -202,29 +190,20 @@ private:
     void invokeProxyDefaultVerb();
     void openProxyProperties();
     void openProxyContextMenu();
-    void openProxyContextMenuFeedback();
     void proxyDrag(POINT offset); // specify offset from icon origin
-    void beginRename();
-    void completeRename();
-    void cancelRename();
+    void proxyRename(const wchar_t *name);
 
     static LRESULT CALLBACK chainWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     static BOOL CALLBACK enumCloseChain(HWND, LPARAM lParam);
-
-    // window subclasses
-    static LRESULT CALLBACK renameBoxProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);
 
     CComPtr<IShellLink> link;
     CComPtr<IPropertyBag> propBag;
     bool scratch = false;
     uint32_t dirtyViewState = 0; // bit field indexed by ViewStateIndex
 
-    HWND proxyToolbar = nullptr, proxyTooltip = nullptr;
-    HWND parentToolbar = nullptr, renameBox = nullptr;
-    HWND statusText = nullptr, statusTooltip = nullptr, cmdToolbar = nullptr;
-    HIMAGELIST imageList = nullptr;
-    CComPtr<IDropTarget> itemDropTarget;
+    ProxyIcon proxyIcon;
+    HWND parentToolbar = nullptr, cmdToolbar = nullptr;
+    HWND statusText = nullptr, statusTooltip = nullptr;
     long shellWindowCookie = 0;
     ULONG shellNotifyID = 0;
 
@@ -232,7 +211,6 @@ private:
     POINT moveAccum;
     bool isChainPreview = false;
     bool firstActivate = false, closing = false;
-    bool draggingObject = false;
 
     SRWLOCK iconLock = SRWLOCK_INIT;
     HICON iconLarge = nullptr, iconSmall = nullptr;
