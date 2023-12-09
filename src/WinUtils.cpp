@@ -52,6 +52,10 @@ LRESULT CALLBACK WindowImpl::windowProc(HWND hwnd, UINT message, WPARAM wParam, 
     }
 }
 
+LRESULT WindowImpl::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+    return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
 bool WindowImpl::useCustomFrame() const {
     return false;
 }

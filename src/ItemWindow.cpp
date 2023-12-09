@@ -170,7 +170,7 @@ void ItemWindow::uninit() {
 
 WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
     WNDCLASS wndClass = {};
-    wndClass.lpfnWndProc = ItemWindow::windowProc;
+    wndClass.lpfnWndProc = windowProc;
     wndClass.hInstance = GetModuleHandle(nullptr);
     wndClass.lpszClassName = name;
     if (!compositionEnabled)

@@ -22,7 +22,7 @@ POINT clientToScreen(HWND hwnd, POINT clientPt);
 class WindowImpl {
 protected:
     static LRESULT CALLBACK windowProc(HWND, UINT, WPARAM, LPARAM);
-    virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) = 0;
+    virtual LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam);
     virtual bool useCustomFrame() const;
     HWND hwnd = nullptr;
 };
