@@ -2,6 +2,7 @@
 #include <common.h>
 
 #include "COMUtils.h"
+#include "ChainWindow.h"
 #include "ProxyIcon.h"
 #include "SettingsDialog.h"
 #include "WinUtils.h"
@@ -13,6 +14,7 @@
 namespace chromafiler {
 
 class ItemWindow : public WindowImpl, public IUnknownImpl {
+    friend ChainWindow;
     friend ProxyIcon;
 protected:
     static HACCEL accelTable;
@@ -157,8 +159,6 @@ private:
 
     bool centeredProxy() const; // requires useCustomFrame() == true
 
-    HWND createChainOwner(int showCommand);
-
     void fakeDragMove();
     void enableTransitions(bool enabled);
     void windowRectChanged();
@@ -172,9 +172,7 @@ private:
     void onChildResized(SIZE size); // only called if child->persistSizeInParent()
     void detachAndMove(bool closeParent);
 
-    // left-most non-palette window gets the chain preview
-    void addChainPreview();
-    void removeChainPreview();
+    void setChainPreview(); // left-most non-palette window gets the chain preview
 
     // only (non-palette) windows with no parent OR child are registered
     void registerShellWindow();
@@ -193,9 +191,6 @@ private:
     void proxyDrag(POINT offset); // specify offset from icon origin
     void proxyRename(const wchar_t *name);
 
-    static LRESULT CALLBACK chainWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-    static BOOL CALLBACK enumCloseChain(HWND, LPARAM lParam);
-
     CComPtr<IShellLink> link;
     CComPtr<IPropertyBag> propBag;
     bool scratch = false;
@@ -207,9 +202,9 @@ private:
     long shellWindowCookie = 0;
     ULONG shellNotifyID = 0;
 
+    CComPtr<ChainWindow> chain;
     SIZE childSize = {0, 0};
     POINT moveAccum;
-    bool isChainPreview = false;
     bool firstActivate = false, closing = false;
 
     SRWLOCK iconLock = SRWLOCK_INIT;

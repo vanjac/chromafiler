@@ -20,7 +20,6 @@
 
 namespace chromafiler {
 
-const wchar_t CHAIN_OWNER_CLASS[] = L"ChromaFile Chain";
 const wchar_t TESTPOS_CLASS[] = L"ChromaFiler Test Window";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 const UINT SC_DRAGMOVE = SC_MOVE | 2; // https://stackoverflow.com/a/35880547/11525734
@@ -93,13 +92,10 @@ int ItemWindow::cascadeSize() {
 }
 
 void ItemWindow::init() {
-    HINSTANCE hInstance = GetModuleHandle(nullptr);
+    ChainWindow::init();
+    ProxyIcon::init();
 
-    WNDCLASS chainClass = {};
-    chainClass.lpszClassName = CHAIN_OWNER_CLASS;
-    chainClass.lpfnWndProc = chainWindowProc;
-    chainClass.hInstance = hInstance;
-    RegisterClass(&chainClass);
+    HINSTANCE hInstance = GetModuleHandle(nullptr);
 
     WNDCLASS testPosClass = {};
     testPosClass.lpszClassName = TESTPOS_CLASS;
@@ -126,7 +122,6 @@ void ItemWindow::init() {
     WIN10_CXSIZEFRAME = scaleDPI(WIN10_CXSIZEFRAME);
     SYMBOL_LOGFONT.lfHeight = scaleDPI(SYMBOL_LOGFONT.lfHeight);
 
-    ProxyIcon::init();
     if (HTHEME theme = OpenThemeData(nullptr, WINDOW_THEME)) {
         LOGFONT logFont;
         if (checkHR(GetThemeSysFont(theme, TMT_STATUSFONT, &logFont)))
@@ -362,26 +357,26 @@ bool ItemWindow::create(RECT rect, int showCommand) {
         return false;
     debugPrintf(L"Open %s\n", &*title);
 
-    HWND owner;
-    if (parent && !parent->paletteWindow())
-        owner = checkLE(GetWindowOwner(parent->hwnd));
-    else if (child)
-        owner = checkLE(GetWindowOwner(child->hwnd));
-    else
-        owner = createChainOwner(showCommand);
+    if (parent && !parent->paletteWindow()) {
+        chain = parent->chain;
+    } else if (child) {
+        chain = child->chain;
+        chain->setLeft(this);
+    } else {
+        chain.Attach(new ChainWindow(this, windowStyle() & WS_POPUP, showCommand));
+    }
 
     HWND createHwnd = checkLE(CreateWindowEx(
         windowExStyle(), className(), title, windowStyle(),
         rect.left, rect.top, rectWidth(rect), rectHeight(rect),
-        owner, nullptr, GetModuleHandle(nullptr), (WindowImpl *)this));
+        chain->getWnd(), nullptr, GetModuleHandle(nullptr), (WindowImpl *)this));
     if (!createHwnd)
         return false;
-    SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) + 1);
 
     // https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-itaskbarlist2-markfullscreenwindow#remarks
     if (windowExStyle() & WS_EX_TOPMOST) {
         checkLE(SetProp(hwnd, L"NonRudeHWND", (HANDLE)TRUE));
-        checkLE(SetProp(owner, L"NonRudeHWND", (HANDLE)TRUE));
+        checkLE(SetProp(chain->getWnd(), L"NonRudeHWND", (HANDLE)TRUE));
     }
 
     if (parent || child)
@@ -393,20 +388,6 @@ bool ItemWindow::create(RECT rect, int showCommand) {
     AddRef(); // keep window alive while open
     lockProcess();
     return true;
-}
-
-HWND ItemWindow::createChainOwner(int showCommand) {
-    // there are special cases here for popup windows (ie. the tray) to fix DPI scaling bugs.
-    // see windowRectChanged() for details
-    bool isPopup = windowStyle() & WS_POPUP;
-    HWND window = checkLE(CreateWindowEx(isPopup ? (WS_EX_LAYERED | WS_EX_TOOLWINDOW) : 0,
-        CHAIN_OWNER_CLASS, nullptr, isPopup ? WS_OVERLAPPED : WS_POPUP, 0, 0, 0, 0,
-        nullptr, nullptr, GetModuleHandle(nullptr), 0)); // user data stores num owned windows
-    if (showCommand != -1)
-        ShowWindow(window, showCommand); // show in taskbar
-    if (isPopup)
-        SetLayeredWindowAttributes(window, 0, 0, LWA_ALPHA); // invisible but still drawn
-    return window;
 }
 
 void ItemWindow::close() {
@@ -723,11 +704,8 @@ LRESULT ItemWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             AcquireSRWLockExclusive(&iconLock);
             SendMessage(hwnd, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
             SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
-            if (!paletteWindow() && (!parent || parent->paletteWindow())) {
-                HWND owner = checkLE(GetWindowOwner(hwnd));
-                SendMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
-                SendMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
-            }
+            if (!paletteWindow() && (!parent || parent->paletteWindow()))
+                chain->setIcon(iconSmall, iconLarge);
             proxyIcon.setIcon(iconSmall);
             ReleaseSRWLockExclusive(&iconLock);
 
@@ -769,7 +747,7 @@ void ItemWindow::onCreate() {
     registerShellNotify();
 
     if (!paletteWindow() && (!parent || parent->paletteWindow()))
-        addChainPreview();
+        setChainPreview();
 
     if (!child && !parent && !paletteWindow() && !isScratch())
         SHAddToRecentDocs(SHARD_APPIDINFO, tempPtr(SHARDAPPIDINFO{item, appUserModelID()}));
@@ -937,6 +915,8 @@ void ItemWindow::onDestroy() {
     debugPrintf(L"Close %s\n", &*title);
     persistViewState();
 
+    if (!parent)
+        chain->setLeft(child); // "just in case"
     clearParent();
     if (child)
         child->close(); // recursive
@@ -946,13 +926,10 @@ void ItemWindow::onDestroy() {
         activeWindow = nullptr;
 
     unregisterShellNotify();
-    removeChainPreview();
     unregisterShellWindow();
-    if (HWND owner = checkLE(GetWindowOwner(hwnd))) {
-        SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, 0);
-        if (SetWindowLongPtr(owner, GWLP_USERDATA, GetWindowLongPtr(owner, GWLP_USERDATA) - 1) == 1)
-            DestroyWindow(owner); // last window in group
-    }
+
+    SetWindowLongPtr(hwnd, GWLP_HWNDPARENT, 0); // remove owner
+    chain = nullptr; // chain will be destroyed if this is the last window
 
     if (isScratch()) {
         debugPrintf(L"Deleting scratch file %s\n", &*title);
@@ -1165,8 +1142,7 @@ void ItemWindow::windowRectChanged() {
         int minHeight = GetSystemMetrics(SM_CYMINTRACK) + 1;
         if (rectHeight(rect) < minHeight)
             rect.bottom = rect.top + minHeight;
-        MoveWindow(checkLE(GetWindowOwner(hwnd)), rect.left, rect.top,
-            rectWidth(rect), rectHeight(rect), FALSE);
+        MoveWindow(chain->getWnd(), rect.left, rect.top, rectWidth(rect), rectHeight(rect), FALSE);
     }
 }
 
@@ -1261,7 +1237,6 @@ void ItemWindow::openParent() {
     parent = createItemWindow(nullptr, parentItem);
     parent->child = this;
 
-    removeChainPreview();
     unregisterShellWindow();
     SIZE size = parent->requestedSize();
     POINT pos = parentPos(size);
@@ -1288,20 +1263,15 @@ void ItemWindow::clearParent() {
 void ItemWindow::detachFromParent(bool closeParent) {
     ItemWindow *rootParent = parent;
     if (!parent->paletteWindow()) {
-        HWND prevOwner = checkLE(GetWindowOwner(hwnd));
-        HWND owner = createChainOwner(-1);
-        int numChildren = 0;
+        chain.Attach(new ChainWindow(this));
         for (ItemWindow *next = this; next != nullptr; next = next->child) {
-            SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)owner);
-            numChildren++;
+            SetWindowLongPtr(next->hwnd, GWLP_HWNDPARENT, (LONG_PTR)chain->getWnd());
+            next->chain = chain;
         }
-        SetWindowLongPtr(owner, GWLP_USERDATA, (LONG_PTR)numChildren);
-        SetWindowLongPtr(prevOwner, GWLP_USERDATA,
-            GetWindowLongPtr(prevOwner, GWLP_USERDATA) - numChildren);
-        addChainPreview();
+        setChainPreview();
         if (!child)
             registerShellWindow();
-        ShowWindow(owner, SW_SHOWNORMAL);
+        ShowWindow(chain->getWnd(), SW_SHOWNORMAL);
     }
     clearParent();
 
@@ -1450,42 +1420,21 @@ POINT ItemWindow::parentPos(SIZE size) {
 }
 
 void ItemWindow::enableChain(bool enabled) {
-    for (ItemWindow *nextWindow = this; nextWindow; nextWindow = nextWindow->parent)
-        EnableWindow(nextWindow->hwnd, enabled);
-    for (ItemWindow *nextWindow = child; nextWindow; nextWindow = nextWindow->child)
-        EnableWindow(nextWindow->hwnd, enabled);
+    chain->setEnabled(enabled);
 }
 
-void ItemWindow::addChainPreview() {
-    HWND owner = checkLE(GetWindowOwner(hwnd));
+void ItemWindow::setChainPreview() {
     // update app user model id
     CComPtr<IPropertyStore> propStore;
-    if (checkHR(SHGetPropertyStoreForWindow(owner, IID_PPV_ARGS(&propStore))))
+    if (checkHR(SHGetPropertyStoreForWindow(chain->getWnd(), IID_PPV_ARGS(&propStore))))
         updateWindowPropStore(propStore);
     // update taskbar preview
-    CComPtr<ITaskbarList4> taskbar;
-    if (checkHR(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
-        checkHR(taskbar->RegisterTab(hwnd, owner));
-        checkHR(taskbar->SetTabOrder(hwnd, nullptr));
-        checkHR(taskbar->SetTabProperties(hwnd, STPF_USEAPPPEEKALWAYS));
-        isChainPreview = true;
-    }
+    chain->setPreview(hwnd);
     // update alt-tab
-    SetWindowText(owner, title);
+    chain->setText(title);
     AcquireSRWLockExclusive(&iconLock);
-    SendMessage(owner, WM_SETICON, ICON_BIG, (LPARAM)iconLarge);
-    SendMessage(owner, WM_SETICON, ICON_SMALL, (LPARAM)iconSmall);
+    chain->setIcon(iconSmall, iconLarge);
     ReleaseSRWLockExclusive(&iconLock);
-}
-
-void ItemWindow::removeChainPreview() {
-    if (isChainPreview) {
-        CComPtr<ITaskbarList4> taskbar;
-        if (checkHR(taskbar.CoCreateInstance(__uuidof(TaskbarList)))) {
-            checkHR(taskbar->UnregisterTab(hwnd));
-            isChainPreview = false;
-        }
-    }
 }
 
 IDispatch * ItemWindow::getShellViewDispatch() {
@@ -1822,34 +1771,6 @@ void ItemWindow::proxyRename(const wchar_t *name) {
     } else {
         registerShellNotify();
     }
-}
-
-
-BOOL CALLBACK ItemWindow::enumCloseChain(HWND hwnd, LPARAM lParam) {
-    if (GetWindowOwner(hwnd) == (HWND)lParam) {
-        ItemWindow *itemWindow = (ItemWindow *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
-        if (itemWindow && itemWindow->paletteWindow())
-            itemWindow = itemWindow->child;
-        if (itemWindow) {
-            while (itemWindow->parent && !itemWindow->parent->paletteWindow())
-                itemWindow = itemWindow->parent;
-            itemWindow->close();
-        }
-        return FALSE;
-    }
-    return TRUE;
-}
-
-LRESULT CALLBACK ItemWindow::chainWindowProc(HWND hwnd, UINT message,
-        WPARAM wParam, LPARAM lParam) {
-    if (message == WM_CLOSE) {
-        // default behavior is to destroy owned windows without calling WM_CLOSE.
-        // instead close the left-most chain window to give user a chance to save.
-        // TODO this is awful
-        checkLE(EnumWindows(enumCloseChain, (LPARAM)hwnd));
-        return 0;
-    }
-    return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
 ItemWindow::IconThread::IconThread(IShellItem *const item, ItemWindow *const callbackWindow)
