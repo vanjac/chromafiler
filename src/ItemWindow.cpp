@@ -1560,6 +1560,8 @@ void ItemWindow::onItemChanged() {
         SetWindowText(hwnd, title);
         proxyIcon.setTitle(title);
         autoSizeProxy(clientSize(hwnd).cx);
+        if (!paletteWindow() && (!parent || parent->paletteWindow()))
+            chain->setText(title);
     }
     proxyIcon.setItem(item);
     propBag = nullptr;
