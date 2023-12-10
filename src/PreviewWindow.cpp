@@ -43,7 +43,19 @@ void PreviewWindow::init() {
 void PreviewWindow::uninit() {
     if (initPreviewThread) {
         checkLE(PostThreadMessage(GetThreadId(initPreviewThread), WM_QUIT, 0, 0));
-        WaitForSingleObject(initPreviewThread, INFINITE);
+        // Wait for thread to exit
+        // Avoid deadlock when destroying objects created on the main thread
+        DWORD res;
+        do {
+            res = MsgWaitForMultipleObjects(1, &initPreviewThread, FALSE, INFINITE, QS_ALLINPUT);
+            if (res == WAIT_OBJECT_0 + 1) {
+                MSG msg;
+                while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
+                    TranslateMessage(&msg);
+                    DispatchMessage(&msg);
+                }
+            }
+        } while (res != WAIT_OBJECT_0 && res != WAIT_FAILED);
         checkLE(CloseHandle(initPreviewThread));
     }
     for (auto &entry : factoryCache)
