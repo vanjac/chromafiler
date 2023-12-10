@@ -125,8 +125,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         return 0;
 
     CFExecuteFactory executeFactory(false), executeTextFactory(true);
-    HRESULT regHR = E_FAIL;
-    DWORD regCookie = 0;
+    HRESULT regHR = E_FAIL, regTextHR = E_FAIL;
+    DWORD regCookie = 0, regTextCookie = 0;
     if (type == LAUNCH_TRAY) {
         checkHR(RegisterApplicationRecoveryCallback(recoveryCallback, nullptr,
             RECOVERY_DEFAULT_PING_INTERVAL, 0));
@@ -134,9 +134,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
         // https://devblogs.microsoft.com/oldnewthing/20100503-00/?p=14183
         regHR = CoRegisterClassObject(CLSID_CFExecute, &executeFactory,
             CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie);
-        regHR = CoRegisterClassObject(CLSID_CFExecuteText, &executeTextFactory,
-            CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie);
         checkHR(regHR);
+        regTextHR = checkHR(CoRegisterClassObject(CLSID_CFExecuteText, &executeTextFactory,
+            CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regTextCookie));
+        checkHR(regTextHR);
     }
 
     HANDLE jumpListThread = nullptr, versionThread = nullptr;
@@ -168,6 +169,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 
     if (SUCCEEDED(regHR))
         checkHR(CoRevokeClassObject(regCookie));
+    if (SUCCEEDED(regTextHR))
+        checkHR(CoRevokeClassObject(regTextCookie));
 
     WaitForSingleObject(jumpListThread, INFINITE);
     WaitForSingleObject(versionThread, INFINITE);
