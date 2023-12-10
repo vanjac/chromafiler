@@ -17,8 +17,6 @@
 
 namespace chromafiler {
 
-const wchar_t FOLDER_WINDOW_CLASS[] = L"ChromaFile Folder";
-
 const wchar_t PROP_SHELL_VISITED[] = L"Visited";
 const wchar_t PROP_ICON_POS[] = L"IconPos";
 
@@ -59,8 +57,6 @@ bool FolderWindow::spatialView(IFolderView *const folderView) {
 }
 
 void FolderWindow::init() {
-    RegisterClass(tempPtr(createWindowClass(FOLDER_WINDOW_CLASS)));
-
     for (int i = 0; i < _countof(HIDDEN_ITEM_PARSE_NAMES); i++) {
         CComPtr<IShellItem> item;
         if (SUCCEEDED(SHCreateItemFromParsingName(HIDDEN_ITEM_PARSE_NAMES[i], nullptr,
@@ -75,10 +71,6 @@ void FolderWindow::init() {
 
 FolderWindow::FolderWindow(ItemWindow *const parent, IShellItem *const item)
         : ItemWindow(parent, item) {}
-
-const wchar_t * FolderWindow::className() const {
-    return FOLDER_WINDOW_CLASS;
-}
 
 bool FolderWindow::persistSizeInParent() const {
     return false;

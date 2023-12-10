@@ -161,8 +161,6 @@ private:
         std::unique_ptr<POINT[]> itemPositions;
     };
 
-    const wchar_t * className() const override;
-
     void listViewCreated();
     static LRESULT CALLBACK listViewSubclassProc(HWND hwnd, UINT message,
         WPARAM wParam, LPARAM lParam, UINT_PTR subclassID, DWORD_PTR refData);

@@ -58,8 +58,6 @@ protected:
     void trackContextMenu(POINT pos) override;
 
 private:
-    const wchar_t * className() const override;
-
     HWND createRichEdit(bool readOnly, bool wordWrap);
     bool isEditable();
     CComPtr<ITextDocument> getTOMDocument();

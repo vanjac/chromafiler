@@ -6,14 +6,6 @@
 
 namespace chromafiler {
 
-const wchar_t THUMBNAIL_WINDOW_CLASS[] = L"ChromaFile Thumbnail";
-
-void ThumbnailWindow::init() {
-    WNDCLASS wndClass = createWindowClass(THUMBNAIL_WINDOW_CLASS);
-    wndClass.style |= CS_HREDRAW | CS_VREDRAW; // redraw whenever size changes
-    RegisterClass(&wndClass);
-}
-
 ThumbnailWindow::ThumbnailWindow(ItemWindow *const parent, IShellItem *const item)
     : ItemWindow(parent, item) {}
 
@@ -23,10 +15,6 @@ ThumbnailWindow::~ThumbnailWindow() {
         DeleteBitmap(thumbnailBitmap);
         CHROMAFILER_MEMLEAK_FREE;
     }
-}
-
-const wchar_t * ThumbnailWindow::className() const {
-    return THUMBNAIL_WINDOW_CLASS;
 }
 
 void ThumbnailWindow::onCreate() {
@@ -45,6 +33,7 @@ void ThumbnailWindow::onSize(SIZE size) {
     RECT bodyRect = windowBody();
     SIZE bodySize = rectSize(bodyRect);
     thumbnailThread->requestThumbnail(bodySize);
+    // TODO invalidate?
 }
 
 void ThumbnailWindow::onItemChanged() {

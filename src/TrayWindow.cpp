@@ -9,7 +9,7 @@
 
 namespace chromafiler {
 
-const wchar_t TRAY_WINDOW_CLASS[] = L"ChromaFile Tray";
+const wchar_t TRAY_WINDOW_CLASS[] = L"ChromaFile Tray"; // used by installer, do not change!
 
 const int HOTKEY_FOCUS_TRAY = 1;
 
@@ -43,8 +43,10 @@ static void snapAxis(LONG value, LONG edge, LONG *snapOffset, LONG *snapDist) {
 }
 
 void TrayWindow::init() {
-    WNDCLASS wndClass = createWindowClass(TRAY_WINDOW_CLASS);
-    wndClass.style = 0; // clear redraw style
+    WNDCLASS wndClass = {};
+    wndClass.lpfnWndProc = windowProc;
+    wndClass.hInstance = GetModuleHandle(nullptr);
+    wndClass.lpszClassName = TRAY_WINDOW_CLASS;
     wndClass.hbrBackground = (HBRUSH)(COLOR_3DFACE + 1);
     RegisterClass(&wndClass);
 

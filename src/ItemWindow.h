@@ -65,7 +65,6 @@ protected:
         MSG_FLASH_WINDOW,
         MSG_LAST
     };
-    static WNDCLASS createWindowClass(const wchar_t *name);
     LRESULT handleMessage(UINT message, WPARAM wParam, LPARAM lParam) override;
 
     virtual SIZE defaultSize() const;
@@ -155,7 +154,7 @@ protected:
     CComQIPtr<IContextMenu3> contextMenu3;
 
 private:
-    virtual const wchar_t * className() const = 0;
+    virtual const wchar_t * className() const;
 
     bool centeredProxy() const; // requires useCustomFrame() == true
 

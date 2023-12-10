@@ -1,6 +1,5 @@
 #include "main.h"
 #include "FolderWindow.h"
-#include "ThumbnailWindow.h"
 #include "PreviewWindow.h"
 #include "TextWindow.h"
 #include "TrayWindow.h"
@@ -110,7 +109,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
     initDPI();
     ItemWindow::init();
     FolderWindow::init();
-    ThumbnailWindow::init();
     PreviewWindow::init();
     TextWindow::init();
     TrayWindow::init();

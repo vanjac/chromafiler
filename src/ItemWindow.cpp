@@ -20,6 +20,7 @@
 
 namespace chromafiler {
 
+const wchar_t ITEM_WINDOW_CLASS[] = L"ChromaFiler Item Window";
 const wchar_t TESTPOS_CLASS[] = L"ChromaFiler Test Window";
 const wchar_t WINDOW_THEME[] = L"CompositedWindow::Window";
 const UINT SC_DRAGMOVE = SC_MOVE | 2; // https://stackoverflow.com/a/35880547/11525734
@@ -97,6 +98,17 @@ void ItemWindow::init() {
 
     HINSTANCE hInstance = GetModuleHandle(nullptr);
 
+    WNDCLASS itemClass = {};
+    itemClass.lpfnWndProc = windowProc;
+    itemClass.hInstance = hInstance;
+    itemClass.lpszClassName = ITEM_WINDOW_CLASS;
+    if (!compositionEnabled)
+        itemClass.style = CS_HREDRAW; // redraw caption when resizing
+    // change toolbar color
+    if (IsWindows10OrGreater())
+        itemClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    RegisterClass(&itemClass);
+
     WNDCLASS testPosClass = {};
     testPosClass.lpszClassName = TESTPOS_CLASS;
     testPosClass.lpfnWndProc = DefWindowProc;
@@ -163,19 +175,6 @@ void ItemWindow::uninit() {
         RemoveFontMemResourceEx(symbolFontHandle);
 }
 
-WNDCLASS ItemWindow::createWindowClass(const wchar_t *name) {
-    WNDCLASS wndClass = {};
-    wndClass.lpfnWndProc = windowProc;
-    wndClass.hInstance = GetModuleHandle(nullptr);
-    wndClass.lpszClassName = name;
-    if (!compositionEnabled)
-        wndClass.style = CS_HREDRAW; // redraw caption when resizing
-    // change toolbar color
-    if (IsWindows10OrGreater())
-        wndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    return wndClass;
-}
-
 void ItemWindow::flashWindow(HWND hwnd) {
     PostMessage(hwnd, MSG_FLASH_WINDOW, 0, 0);
 }
@@ -184,6 +183,10 @@ ItemWindow::ItemWindow(ItemWindow *const parent, IShellItem *const item)
         : parent(parent),
           item(item),
           proxyIcon(this) {}
+
+const wchar_t * ItemWindow::className() const {
+    return ITEM_WINDOW_CLASS;
+}
 
 void ItemWindow::setScratch(bool value) {
     scratch = value;

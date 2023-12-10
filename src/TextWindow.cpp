@@ -12,8 +12,6 @@
 
 namespace chromafiler {
 
-const wchar_t TEXT_WINDOW_CLASS[] = L"ChromaFile Text";
-
 const wchar_t PROP_WORD_WRAP[] = L"WordWrap";
 
 const ULONG MAX_FILE_SIZE = 50'000'000;
@@ -36,8 +34,6 @@ static UINT updateSettingsMessage, findReplaceMessage;
 static HMODULE hMsftedit = nullptr;
 
 void TextWindow::init() {
-    RegisterClass(tempPtr(createWindowClass(TEXT_WINDOW_CLASS)));
-
     textAccelTable = LoadAccelerators(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_TEXT_ACCEL));
 
     updateSettingsMessage = checkLE(RegisterWindowMessage(L"chromafiler_TextUpdateSettings"));
@@ -59,10 +55,6 @@ TextWindow::TextWindow(ItemWindow *const parent, IShellItem *const item)
         : ItemWindow(parent, item) {
     findBuffer[0] = 0;
     replaceBuffer[0] = 0;
-}
-
-const wchar_t * TextWindow::className() const {
-    return TEXT_WINDOW_CLASS;
 }
 
 const wchar_t * TextWindow::appUserModelID() const {

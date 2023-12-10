@@ -8,7 +8,6 @@ namespace chromafiler {
 
 // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-2-interop/
 
-const wchar_t PREVIEW_WINDOW_CLASS[] = L"ChromaFile Preview";
 const wchar_t PREVIEW_CONTAINER_CLASS[] = L"ChromaFile Preview Container";
 
 const int FACTORY_CACHE_SIZE = 4;
@@ -31,8 +30,6 @@ static FactoryCacheEntry factoryCache[FACTORY_CACHE_SIZE] = {};
 static int factoryCacheIndex = 0;
 
 void PreviewWindow::init() {
-    RegisterClass(tempPtr(createWindowClass(PREVIEW_WINDOW_CLASS)));
-
     WNDCLASS containerClass = {};
     containerClass.lpszClassName = PREVIEW_CONTAINER_CLASS;
     containerClass.lpfnWndProc = DefWindowProc;
@@ -56,10 +53,6 @@ void PreviewWindow::uninit() {
 PreviewWindow::PreviewWindow(ItemWindow *const parent, IShellItem *const item, CLSID previewID)
     : ItemWindow(parent, item),
       previewID(previewID) {}
-
-const wchar_t * PreviewWindow::className() const {
-    return PREVIEW_WINDOW_CLASS;
-}
 
 void PreviewWindow::onCreate() {
     ItemWindow::onCreate();

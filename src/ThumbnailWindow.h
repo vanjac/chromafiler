@@ -7,8 +7,6 @@ namespace chromafiler {
 
 class ThumbnailWindow : public ItemWindow {
 public:
-    static void init();
-
     ThumbnailWindow(ItemWindow *parent, IShellItem *item);
     ~ThumbnailWindow();
 
@@ -29,8 +27,6 @@ protected:
     void refresh() override;
 
 private:
-    const wchar_t * className() const override;
-
     SRWLOCK thumbnailBitmapLock = SRWLOCK_INIT;
     HBITMAP thumbnailBitmap = nullptr;
 
