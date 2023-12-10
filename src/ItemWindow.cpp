@@ -57,6 +57,8 @@ static BOOL compositionEnabled = FALSE;
 
 HACCEL ItemWindow::accelTable;
 
+CComPtr<ItemWindow> ItemWindow::activeWindow;
+
 static bool highContrastEnabled() {
     HIGHCONTRAST highContrast = {sizeof(highContrast)};
     checkLE(SystemParametersInfo(SPI_GETHIGHCONTRAST, 0, &highContrast, 0));

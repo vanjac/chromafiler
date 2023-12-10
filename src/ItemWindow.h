@@ -22,6 +22,8 @@ protected:
     static int cascadeSize();
 
 public:
+    static CComPtr<ItemWindow> activeWindow;
+
     static void init();
     static void uninit();
 

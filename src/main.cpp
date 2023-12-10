@@ -153,7 +153,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int showCommand) {
 #endif
         if (handleSettingsDialogMessage(&msg))
             continue;
-        if (activeWindow && activeWindow->handleTopLevelMessage(&msg))
+        if (ItemWindow::activeWindow && ItemWindow::activeWindow->handleTopLevelMessage(&msg))
             continue;
         TranslateMessage(&msg);
         DispatchMessage(&msg);
@@ -383,7 +383,6 @@ DWORD WINAPI recoveryCallback(void *) {
 
 namespace chromafiler {    
     // main.h
-    CComPtr<ItemWindow> activeWindow;
 #ifdef CHROMAFILER_MEMLEAKS
     long MEMLEAK_COUNT = 0;
 #endif
