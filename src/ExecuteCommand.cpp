@@ -181,9 +181,9 @@ STDMETHODIMP CFExecuteFactory::CreateInstance(IUnknown *const outer, REFIID id, 
     *obj = nullptr;
     if (outer)
         return CLASS_E_NOAGGREGATION;
-    CFExecute *ext = new CFExecute(text);
+    CComPtr<CFExecute> ext;
+    ext.Attach(new CFExecute(text));
     HRESULT hr = ext->QueryInterface(id, obj);
-    ext->Release();
     return hr;
 }
 
