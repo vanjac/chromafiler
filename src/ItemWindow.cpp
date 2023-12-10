@@ -894,8 +894,6 @@ void ItemWindow::trackContextMenu(POINT pos) {
 }
 
 int ItemWindow::trackContextMenu(POINT pos, HMENU menu) {
-    if (GetMenuItemCount(menu) != 0)
-        AppendMenu(menu, MF_SEPARATOR, 0, nullptr);
     HMENU common = LoadMenu(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDR_ITEM_MENU));
     Shell_MergeMenus(menu, common, (UINT)-1, 0, 0xFFFF, MM_ADDSEPARATOR);
     int cmd = TrackPopupMenuEx(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pos.x, pos.y, hwnd, nullptr);
