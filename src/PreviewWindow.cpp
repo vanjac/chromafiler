@@ -62,9 +62,11 @@ void PreviewWindow::uninit() {
         entry.factory.Release();
 }
 
-PreviewWindow::PreviewWindow(ItemWindow *const parent, IShellItem *const item, CLSID previewID)
+PreviewWindow::PreviewWindow(ItemWindow *const parent, IShellItem *const item,
+        CLSID previewID, bool async)
     : ItemWindow(parent, item),
-      previewID(previewID) {}
+      previewID(previewID),
+      async(async) {}
 
 void PreviewWindow::onCreate() {
     ItemWindow::onCreate();
@@ -77,12 +79,7 @@ void PreviewWindow::onCreate() {
         previewRect.left, previewRect.top, rectWidth(previewRect), rectHeight(previewRect),
         hwnd, nullptr, GetWindowInstance(hwnd), nullptr));
 
-    // don't use Attach() for an additional AddRef() -- keep request alive until received by thread
-    initRequest = new InitPreviewRequest(item, previewID, this, container);
-    if (initPreviewThread) {
-        checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
-            MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
-    }
+    requestPreview();
 }
 
 void PreviewWindow::onDestroy() {
@@ -133,6 +130,17 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
     return ItemWindow::handleMessage(message, wParam, lParam);
 }
 
+void PreviewWindow::requestPreview() {
+    initRequest.Attach(new InitPreviewRequest(item, previewID, this, container));
+    if (async && initPreviewThread) {
+        (*initRequest).AddRef(); // keep alive
+        checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
+            MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
+    } else {
+        initPreview(initRequest);
+    }
+}
+
 void PreviewWindow::destroyPreview() {
     if (preview) {
         checkHR(IUnknown_SetSite(preview, nullptr));
@@ -141,12 +149,14 @@ void PreviewWindow::destroyPreview() {
         // Windows Media Player doesn't like if you delete another IPreviewHandler between
         // initializing and calling SetWindow. So ensure that preview handlers are deleted
         // synchronously with the worker thread!
-        CComPtr<IStream> previewHandlerStream; // no CComPtr
-        checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
-            &previewHandlerStream));
-        checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
-            MSG_RELEASE_PREVIEW, 0, (LPARAM)previewHandlerStream.Detach()));
-        CHROMAFILER_MEMLEAK_ALLOC;
+        if (async && initPreviewThread) {
+            CComPtr<IStream> previewHandlerStream; // no CComPtr
+            checkHR(CoMarshalInterThreadInterfaceInStream(__uuidof(IPreviewHandler), preview,
+                &previewHandlerStream));
+            checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
+                MSG_RELEASE_PREVIEW, 0, (LPARAM)previewHandlerStream.Detach()));
+            CHROMAFILER_MEMLEAK_ALLOC;
+        }
 
         preview = nullptr;
     }
@@ -155,11 +165,7 @@ void PreviewWindow::destroyPreview() {
 void PreviewWindow::refresh() {
     ItemWindow::refresh();
     initRequest->cancel();
-    initRequest = new InitPreviewRequest(item, previewID, this, container);
-    if (initPreviewThread) {
-        checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
-            MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
-    }
+    requestPreview();
 }
 
 /* IUnknown */

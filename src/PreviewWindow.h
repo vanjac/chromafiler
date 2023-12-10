@@ -25,7 +25,7 @@ public:
     static void init();
     static void uninit();
 
-    PreviewWindow(ItemWindow *parent, IShellItem *item, CLSID previewID);
+    PreviewWindow(ItemWindow *parent, IShellItem *item, CLSID previewID, bool async = true);
 
     // IUnknown
     STDMETHODIMP QueryInterface(REFIID id, void **obj) override;
@@ -51,9 +51,11 @@ protected:
     void refresh() override;
 
 private:
+    void requestPreview();
     void destroyPreview();
 
-    CLSID previewID;
+    const bool async;
+    const CLSID previewID;
     CComPtr<InitPreviewRequest> initRequest;
     CComPtr<IPreviewHandler> preview; // will be null if preview can't be loaded!
     HWND container;

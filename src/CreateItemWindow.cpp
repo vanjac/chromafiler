@@ -52,7 +52,7 @@ CComPtr<ItemWindow> createItemWindow(ItemWindow *const parent, IShellItem *const
             }
         }
     }
-    window.Attach(new PreviewWindow(parent, item, CLSID_ThumbnailView));
+    window.Attach(new PreviewWindow(parent, item, CLSID_ThumbnailView, false));
     return window;
 }
 
