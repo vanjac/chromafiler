@@ -1,6 +1,6 @@
 # ChromaFiler
 
-ChromaFiler is a file manager utility with a unique interface, borrowing ideas from [Spatial file managers](https://en.wikipedia.org/wiki/Spatial_file_manager) and [Miller Column browsers](https://en.wikipedia.org/wiki/Miller_columns) and taking inspiration from the [classic Mac OS](https://en.wikipedia.org/wiki/Classic_Mac_OS) Finder.
+ChromaFiler is a file manager utility with a unique interface, borrowing ideas from [Spatial file managers](https://github.com/vanjac/chromafiler/wiki/Spatial-Orientation) and [Miller Column browsers](https://en.wikipedia.org/wiki/Miller_columns) and taking inspiration from the [classic Mac OS](https://en.wikipedia.org/wiki/Classic_Mac_OS) Finder.
 
 <img src="https://user-images.githubusercontent.com/8228102/201300188-1f07c66d-759b-45a9-aa70-34a8fe2a531a.gif" width="706" alt="An animation demonstrating folder navigation using ChromaFiler">
 
