@@ -4,7 +4,7 @@ ChromaFiler is a file manager utility with a unique interface, borrowing ideas f
 
 <img src="https://user-images.githubusercontent.com/8228102/201300188-1f07c66d-759b-45a9-aa70-34a8fe2a531a.gif" width="706" alt="An animation demonstrating folder navigation using ChromaFiler">
 
-It functions similar to a column-view browser, but each column can be broken off into its own window by dragging and dropping. You can use it as a popup menu docked to your taskbar for quickly locating a file, or as a complete replacement for Windows File Explorer (and Notepad).
+It functions similar to a column-view browser, but each column can be broken off into its own window by dragging and dropping. You can use it as a popup menu docked to your taskbar for quickly locating a file, or as a complete replacement for Windows File Explorer (and Notepad). [More about the design](https://github.com/vanjac/chromafiler/wiki/Spatial-Orientation).
 
 ChromaFiler works on Windows 7 through 11.
 
@@ -33,7 +33,7 @@ VS Code must be launched from the "x64 Native Tools Command Prompt" (or equivale
 
 ## Donate
 
-If you enjoy ChromaFiler, please consider [donating](https://chroma.zone/donate) to support development.
+If you find ChromaFiler useful, please consider [donating](https://chroma.zone/donate) to support development.
 
 ## Contact me
 
