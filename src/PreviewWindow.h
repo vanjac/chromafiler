@@ -50,6 +50,7 @@ protected:
     void onSize(SIZE size) override;
 
     void refresh() override;
+    void onItemChanged() override;
 
 private:
     void requestPreview(RECT rect);

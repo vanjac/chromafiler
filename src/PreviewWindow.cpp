@@ -174,6 +174,12 @@ void PreviewWindow::refresh() {
     requestPreview(container ? clientRect(container) : windowBody());
 }
 
+void PreviewWindow::onItemChanged() {
+    ItemWindow::onItemChanged();
+    initRequest->cancel();
+    requestPreview(container ? clientRect(container) : windowBody());
+}
+
 /* IUnknown */
 
 STDMETHODIMP PreviewWindow::QueryInterface(REFIID id, void **obj) {

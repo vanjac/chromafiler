@@ -1529,7 +1529,7 @@ bool ItemWindow::resolveItem() {
                     if (checkHR(SHCreateItemFromIDList(newIDList, IID_PPV_ARGS(&newItem)))) {
                         item = newItem; // itemMoved() is unnecessary since we can reuse link
                         onItemChanged();
-                        return true;
+                        return false;
                     }
                 }
             }
