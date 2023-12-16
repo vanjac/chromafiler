@@ -17,6 +17,7 @@ void ThumbnailView::init() {
     thumbClass.hInstance = GetModuleHandle(nullptr);
     thumbClass.lpszClassName = THUMBNAIL_CLASS;
     thumbClass.style = CS_HREDRAW | CS_VREDRAW;
+    thumbClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
     RegisterClass(&thumbClass);
 
     checkHR(CoRegisterClassObject(CLSID_ThumbnailView, &factory,

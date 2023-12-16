@@ -34,6 +34,7 @@ void PreviewWindow::init() {
     containerClass.lpszClassName = PREVIEW_CONTAINER_CLASS;
     containerClass.lpfnWndProc = DefWindowProc;
     containerClass.hInstance = GetModuleHandle(nullptr);
+    containerClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
     RegisterClass(&containerClass);
 
     SHCreateThreadWithHandle(initPreviewThreadProc, nullptr, CTF_COINIT_STA, nullptr,
