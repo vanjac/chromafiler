@@ -7,16 +7,17 @@ namespace chromafiler {
 
 class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
 
-    struct InitPreviewRequest : public IUnknownImpl {
+    struct InitPreviewRequest : public UnknownImpl {
         InitPreviewRequest(IShellItem *item, CLSID previewID,
-            PreviewWindow *callbackWindow, HWND container);
+            PreviewWindow *callbackWindow, HWND parent, RECT rect);
         ~InitPreviewRequest();
         void cancel(); // ok to call this multiple times
 
         CComHeapPtr<ITEMIDLIST> itemIDList;
         const CLSID previewID;
-        PreviewWindow *callbackWindow;
-        const HWND container;
+        PreviewWindow *const callbackWindow;
+        const HWND parent;
+        const RECT rect;
         HANDLE cancelEvent;
         SRWLOCK cancelLock = SRWLOCK_INIT;
     };
@@ -25,7 +26,7 @@ public:
     static void init();
     static void uninit();
 
-    PreviewWindow(ItemWindow *parent, IShellItem *item, CLSID previewID);
+    PreviewWindow(ItemWindow *parent, IShellItem *item, CLSID previewID, bool async = true);
 
     // IUnknown
     STDMETHODIMP QueryInterface(REFIID id, void **obj) override;
@@ -49,14 +50,17 @@ protected:
     void onSize(SIZE size) override;
 
     void refresh() override;
+    void onItemChanged() override;
 
 private:
+    void requestPreview(RECT rect);
     void destroyPreview();
 
-    CLSID previewID;
+    const bool async;
+    const CLSID previewID;
     CComPtr<InitPreviewRequest> initRequest;
     CComPtr<IPreviewHandler> preview; // will be null if preview can't be loaded!
-    HWND container;
+    HWND container = nullptr;
 
     SRWLOCK previewStreamLock = SRWLOCK_INIT;
     CComPtr<IStream> previewStream;
@@ -64,7 +68,7 @@ private:
     // worker thread
     static HANDLE initPreviewThread;
     static DWORD WINAPI initPreviewThreadProc(void *);
-    static void initPreview(InitPreviewRequest *request);
+    static void initPreview(InitPreviewRequest *request, bool async);
     static bool initPreviewWithItem(IPreviewHandler *preview, IShellItem *item);
 };
 

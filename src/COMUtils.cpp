@@ -5,7 +5,7 @@ namespace chromafiler {
 
 // https://docs.microsoft.com/en-us/office/client-developer/outlook/mapi/implementing-iunknown-in-c-plus-plus
 
-STDMETHODIMP IUnknownImpl::QueryInterface(REFIID id, void **obj) {
+STDMETHODIMP UnknownImpl::QueryInterface(REFIID id, void **obj) {
     if (!obj)
         return E_INVALIDARG;
     *obj = nullptr;
@@ -17,11 +17,11 @@ STDMETHODIMP IUnknownImpl::QueryInterface(REFIID id, void **obj) {
     return E_NOINTERFACE;
 }
 
-STDMETHODIMP_(ULONG) IUnknownImpl::AddRef() {
+STDMETHODIMP_(ULONG) UnknownImpl::AddRef() {
     return InterlockedIncrement(&refCount);
 }
 
-STDMETHODIMP_(ULONG) IUnknownImpl::Release() {
+STDMETHODIMP_(ULONG) UnknownImpl::Release() {
     long r = InterlockedDecrement(&refCount);
     if (r == 0) {
         delete this;

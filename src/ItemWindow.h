@@ -13,7 +13,7 @@
 
 namespace chromafiler {
 
-class ItemWindow : public WindowImpl, public IUnknownImpl {
+class ItemWindow : public WindowImpl, public UnknownImpl {
     friend ChainWindow;
     friend ProxyIcon;
 protected:
@@ -43,6 +43,7 @@ public:
     void setForeground();
 
     // attempt to relocate item if it has been renamed, moved, or deleted
+    // return true if item has not changed
     bool resolveItem();
 
     virtual bool handleTopLevelMessage(MSG *msg);

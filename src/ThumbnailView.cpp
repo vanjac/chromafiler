@@ -1,4 +1,4 @@
-#include "ThumbnailWindow.h"
+#include "ThumbnailView.h"
 #include "GeomUtils.h"
 #include "GDIUtils.h"
 #include "WinUtils.h"
@@ -6,10 +6,29 @@
 
 namespace chromafiler {
 
-ThumbnailWindow::ThumbnailWindow(ItemWindow *const parent, IShellItem *const item)
-    : ItemWindow(parent, item) {}
+const wchar_t THUMBNAIL_CLASS[] = L"ChromaFiler Thumbnail";
 
-ThumbnailWindow::~ThumbnailWindow() {
+static ClassFactoryImpl<ThumbnailView, false> factory;
+static DWORD regCookie = 0;
+
+void ThumbnailView::init() {
+    WNDCLASS thumbClass = {};
+    thumbClass.lpfnWndProc = windowProc;
+    thumbClass.hInstance = GetModuleHandle(nullptr);
+    thumbClass.lpszClassName = THUMBNAIL_CLASS;
+    thumbClass.style = CS_HREDRAW | CS_VREDRAW;
+    thumbClass.hCursor = LoadCursor(nullptr, IDC_ARROW);
+    RegisterClass(&thumbClass);
+
+    checkHR(CoRegisterClassObject(CLSID_ThumbnailView, &factory,
+        CLSCTX_LOCAL_SERVER, REGCLS_MULTIPLEUSE, &regCookie));
+}
+
+void ThumbnailView::uninit() {
+    checkHR(CoRevokeClassObject(regCookie));
+}
+
+ThumbnailView::~ThumbnailView() {
     // don't need to acquire lock since thread is stopped
     if (thumbnailBitmap) {
         DeleteBitmap(thumbnailBitmap);
@@ -17,78 +36,65 @@ ThumbnailWindow::~ThumbnailWindow() {
     }
 }
 
-void ThumbnailWindow::onCreate() {
-    ItemWindow::onCreate();
-    thumbnailThread.Attach(new ThumbnailThread(item, this));
-    thumbnailThread->start();
+const wchar_t * ThumbnailView::className() const {
+    return THUMBNAIL_CLASS;
 }
 
-void ThumbnailWindow::onDestroy() {
-    ItemWindow::onDestroy();
-    thumbnailThread->stop();
-}
-
-void ThumbnailWindow::onSize(SIZE size) {
-    ItemWindow::onSize(size);
-    RECT bodyRect = windowBody();
-    SIZE bodySize = rectSize(bodyRect);
-    thumbnailThread->requestThumbnail(bodySize);
-    // TODO invalidate?
-}
-
-void ThumbnailWindow::onItemChanged() {
-    ItemWindow::onItemChanged();
-    thumbnailThread->stop();
-    thumbnailThread.Attach(new ThumbnailThread(item, this));
-    thumbnailThread->start();
-}
-
-void ThumbnailWindow::refresh() {
-    ItemWindow::refresh();
-    RECT bodyRect = windowBody();
-    SIZE bodySize = rectSize(bodyRect);
-    thumbnailThread->requestThumbnail(bodySize);
-}
-
-LRESULT ThumbnailWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
-    if (message == MSG_UPDATE_THUMBNAIL_BITMAP) {
-        InvalidateRect(hwnd, nullptr, FALSE);
-        return 0;
+LRESULT ThumbnailView::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+        case WM_CREATE:
+            thumbnailThread.Attach(new ThumbnailThread(item, this));
+            thumbnailThread->start();
+            return 0;
+        case WM_DESTROY:
+            thumbnailThread->stop();
+            return 0;
+        case WM_SIZE:
+            thumbnailThread->requestThumbnail(clientSize(hwnd));
+            return 0;
+        case WM_PAINT:
+            PAINTSTRUCT paint;
+            BeginPaint(hwnd, &paint);
+            onPaint(paint);
+            EndPaint(hwnd, &paint);
+            return 0;
+        case WM_NCHITTEST:
+            return HTTRANSPARENT; // allow moving window by dragging anywhere
+        case MSG_UPDATE_THUMBNAIL_BITMAP:
+            InvalidateRect(hwnd, nullptr, FALSE);
+            return 0;
     }
-    return ItemWindow::handleMessage(message, wParam, lParam);
+    return DefWindowProc(hwnd, message, wParam, lParam);
 }
 
-void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
-    ItemWindow::onPaint(paint);
-
+void ThumbnailView::onPaint(PAINTSTRUCT paint) {
     AcquireSRWLockExclusive(&thumbnailBitmapLock);
     if (!thumbnailBitmap) {
         ReleaseSRWLockExclusive(&thumbnailBitmapLock);
         return;
     }
-    RECT body = windowBody();
-    SIZE bodySize = rectSize(body);
+    SIZE size = clientSize(hwnd);
 
     HBRUSH bg = (HBRUSH)(COLOR_WINDOW + 1);
     BITMAP bitmap;
     GetObject(thumbnailBitmap, sizeof(bitmap), &bitmap);
     int xDest, yDest, wDest, hDest;
-    float wScale = (float)bodySize.cx / bitmap.bmWidth;
-    float hScale = (float)bodySize.cy / bitmap.bmHeight;
+    float wScale = (float)size.cx / bitmap.bmWidth;
+    float hScale = (float)size.cy / bitmap.bmHeight;
     if (wScale < hScale) {
-        xDest = body.left;
-        wDest = bodySize.cx;
-        yDest = body.top + (int)((bodySize.cy - wScale*bitmap.bmHeight) / 2);
+        xDest = 0;
+        wDest = size.cx;
+        yDest = (int)((size.cy - wScale*bitmap.bmHeight) / 2);
         hDest = (int)(wScale*bitmap.bmHeight);
-        FillRect(paint.hdc, tempPtr(RECT{body.left, body.top, body.right, yDest}), bg);
-        FillRect(paint.hdc, tempPtr(RECT{body.left, yDest + hDest, body.right, body.bottom}), bg);
+        FillRect(paint.hdc, tempPtr(RECT{0, 0, size.cx, yDest}), bg);
+        FillRect(paint.hdc, tempPtr(RECT{0, yDest + hDest, size.cx, size.cy}), bg);
     } else {
-        xDest = body.left + (int)((bodySize.cx - hScale*bitmap.bmWidth) / 2);
+        xDest = (int)((size.cx - hScale*bitmap.bmWidth) / 2);
         wDest = (int)(hScale*bitmap.bmWidth);
-        yDest = body.top;
-        hDest = bodySize.cy;
-        FillRect(paint.hdc, tempPtr(RECT{body.left, body.top, xDest, body.bottom}), bg);
-        FillRect(paint.hdc, tempPtr(RECT{xDest + wDest, body.top, body.right, body.bottom}), bg);
+        yDest = 0;
+        hDest = size.cy;
+        FillRect(paint.hdc, tempPtr(RECT{0, 0, xDest, size.cy}), bg);
+        FillRect(paint.hdc, tempPtr(RECT{xDest + wDest, 0, size.cx, size.cy}), bg);
     }
 
     HDC hdcMem = CreateCompatibleDC(paint.hdc);
@@ -101,25 +107,25 @@ void ThumbnailWindow::onPaint(PAINTSTRUCT paint) {
     ReleaseSRWLockExclusive(&thumbnailBitmapLock);
 }
 
-ThumbnailWindow::ThumbnailThread::ThumbnailThread(
-        IShellItem *const item, ThumbnailWindow *const callbackWindow)
+ThumbnailView::ThumbnailThread::ThumbnailThread(
+        IShellItem *const item, ThumbnailView *const callbackWindow)
         : callbackWindow(callbackWindow) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
     requestThumbnailEvent = checkLE(CreateEvent(nullptr, TRUE, FALSE, nullptr));
 }
 
-ThumbnailWindow::ThumbnailThread::~ThumbnailThread() {
+ThumbnailView::ThumbnailThread::~ThumbnailThread() {
     checkLE(CloseHandle(requestThumbnailEvent));
 }
 
-void ThumbnailWindow::ThumbnailThread::requestThumbnail(SIZE size) {
+void ThumbnailView::ThumbnailThread::requestThumbnail(SIZE size) {
     AcquireSRWLockExclusive(&requestThumbnailLock);
     requestedSize = size;
     checkLE(SetEvent(requestThumbnailEvent));
     ReleaseSRWLockExclusive(&requestThumbnailLock);
 }
 
-void ThumbnailWindow::ThumbnailThread::run() {
+void ThumbnailView::ThumbnailThread::run() {
     CComPtr<IShellItemImageFactory> imageFactory;
     if (!itemIDList || !checkHR(SHCreateItemFromIDList(itemIDList, IID_PPV_ARGS(&imageFactory))))
         return;

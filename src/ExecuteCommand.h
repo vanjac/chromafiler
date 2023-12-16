@@ -20,7 +20,7 @@ const CLSID CLSID_CFExecute =
 // {14c46e3b-9015-4bbb-9f1f-9178a94f856f}
 const CLSID CLSID_CFExecuteText =
     {0x14c46e3b, 0x9015, 0x4bbb, {0x9f, 0x1f, 0x91, 0x78, 0xa9, 0x4f, 0x85, 0x6f}};
-class CFExecute : public IUnknownImpl, public IObjectWithSelection, public IExecuteCommand,
+class CFExecute : public UnknownImpl, public IObjectWithSelection, public IExecuteCommand,
         public IDropTarget {
 public:
     CFExecute(bool text);
