@@ -8,7 +8,7 @@
 
 namespace chromafiler {
 
-class PreviewHandlerImpl : public WindowImpl, public IUnknownImpl,
+class PreviewHandlerImpl : public WindowImpl, public UnknownImpl,
         public IObjectWithSite, public IInitializeWithItem, public IPreviewHandler {
 public:
     virtual ~PreviewHandlerImpl();

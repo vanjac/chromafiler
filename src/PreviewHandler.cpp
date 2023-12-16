@@ -14,8 +14,8 @@ DWORD PreviewHandlerImpl::windowStyle() const {
 
 /* IUnknown */
 
-STDMETHODIMP_(ULONG) PreviewHandlerImpl::AddRef() { return IUnknownImpl::AddRef(); }
-STDMETHODIMP_(ULONG) PreviewHandlerImpl::Release() { return IUnknownImpl::Release(); }
+STDMETHODIMP_(ULONG) PreviewHandlerImpl::AddRef() { return UnknownImpl::AddRef(); }
+STDMETHODIMP_(ULONG) PreviewHandlerImpl::Release() { return UnknownImpl::Release(); }
 
 STDMETHODIMP PreviewHandlerImpl::QueryInterface(REFIID id, void **obj) {
     static const QITAB interfaces[] = {
@@ -27,7 +27,7 @@ STDMETHODIMP PreviewHandlerImpl::QueryInterface(REFIID id, void **obj) {
     HRESULT hr = QISearch(this, interfaces, id, obj);
     if (SUCCEEDED(hr))
         return hr;
-    return IUnknownImpl::QueryInterface(id, obj);
+    return UnknownImpl::QueryInterface(id, obj);
 }
 
 /* IObjectWithSite */

@@ -13,7 +13,7 @@
 
 namespace chromafiler {
 
-class ItemWindow : public WindowImpl, public IUnknownImpl {
+class ItemWindow : public WindowImpl, public UnknownImpl {
     friend ChainWindow;
     friend ProxyIcon;
 protected:

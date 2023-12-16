@@ -7,7 +7,7 @@ namespace chromafiler {
 
 class PreviewWindow : public ItemWindow, public IPreviewHandlerFrame {
 
-    struct InitPreviewRequest : public IUnknownImpl {
+    struct InitPreviewRequest : public UnknownImpl {
         InitPreviewRequest(IShellItem *item, CLSID previewID,
             PreviewWindow *callbackWindow, HWND parent, RECT rect);
         ~InitPreviewRequest();

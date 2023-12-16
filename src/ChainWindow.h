@@ -8,7 +8,7 @@ namespace chromafiler {
 
 class ItemWindow;
 
-class ChainWindow : public WindowImpl, public IUnknownImpl {
+class ChainWindow : public WindowImpl, public UnknownImpl {
 public:
     static void init();
 

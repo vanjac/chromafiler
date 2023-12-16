@@ -6,9 +6,9 @@
 
 namespace chromafiler {
 
-class IUnknownImpl : public IUnknown {
+class UnknownImpl : public IUnknown {
 public:
-    virtual ~IUnknownImpl() = default;
+    virtual ~UnknownImpl() = default;
 
     // IUnknown
     STDMETHODIMP QueryInterface(REFIID id, void **obj) override;
@@ -52,7 +52,7 @@ class ClassFactoryImpl : public IClassFactory {
     }
 };
 
-class StoppableThread : public IUnknownImpl {
+class StoppableThread : public UnknownImpl {
 public:
     StoppableThread();
     virtual ~StoppableThread();

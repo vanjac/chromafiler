@@ -17,8 +17,8 @@ CFExecute::~CFExecute() {
     unlockProcess();
 }
 
-STDMETHODIMP_(ULONG) CFExecute::AddRef() { return IUnknownImpl::AddRef(); }
-STDMETHODIMP_(ULONG) CFExecute::Release() { return IUnknownImpl::Release(); }
+STDMETHODIMP_(ULONG) CFExecute::AddRef() { return UnknownImpl::AddRef(); }
+STDMETHODIMP_(ULONG) CFExecute::Release() { return UnknownImpl::Release(); }
 
 STDMETHODIMP CFExecute::QueryInterface(REFIID id, void **obj) {
     static const QITAB interfaces[] = {
@@ -30,7 +30,7 @@ STDMETHODIMP CFExecute::QueryInterface(REFIID id, void **obj) {
     HRESULT hr = QISearch(this, interfaces, id, obj);
     if (SUCCEEDED(hr))
         return hr;
-    return IUnknownImpl::QueryInterface(id, obj);
+    return UnknownImpl::QueryInterface(id, obj);
 }
 
 /* IObjectWithSelection */
