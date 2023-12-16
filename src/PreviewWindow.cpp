@@ -8,7 +8,7 @@ namespace chromafiler {
 
 // https://geelaw.blog/entries/ipreviewhandlerframe-wpf-2-interop/
 
-const wchar_t PREVIEW_CONTAINER_CLASS[] = L"ChromaFile Preview Container";
+const wchar_t PREVIEW_CONTAINER_CLASS[] = L"ChromaFiler Preview Container";
 
 const int FACTORY_CACHE_SIZE = 4;
 
@@ -73,13 +73,15 @@ void PreviewWindow::onCreate() {
 
     RECT previewRect = windowBody();
     previewRect.bottom += CAPTION_HEIGHT; // initial rect is wrong
-    // some preview handlers don't respect the given rect and always fill their window
-    // so wrap the preview handler in a container window
-    container = checkLE(CreateWindow(PREVIEW_CONTAINER_CLASS, nullptr, WS_VISIBLE | WS_CHILD,
-        previewRect.left, previewRect.top, rectWidth(previewRect), rectHeight(previewRect),
-        hwnd, nullptr, GetWindowInstance(hwnd), nullptr));
+    if (async) {
+        // some preview handlers don't respect the given rect and always fill their window
+        // so wrap the preview handler in a container window
+        container = checkLE(CreateWindow(PREVIEW_CONTAINER_CLASS, nullptr, WS_VISIBLE | WS_CHILD,
+            previewRect.left, previewRect.top, rectWidth(previewRect), rectHeight(previewRect),
+            hwnd, nullptr, GetWindowInstance(hwnd), nullptr));
+    }
 
-    requestPreview();
+    requestPreview(container ? clientRect(container) : previewRect);
 }
 
 void PreviewWindow::onDestroy() {
@@ -101,12 +103,13 @@ void PreviewWindow::onActivate(WORD state, HWND prevWindow) {
 void PreviewWindow::onSize(SIZE size) {
     ItemWindow::onSize(size);
     RECT previewRect = windowBody();
-    MoveWindow(container, previewRect.left, previewRect.top,
-        rectWidth(previewRect), rectHeight(previewRect), TRUE);
-    if (preview) {
-        RECT containerClientRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
-        checkHR(preview->SetRect(&containerClientRect));
+    if (container) {
+        MoveWindow(container, previewRect.left, previewRect.top,
+            rectWidth(previewRect), rectHeight(previewRect), TRUE);
+        previewRect = {0, 0, rectWidth(previewRect), rectHeight(previewRect)};
     }
+    if (preview)
+        checkHR(preview->SetRect(&previewRect));
 }
 
 LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
@@ -123,21 +126,23 @@ LRESULT PreviewWindow::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
             return 0;
         checkHR(IUnknown_SetSite(preview, (IPreviewHandlerFrame *)this));
         checkHR(preview->DoPreview());
+        RECT previewRect = container ? clientRect(container) : windowBody();
         // required for some preview handlers to render correctly initially (eg. SumatraPDF)
-        checkHR(preview->SetRect(tempPtr(clientRect(container))));
+        checkHR(preview->SetRect(&previewRect));
         return 0;
     }
     return ItemWindow::handleMessage(message, wParam, lParam);
 }
 
-void PreviewWindow::requestPreview() {
-    initRequest.Attach(new InitPreviewRequest(item, previewID, this, container));
+void PreviewWindow::requestPreview(RECT rect) {
+    initRequest.Attach(new InitPreviewRequest(item, previewID, this,
+        container ? container : hwnd, rect));
     if (async && initPreviewThread) {
         (*initRequest).AddRef(); // keep alive
         checkLE(PostThreadMessage(GetThreadId(initPreviewThread),
             MSG_INIT_PREVIEW_REQUEST, 0, (LPARAM)&*initRequest));
     } else {
-        initPreview(initRequest);
+        initPreview(initRequest, false);
     }
 }
 
@@ -165,7 +170,7 @@ void PreviewWindow::destroyPreview() {
 void PreviewWindow::refresh() {
     ItemWindow::refresh();
     initRequest->cancel();
-    requestPreview();
+    requestPreview(container ? clientRect(container) : windowBody());
 }
 
 /* IUnknown */
@@ -205,10 +210,11 @@ STDMETHODIMP PreviewWindow::TranslateAccelerator(MSG *msg) {
 
 
 PreviewWindow::InitPreviewRequest::InitPreviewRequest(IShellItem *const item, CLSID previewID,
-        PreviewWindow *const callbackWindow, HWND container)
+        PreviewWindow *const callbackWindow, HWND parent, RECT rect)
         : previewID(previewID),
           callbackWindow(callbackWindow),
-          container(container) {
+          parent(parent),
+          rect(rect) {
     checkHR(SHGetIDListFromObject(item, &itemIDList));
     cancelEvent = checkLE(CreateEvent(nullptr, TRUE, FALSE, nullptr));
 }
@@ -229,7 +235,7 @@ DWORD WINAPI PreviewWindow::initPreviewThreadProc(void *) {
         if (msg.hwnd == nullptr && msg.message == MSG_INIT_PREVIEW_REQUEST) {
             CComPtr<InitPreviewRequest> request;
             request.Attach((InitPreviewRequest *)msg.lParam);
-            initPreview(request);
+            initPreview(request, true);
         } else if (msg.hwnd == nullptr && msg.message == MSG_RELEASE_PREVIEW) {
             CComPtr<IPreviewHandler> preview;
             checkHR(CoGetInterfaceAndReleaseStream((IStream*)msg.lParam, IID_PPV_ARGS(&preview)));
@@ -243,7 +249,7 @@ DWORD WINAPI PreviewWindow::initPreviewThreadProc(void *) {
     return 0;
 }
 
-void PreviewWindow::initPreview(InitPreviewRequest *const request) {
+void PreviewWindow::initPreview(InitPreviewRequest *const request, bool async) {
     CComPtr<IShellItem> item;
     if (!checkHR(SHCreateItemFromIDList(request->itemIDList, IID_PPV_ARGS(&item))))
         return;
@@ -266,9 +272,11 @@ void PreviewWindow::initPreview(InitPreviewRequest *const request) {
             return;
         if (!checkHR(factory->CreateInstance(nullptr, IID_PPV_ARGS(&preview))))
             return;
-        // https://stackoverflow.com/a/5002596/11525734
-        factoryCache[factoryCacheIndex] = {request->previewID, factory};
-        factoryCacheIndex = (factoryCacheIndex + 1) % FACTORY_CACHE_SIZE;
+        if (async) {
+            // https://stackoverflow.com/a/5002596/11525734
+            factoryCache[factoryCacheIndex] = {request->previewID, factory};
+            factoryCacheIndex = (factoryCacheIndex + 1) % FACTORY_CACHE_SIZE;
+        }
     }
 
     if (WaitForSingleObject(request->cancelEvent, 0) == WAIT_OBJECT_0)
@@ -294,7 +302,7 @@ void PreviewWindow::initPreview(InitPreviewRequest *const request) {
         return; // early exit
     }
 
-    checkHR(preview->SetWindow(request->container, tempPtr(clientRect(request->container))));
+    checkHR(preview->SetWindow(request->parent, &request->rect));
 
     AcquireSRWLockExclusive(&request->callbackWindow->previewStreamLock);
     request->callbackWindow->previewStream = previewHandlerStream;
