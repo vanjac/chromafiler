@@ -58,6 +58,8 @@ LRESULT ThumbnailView::handleMessage(UINT message, WPARAM wParam, LPARAM lParam)
             onPaint(paint);
             EndPaint(hwnd, &paint);
             return 0;
+        case WM_NCHITTEST:
+            return HTTRANSPARENT; // allow moving window by dragging anywhere
         case MSG_UPDATE_THUMBNAIL_BITMAP:
             InvalidateRect(hwnd, nullptr, FALSE);
             return 0;
