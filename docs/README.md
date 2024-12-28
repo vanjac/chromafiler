@@ -2,13 +2,13 @@
 
 ChromaFiler is a file manager utility with a unique interface, borrowing ideas from [Spatial file managers](https://en.wikipedia.org/wiki/Spatial_file_manager) and [Miller Column browsers](https://en.wikipedia.org/wiki/Miller_columns) and taking inspiration from the [classic Mac OS](https://en.wikipedia.org/wiki/Classic_Mac_OS) Finder.
 
-<img src="https://user-images.githubusercontent.com/8228102/201300188-1f07c66d-759b-45a9-aa70-34a8fe2a531a.gif" width="706" alt="An animation demonstrating folder navigation using ChromaFiler">
+<img src="demo.gif" width="706" alt="An animation demonstrating folder navigation using ChromaFiler">
 
 It functions similar to a column-view browser, but each column can be broken off into its own window by dragging and dropping. You can use it as a popup menu docked to your taskbar for quickly locating a file, or as a complete replacement for Windows File Explorer (and Notepad). [More about the design](https://github.com/vanjac/chromafiler/wiki/Spatial-Orientation).
 
 ChromaFiler works on Windows 7 through 11.
 
-<img src="https://user-images.githubusercontent.com/8228102/232920671-ad7bc157-02e4-4b22-ba59-9d7c6b10aa69.png" width="420" alt="Sequence of ChromaFiler windows for each version of Windows">
+<img src="screenshot-comparison.png" width="420" alt="Sequence of ChromaFiler windows for each version of Windows">
 
 ## Download
 
