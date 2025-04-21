@@ -29,7 +29,7 @@ VS Code must be launched from the "x64 Native Tools Command Prompt" (or equivale
 ## Suggested pairings
 
 - [Everything](https://www.voidtools.com/) by voidtools (recommend installing with folder context menus)
-- [Microsoft PowerToys](https://github.com/microsoft/PowerToys) (see notes on [preview handlers](https://chroma.zone/chromafiler/wiki/Preview-Handlers.html))
+- [Microsoft PowerToys](https://github.com/microsoft/PowerToys) (see notes on [preview handlers](https://chroma.zone/chromafiler/docs/Preview-Handlers.html))
 
 ## Donate
 
