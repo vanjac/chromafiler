@@ -4,7 +4,7 @@ ChromaFiler is a file manager utility with a unique interface, borrowing ideas f
 
 <img src="demo.gif" width="706" alt="An animation demonstrating folder navigation using ChromaFiler">
 
-It functions similar to a column-view browser, but each column can be broken off into its own window by dragging and dropping. You can use it as a popup menu docked to your taskbar for quickly locating a file, or as a complete replacement for Windows File Explorer (and Notepad). [More about the design](https://github.com/vanjac/chromafiler/wiki/Spatial-Orientation).
+It functions similar to a column-view browser, but each column can be broken off into its own window by dragging and dropping. You can use it as a popup menu docked to your taskbar for quickly locating a file, or as a complete replacement for Windows File Explorer (and Notepad). [More about the design](https://chroma.zone/chromafiler/docs/Spatial-Orientation.html).
 
 ChromaFiler works on Windows 7 through 11.
 
@@ -12,13 +12,13 @@ ChromaFiler works on Windows 7 through 11.
 
 ## Download
 
-**Check the [Releases](https://github.com/vanjac/chromafiler/releases) page for the latest beta release.** See [installation instructions](https://github.com/vanjac/chromafiler/wiki/Installation) for additional information.
+**Check the [Releases](https://github.com/vanjac/chromafiler/releases) page for the latest beta release.** See [installation instructions](https://chroma.zone/chromafiler/docs/Installation.html) for additional information.
 
-ChromaFiler is still in development, so be sure to turn on the [auto update check](https://github.com/vanjac/chromafiler/wiki/Settings#updateabout) feature so you'll be notified of new releases.
+ChromaFiler is still in development, so be sure to turn on the [auto update check](https://chroma.zone/chromafiler/docs/Settings.html#updateabout) feature so you'll be notified of new releases.
 
 ## Tutorial
 
-See the [wiki](https://github.com/vanjac/chromafiler/wiki/Tutorial) for an introduction to the app.
+See the [wiki](https://chroma.zone/chromafiler/docs/Tutorial.html) for an introduction to the app.
 
 ## Building
 
@@ -29,7 +29,7 @@ VS Code must be launched from the "x64 Native Tools Command Prompt" (or equivale
 ## Suggested pairings
 
 - [Everything](https://www.voidtools.com/) by voidtools (recommend installing with folder context menus)
-- [Microsoft PowerToys](https://github.com/microsoft/PowerToys) (see notes on [preview handlers](https://github.com/vanjac/chromafiler/wiki/Preview-Handlers))
+- [Microsoft PowerToys](https://github.com/microsoft/PowerToys) (see notes on [preview handlers](https://chroma.zone/chromafiler/wiki/Preview-Handlers.html))
 
 ## Donate
 
