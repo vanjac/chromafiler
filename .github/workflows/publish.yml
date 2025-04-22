@@ -16,3 +16,4 @@ jobs:
         with:
           token: ${{ secrets.ACTIONS_GITHUB_TOKEN }}
           wiki: docs
+          download: true
