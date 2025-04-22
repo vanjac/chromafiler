@@ -3,6 +3,7 @@ on:
     branches: ["main"]
   workflow_dispatch:
   gollum:
+  release:
 
 concurrency:
   group: "publish"
